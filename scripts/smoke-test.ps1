@@ -246,6 +246,7 @@ Start-Sleep -Milliseconds 400
 Tap-Text "Estudio"
 Start-Sleep -Milliseconds 400
 Assert-Text "3/3"
+Assert-Text "Agregar intereses"
 Tap-Text "Siguiente"
 Assert-Text "Paso 5 de 5"
 

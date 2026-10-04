@@ -1,6 +1,7 @@
 package com.gaply.app.ui.screens.register
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,6 +23,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenuItem
@@ -34,6 +36,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -42,14 +45,16 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.TextButton
+import com.gaply.app.R
 import com.gaply.app.ui.components.GaplyOutlineButton
 import com.gaply.app.ui.components.GaplyPrimaryButton
 import com.gaply.app.ui.components.GaplyTextField
@@ -65,58 +70,66 @@ internal fun StepAccountContent(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
             .padding(horizontal = 24.dp),
     ) {
-        Text(text = "Crea tu cuenta", style = MaterialTheme.typography.headlineSmall)
-        Text(
-            text = "Empieza con tus datos de acceso.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = TextSecondary,
-        )
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState()),
+        ) {
+            Text(text = "Crea tu cuenta", style = MaterialTheme.typography.headlineSmall)
 
-        Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(4.dp))
 
-        GaplyTextField(
-            value = state.username,
-            onValueChange = viewModel::onUsernameChange,
-            label = "Usuario (@username)",
-            errorText = state.usernameError,
-        )
+            Text(
+                text = "Empieza con tus datos de acceso.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = TextSecondary,
+            )
 
-        Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-        GaplyTextField(
-            value = state.email,
-            onValueChange = viewModel::onEmailChange,
-            label = "Correo",
-            errorText = state.emailError,
-            keyboardType = KeyboardType.Email,
-        )
+            GaplyTextField(
+                value = state.username,
+                onValueChange = viewModel::onUsernameChange,
+                label = "Usuario (@username)",
+                errorText = state.usernameError,
+            )
 
-        Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-        GaplyTextField(
-            value = state.password,
-            onValueChange = viewModel::onPasswordChange,
-            label = "Contrase\u00f1a",
-            isPassword = true,
-            errorText = state.passwordError,
-        )
+            GaplyTextField(
+                value = state.email,
+                onValueChange = viewModel::onEmailChange,
+                label = "Correo",
+                errorText = state.emailError,
+                keyboardType = KeyboardType.Email,
+            )
 
-        Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-        GaplyTextField(
-            value = state.confirmPassword,
-            onValueChange = viewModel::onConfirmPasswordChange,
-            label = "Confirmar Contrase\u00f1a",
-            isPassword = true,
-            errorText = state.confirmPasswordError,
-            imeAction = ImeAction.Done,
-            onImeAction = viewModel::onNextStep,
-        )
+            GaplyTextField(
+                value = state.password,
+                onValueChange = viewModel::onPasswordChange,
+                label = "Contraseña",
+                isPassword = true,
+                errorText = state.passwordError,
+            )
 
-        Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(12.dp))
+
+            GaplyTextField(
+                value = state.confirmPassword,
+                onValueChange = viewModel::onConfirmPasswordChange,
+                label = "Confirmar Contraseña",
+                isPassword = true,
+                errorText = state.confirmPasswordError,
+                imeAction = ImeAction.Done,
+                onImeAction = viewModel::onNextStep,
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+        }
 
         GaplyPrimaryButton(
             text = "Siguiente",
@@ -136,91 +149,125 @@ internal fun StepPersonalContent(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 24.dp),
+            .padding(horizontal = 16.dp),
     ) {
-        Text(text = "Informaci\u00f3n personal", style = MaterialTheme.typography.headlineSmall)
-        Text(
-            text = "Cu\u00e9ntanos un poco sobre ti.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = TextSecondary,
-        )
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState()),
+        ) {
+            Text(
+                text = "Información personal",
+                style = MaterialTheme.typography.headlineSmall
+            )
 
-        Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(4.dp))
 
-        GaplyTextField(
-            value = state.firstName,
-            onValueChange = viewModel::onFirstNameChange,
-            label = "Nombres *",
-            errorText = state.firstNameError,
-        )
+            Text(
+                text = "Cuéntanos un poco sobre ti.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = TextSecondary,
+            )
 
-        Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
-        GaplyTextField(
-            value = state.lastName,
-            onValueChange = viewModel::onLastNameChange,
-            label = "Apellidos",
+            GaplyTextField(
+                value = state.firstName,
+                onValueChange = viewModel::onFirstNameChange,
+                label = "Nombre *",
+                errorText = state.firstNameError,
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            GaplyTextField(
+                value = state.lastName,
+                onValueChange = viewModel::onLastNameChange,
+                label = "Apellidos",
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text(
+                text = "Fecha de nacimiento",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(2.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                GaplyDropdown(
+                    label = "Día",
+                    value = state.birthDay,
+                    options = RegisterData.days,
+                    onSelected = viewModel::onBirthDayChange,
+                    errorText = state.birthDateError,
+                    modifier = Modifier.weight(1f),
+                )
+                GaplyDropdown(
+                    label = "Mes",
+                    value = state.birthMonth,
+                    options = RegisterData.months,
+                    onSelected = viewModel::onBirthMonthChange,
+                    modifier = Modifier.weight(1f),
+                )
+                GaplyDropdown(
+                    label = "Año",
+                    value = state.birthYear,
+                    options = RegisterData.years,
+                    onSelected = viewModel::onBirthYearChange,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text(
+                text = "¿Dónde estudias actualmente?",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            GaplyDropdown(
+                label = "Universidad *",
+                value = state.university,
+                options = RegisterData.universities,
+                onSelected = viewModel::onUniversityChange,
+                errorText = state.universityError,
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text(
+                text = "Identidad de género",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+
+            GaplyDropdown(
+                label = "Elige tu género",
+                value = state.gender,
+                options = RegisterData.genders,
+                onSelected = viewModel::onGenderChange,
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+        }
+
+        GaplyPrimaryButton(
+            text = "Siguiente",
+            onClick = viewModel::onNextStep,
+            modifier = Modifier.fillMaxWidth()
         )
 
         Spacer(modifier = Modifier.height(16.dp))
-
-        Text(
-            text = "Fecha de nacimiento",
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            GaplyDropdown(
-                label = "D\u00eda",
-                value = state.birthDay,
-                options = RegisterData.days,
-                onSelected = viewModel::onBirthDayChange,
-                errorText = state.birthDateError,
-                modifier = Modifier.weight(1f),
-            )
-            GaplyDropdown(
-                label = "Mes",
-                value = state.birthMonth,
-                options = RegisterData.months,
-                onSelected = viewModel::onBirthMonthChange,
-                modifier = Modifier.weight(1.3f),
-            )
-            GaplyDropdown(
-                label = "A\u00f1o",
-                value = state.birthYear,
-                options = RegisterData.years,
-                onSelected = viewModel::onBirthYearChange,
-                modifier = Modifier.weight(1f),
-            )
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        GaplyDropdown(
-            label = "Universidad *",
-            value = state.university,
-            options = RegisterData.universities,
-            onSelected = viewModel::onUniversityChange,
-            errorText = state.universityError,
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        GaplyDropdown(
-            label = "Elige tu g\u00e9nero",
-            value = state.gender,
-            options = RegisterData.genders,
-            onSelected = viewModel::onGenderChange,
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        GaplyPrimaryButton(text = "Siguiente", onClick = viewModel::onNextStep)
-
-        Spacer(modifier = Modifier.height(24.dp))
     }
 }
 
@@ -233,39 +280,51 @@ internal fun StepGoalContent(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
             .padding(horizontal = 24.dp),
     ) {
-        Text(text = "\u00bfQu\u00e9 te trae a Gaply?", style = MaterialTheme.typography.headlineSmall)
-        Text(
-            text = "Elige el objetivo que mejor te describa. Podr\u00e1s cambiarlo despu\u00e9s.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = TextSecondary,
-        )
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState()),
+        ) {
+            Text(text = "\u00bfQu\u00e9 te trae a Gaply?", style = MaterialTheme.typography.headlineSmall)
 
-        Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(4.dp))
 
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            RegisterData.goals.chunked(2).forEach { rowGoals ->
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    rowGoals.forEach { goal ->
-                        GoalCard(
-                            goal = goal,
-                            selected = state.goal == goal,
-                            onClick = { viewModel.onGoalChange(goal) },
-                            modifier = Modifier.weight(1f),
-                        )
-                    }
-                    if (rowGoals.size == 1) {
-                        Spacer(modifier = Modifier.weight(1f))
+            Text(
+                text = "Elige el objetivo que mejor te describa. Podr\u00e1s cambiarlo despu\u00e9s.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = TextSecondary,
+            )
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                RegisterData.goals.chunked(2).forEach { rowGoals ->
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        rowGoals.forEach { goal ->
+                            GoalCard(
+                                goal = goal,
+                                selected = state.goal == goal,
+                                onClick = { viewModel.onGoalChange(goal) },
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                        if (rowGoals.size == 1) {
+                            Spacer(modifier = Modifier.weight(1f))
+                        }
                     }
                 }
             }
+
+            Spacer(modifier = Modifier.height(24.dp))
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
-
-        GaplyPrimaryButton(text = "Siguiente", onClick = viewModel::onNextStep)
+        GaplyPrimaryButton(
+            text = "Siguiente",
+            onClick = viewModel::onNextStep,
+            loading = state.isLoading,
+        )
 
         Spacer(modifier = Modifier.height(24.dp))
     }
@@ -332,55 +391,64 @@ internal fun StepInterestsContent(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
             .padding(horizontal = 24.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                text = "Selecciona algunos de tus intereses",
-                style = MaterialTheme.typography.headlineSmall,
-                modifier = Modifier.weight(1f),
-            )
-            Text(
-                text = "${state.selectedInterests.size}/${RegisterData.MAX_INTERESTS}",
-                style = MaterialTheme.typography.titleMedium,
-                color = BrandGreen,
-            )
-        }
-
-        Spacer(modifier = Modifier.height(4.dp))
-
-        Text(
-            text = "Puedes elegir hasta ${RegisterData.MAX_INTERESTS} intereses.",
-            style = MaterialTheme.typography.bodySmall,
-            color = TextSecondary,
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState()),
         ) {
-            (RegisterData.interests + state.extraInterests).forEach { interest ->
-                InterestChip(
-                    label = interest,
-                    selected = state.selectedInterests.contains(interest),
-                    onClick = { viewModel.onToggleInterest(interest) },
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = "Selecciona algunos de tus intereses",
+                    style = MaterialTheme.typography.headlineSmall,
+                    modifier = Modifier.weight(1f),
+                )
+                Text(
+                    text = "${state.selectedInterests.size}/${RegisterData.MAX_INTERESTS}",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = BrandGreen,
                 )
             }
-        }
 
-        Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Text(
+                text = "Puedes elegir hasta ${RegisterData.MAX_INTERESTS} intereses.",
+                style = MaterialTheme.typography.bodySmall,
+                color = TextSecondary,
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                (RegisterData.interests + state.extraInterests).forEach { interest ->
+                    InterestChip(
+                        label = interest,
+                        selected = state.selectedInterests.contains(interest),
+                        onClick = { viewModel.onToggleInterest(interest) },
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+        }
 
         GaplyOutlineButton(
             text = "Agregar intereses",
             onClick = { showExtras = true },
         )
 
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
-        GaplyPrimaryButton(text = "Siguiente", onClick = viewModel::onNextStep)
+        GaplyPrimaryButton(
+            text = "Siguiente",
+            onClick = viewModel::onNextStep,
+            loading = state.isLoading,
+        )
 
         Spacer(modifier = Modifier.height(24.dp))
     }
@@ -403,10 +471,26 @@ private fun InterestChip(
     selected: Boolean,
     onClick: () -> Unit,
 ) {
+    val imageRes = interestImageFor(label)
     FilterChip(
         selected = selected,
         onClick = onClick,
-        label = { Text(label) },
+        label = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (imageRes != null) {
+                    Image(
+                        painter = painterResource(id = imageRes),
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .size(24.dp)
+                            .clip(RoundedCornerShape(6.dp)),
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                }
+                Text(label)
+            }
+        },
         leadingIcon = if (selected) {
             {
                 Icon(
@@ -426,6 +510,19 @@ private fun InterestChip(
     )
 }
 
+private fun interestImageFor(label: String): Int? = when (label) {
+    "Deportes" -> R.drawable.ic_deportes
+    "Música" -> R.drawable.ic_musica
+    "Videojuegos" -> R.drawable.ic_videojuegos
+    "Artes" -> R.drawable.ic_arte
+    "Juegos de mesa" -> R.drawable.ic_juegosmesa
+    "Películas" -> R.drawable.ic_peliculas
+    "Estudio" -> R.drawable.ic_estudio
+    "Eventos" -> R.drawable.ic_eventos
+    "Baile" -> R.drawable.ic_baile
+    else -> null
+}
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun InterestsExtrasDialog(
@@ -440,7 +537,7 @@ private fun InterestsExtrasDialog(
             Column {
                 Text(
                     text = "M\u00e1ximo ${RegisterData.MAX_INTERESTS} intereses en total " +
-                        "(${state.selectedInterests.size}/${RegisterData.MAX_INTERESTS}).",
+                            "(${state.selectedInterests.size}/${RegisterData.MAX_INTERESTS}).",
                     style = MaterialTheme.typography.bodySmall,
                     color = TextSecondary,
                 )
@@ -479,65 +576,70 @@ internal fun StepPhotoContent(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
             .padding(horizontal = 24.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier = Modifier
-                    .size(72.dp)
-                    .background(color = Mint, shape = CircleShape),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = displayName.first().uppercase(),
-                    style = MaterialTheme.typography.titleLarge,
-                    color = BrandGreen,
-                )
-            }
-            Spacer(modifier = Modifier.width(16.dp))
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.weight(1f),
-            ) {
-                GaplyOutlineButton(
-                    text = "Cargar foto",
-                    onClick = viewModel::onShowGalleryInfo,
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState()),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(72.dp)
+                        .background(color = Mint, shape = CircleShape),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = displayName.first().uppercase(),
+                        style = MaterialTheme.typography.titleLarge,
+                        color = BrandGreen,
+                    )
+                }
+                Spacer(modifier = Modifier.width(16.dp))
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                     modifier = Modifier.weight(1f),
-                )
-                GaplyPrimaryButton(
-                    text = "Tomar Foto",
-                    onClick = viewModel::onShowCameraInfo,
-                    modifier = Modifier.weight(1f),
-                )
+                ) {
+                    GaplyOutlineButton(
+                        text = "Cargar foto",
+                        onClick = viewModel::onShowGalleryInfo,
+                        modifier = Modifier.weight(1f),
+                    )
+                    GaplyPrimaryButton(
+                        text = "Tomar Foto",
+                        onClick = viewModel::onShowCameraInfo,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
             }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Text(
+                text = "Hola $displayName",
+                style = MaterialTheme.typography.headlineSmall,
+            )
+            Text(
+                text = "Danos una breve descripci\u00f3n:",
+                style = MaterialTheme.typography.bodyMedium,
+                color = TextSecondary,
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            GaplyTextField(
+                value = state.bio,
+                onValueChange = viewModel::onBioChange,
+                label = "Biograf\u00eda",
+                singleLine = false,
+                minLines = 4,
+                maxLines = 6,
+                imeAction = ImeAction.Default,
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
         }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        Text(
-            text = "Hola $displayName",
-            style = MaterialTheme.typography.headlineSmall,
-        )
-        Text(
-            text = "Danos una breve descripci\u00f3n:",
-            style = MaterialTheme.typography.bodyMedium,
-            color = TextSecondary,
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        GaplyTextField(
-            value = state.bio,
-            onValueChange = viewModel::onBioChange,
-            label = "Biograf\u00eda",
-            singleLine = false,
-            minLines = 4,
-            maxLines = 6,
-            imeAction = ImeAction.Default,
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
 
         GaplyPrimaryButton(
             text = "Guardar perfil",
@@ -547,7 +649,10 @@ internal fun StepPhotoContent(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        GaplyOutlineButton(text = "Siguiente", onClick = viewModel::onNextStep)
+        GaplyOutlineButton(
+            text = "Siguiente",
+            onClick = viewModel::onNextStep
+        )
 
         Spacer(modifier = Modifier.height(24.dp))
     }

@@ -60,15 +60,9 @@ object RegisterData {
     val years = (2010 downTo 1985).map { it.toString() }
 
     val universities = listOf(
+        "Universidad Jorge Tadeo Lozano",
+        "Universidad Central",
         "Universidad de los Andes",
-        "Universidad Javeriana",
-        "Universidad Nacional de Colombia",
-        "Universidad del Tolima",
-        "Universidad Distrital Francisco José de Caldas",
-        "Universidad EAFIT",
-        "Universidad Icesi",
-        "Universidad Santo Tomás",
-        "Universidad Autónoma de Bucaramanga",
         "Otra",
     )
 
