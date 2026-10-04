@@ -1,11 +1,18 @@
 ﻿# Prueba de humo E2E para Gaply (emulador + uiautomator).
 # Uso: powershell -ExecutionPolicy Bypass -File scripts\smoke-test.ps1
-$ErrorActionPreference = "Stop"
+# Continue: los mensajes de stderr de adb (p.ej. "Terminated" cuando el
+# dispositivo esta lento) no deben abortar el script; los fallos reales se
+# lanzan con throw explicito en Assert/Tap/Type.
+$ErrorActionPreference = "Continue"
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 
 $adb = "$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe"
 $apk = Join-Path $PSScriptRoot "..\app\build\outputs\apk\debug\app-debug.apk"
 $pkg = "com.gaply.app"
+
+# Si hay un celular fisico conectado, adb falla con "more than one device".
+# Fijamos el objetivo al emulador.
+$env:ANDROID_SERIAL = "emulator-5554"
 
 # Credenciales unicas por corrida: Firebase Auth persiste en la nube y
 # no se limpia con pm clear.
@@ -121,7 +128,7 @@ function Type-Text([string]$value) {
                     }
                 }
             } catch { }
-            & $adb shell "timeout 10 input text $adbValue" 2>$null | Out-Null
+            & $adb shell "timeout 20 input text $adbValue" 2>$null | Out-Null
             Start-Sleep -Milliseconds 900
             try { $xml = Get-UiXml } catch { continue }
             $focused = Get-FocusedNode $xml
@@ -150,6 +157,10 @@ function Use-Gboard {
 
 Write-Host "== Esperando emulador =="
 Wait-DeviceBoot
+
+# ADBKeyboard se usa para ocultar el teclado antes de cada toque.
+& $adb shell pm enable com.android.adbkeyboard 2>$null | Out-Null
+& $adb shell ime enable com.android.adbkeyboard/.AdbIME 2>$null | Out-Null
 
 Write-Host "== Instalando APK =="
 & $adb install -r $apk | Out-Null
@@ -209,7 +220,7 @@ Tap-Text "Siguiente"
 Assert-Text "Paso 2 de 5"
 
 Write-Host "== 7. Registro paso 2 =="
-Tap-Text "Nombres *"
+Tap-Text "Nombre *"
 Type-Text "Ana"
 Hide-Keyboard
 Tap-Text "Apellidos"
