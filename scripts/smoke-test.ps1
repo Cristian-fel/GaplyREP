@@ -7,6 +7,13 @@ $adb = "$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe"
 $apk = Join-Path $PSScriptRoot "..\app\build\outputs\apk\debug\app-debug.apk"
 $pkg = "com.gaply.app"
 
+# Credenciales unicas por corrida: Firebase Auth persiste en la nube y
+# no se limpia con pm clear.
+$suffix = Get-Date -Format "yyMMddHHmmss"
+$testUser = "ana$suffix"
+$testEmail = "$testUser@gaply.co"
+$testPass = "Secreta12"
+
 function Wait-DeviceBoot {
     & $adb wait-for-device | Out-Null
     $deadline = (Get-Date).AddMinutes(6)
@@ -184,18 +191,18 @@ Assert-Text "Paso 1 de 5"
 
 Write-Host "== 6. Registro paso 1 =="
 Tap-Text "Usuario (@username)"
-Type-Text "ana123"
+Type-Text $testUser
 Hide-Keyboard
-Assert-Text "ana123"
+Assert-Text $testUser
 Tap-Text "Correo"
-Type-Text "ana@gaply.co"
+Type-Text $testEmail
 Hide-Keyboard
-Assert-Text "ana@gaply.co"
+Assert-Text $testEmail
 Tap-Text "Contrase"
-Type-Text "Secreta12"
+Type-Text $testPass
 Hide-Keyboard
 Tap-Text "Confirmar Contrase"
-Type-Text "Secreta12"
+Type-Text $testPass
 Hide-Keyboard
 Tap-Text "Siguiente"
 Assert-Text "Paso 2 de 5"
@@ -255,8 +262,8 @@ Assert-Text "Agenda cultural"
 Write-Host "== 11. Tabs inferiores =="
 Tap-Text "Perfil"
 Assert-Text "Cerrar sesi"
-Assert-Text "@ana123"
-Assert-Text "ana@gaply.co"
+Assert-Text "@$testUser"
+Assert-Text $testEmail
 
 Write-Host "== 12. Cerrar sesion =="
 Tap-Text "Cerrar sesi"
@@ -266,10 +273,10 @@ Write-Host "== 13. Login con la cuenta creada =="
 Tap-Text "Inicia"
 Assert-Text "Usuario"
 Tap-Text "Usuario"
-Type-Text "ana123"
+Type-Text $testUser
 Hide-Keyboard
 Tap-Text "Contrase"
-Type-Text "Secreta12"
+Type-Text $testPass
 Hide-Keyboard
 Tap-Text "Ingresar"
 Assert-Text "Bienvenido"

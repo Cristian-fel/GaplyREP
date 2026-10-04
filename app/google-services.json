@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "226445662442",
+    "project_id": "gaply-ccb85",
+    "storage_bucket": "gaply-ccb85.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:226445662442:android:5175209ddcba28393e1f93",
+        "android_client_info": {
+          "package_name": "com.gaply.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC4aVAeDp0Lt6_G9FYeW7_hoktOmYKOwX0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:226445662442:android:abe017aa70dac1ee3e1f93",
+        "android_client_info": {
+          "package_name": "com.grupo.gaply"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC4aVAeDp0Lt6_G9FYeW7_hoktOmYKOwX0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
