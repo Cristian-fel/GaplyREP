@@ -13,6 +13,7 @@ $suffix = Get-Date -Format "yyMMddHHmmss"
 $testUser = "ana$suffix"
 $testEmail = "$testUser@gaply.co"
 $testPass = "Secreta12"
+$missingUser = "noexiste$suffix"
 
 function Wait-DeviceBoot {
     & $adb wait-for-device | Out-Null
@@ -174,9 +175,9 @@ Write-Host "== 3. Validacion de campos vacios =="
 Tap-Text "Ingresar"
 Assert-Text "Este campo es obligatorio"
 
-Write-Host "== 4. Credenciales incorrectas =="
+Write-Host "== 4. Usuario inexistente (username) =="
 Tap-Text "Usuario"
-Type-Text "demo@gaply.co"
+Type-Text $missingUser
 Hide-Keyboard
 Tap-Text "Contrase"
 Type-Text "123456"
@@ -269,12 +270,19 @@ Write-Host "== 12. Cerrar sesion =="
 Tap-Text "Cerrar sesi"
 Assert-Text "Inicia Sesi"
 
-Write-Host "== 13. Login con la cuenta creada =="
+Write-Host "== 13. Login con password incorrecta =="
 Tap-Text "Inicia"
 Assert-Text "Usuario"
 Tap-Text "Usuario"
 Type-Text $testUser
 Hide-Keyboard
+Tap-Text "Contrase"
+Type-Text "PasswordErronea1"
+Hide-Keyboard
+Tap-Text "Ingresar"
+Assert-Text "Usuario o contrase"
+
+Write-Host "== 14. Login correcto con la cuenta creada =="
 Tap-Text "Contrase"
 Type-Text $testPass
 Hide-Keyboard
