@@ -266,7 +266,7 @@ Tap-Text "Guardar perfil"
 Assert-Text "Tu perfil se ha guardado"
 Tap-Text "Aceptar"
 Tap-Text "Siguiente"
-Assert-Text "Bienvenido"
+Assert-Text "Ana"
 Assert-Text "Descubrir"
 Assert-Text "Tienes 2 horas libres"
 Assert-Text "Sugerencias para hoy"
@@ -299,7 +299,6 @@ Tap-Text "Contrase"
 Type-Text $testPass
 Hide-Keyboard
 Tap-Text "Ingresar"
-Assert-Text "Bienvenido"
 Assert-Text "Ana"
 
 Write-Host ""

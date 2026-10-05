@@ -1,5 +1,6 @@
 package com.gaply.app.data.repository
 
+import android.net.Uri
 import com.gaply.app.data.local.LocalUserStore
 import com.gaply.app.domain.model.RepoResult
 import com.gaply.app.domain.model.User
@@ -23,6 +24,9 @@ class LocalUserRepository(
         store.saveUsers(users)
         return RepoResult.Success(user)
     }
+
+    override suspend fun uploadProfilePhoto(localUri: Uri): RepoResult<String> =
+        RepoResult.Success(localUri.toString())
 
     override fun getProfile(): User? = store.currentUser.value
 }

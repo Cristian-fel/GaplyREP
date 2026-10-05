@@ -335,6 +335,15 @@ class RegisterViewModel(
                 ""
             }
 
+            var photoUrl = user.profilePictureUrl
+            val localPhotoUri = state.profileImageUri
+            if (localPhotoUri != null) {
+                when (val uploadResult = userRepository.uploadProfilePhoto(localPhotoUri)) {
+                    is RepoResult.Success -> photoUrl = uploadResult.data
+                    is RepoResult.Error -> Unit // la foto es opcional: el perfil se guarda sin ella
+                }
+            }
+
             val completeUser = user.copy(
                 firstName = state.firstName.trim(),
                 lastName = state.lastName.trim(),
@@ -344,6 +353,7 @@ class RegisterViewModel(
                 goal = state.goal,
                 interests = state.selectedInterests,
                 bio = state.bio.trim(),
+                profilePictureUrl = photoUrl,
             )
 
             when (val saveResult = userRepository.saveProfile(completeUser)) {

@@ -56,10 +56,12 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import coil.compose.AsyncImage
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
@@ -258,15 +260,26 @@ private fun DiscoverTab(
             Box(
                 modifier = Modifier
                     .size(40.dp)
-                    .background(color = BrandGreen, shape = CircleShape),
+                    .background(color = BrandGreen, shape = CircleShape)
+                    .clip(CircleShape),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(
-                    imageVector = Icons.Filled.Person,
-                    contentDescription = "Perfil",
-                    tint = Color.White,
-                    modifier = Modifier.size(24.dp),
-                )
+                val avatarUrl = state.user?.profilePictureUrl.orEmpty()
+                if (avatarUrl.isNotBlank()) {
+                    AsyncImage(
+                        model = avatarUrl,
+                        contentDescription = "Foto de perfil",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Filled.Person,
+                        contentDescription = "Perfil",
+                        tint = Color.White,
+                        modifier = Modifier.size(24.dp),
+                    )
+                }
             }
             Spacer(modifier = Modifier.width(12.dp))
             Text(
@@ -581,14 +594,25 @@ private fun ProfileTab(
         Box(
             modifier = Modifier
                 .size(84.dp)
-                .background(color = Mint, shape = CircleShape),
+                .background(color = Mint, shape = CircleShape)
+                .clip(CircleShape),
             contentAlignment = Alignment.Center,
         ) {
-            Text(
-                text = displayName.first().uppercase(),
-                style = MaterialTheme.typography.headlineMedium,
-                color = BrandGreen,
-            )
+            val avatarUrl = user?.profilePictureUrl.orEmpty()
+            if (avatarUrl.isNotBlank()) {
+                AsyncImage(
+                    model = avatarUrl,
+                    contentDescription = "Foto de perfil",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            } else {
+                Text(
+                    text = displayName.first().uppercase(),
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = BrandGreen,
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(12.dp))
