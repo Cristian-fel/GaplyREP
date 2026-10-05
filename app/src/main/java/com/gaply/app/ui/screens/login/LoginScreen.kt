@@ -31,6 +31,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -69,18 +70,18 @@ fun LoginScreen(
 
     Box(modifier = Modifier.fillMaxSize()) {
 
-        // --- Imagen de fondo desvanecida ---
+        // Imagen de fondo posicionada desde abajo hacia el fondo del botón
         Image(
             painter = painterResource(id = R.drawable.bg_building_bottom),
             contentDescription = null,
+            contentScale = ContentScale.FillWidth,
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.BottomCenter)
-                .alpha(0.12f)
-                .offset(y = 20.dp)
+                .alpha(0.08f)
+                .offset(y = 100.dp)
         )
 
-        // --- Contenido principal ---
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -88,7 +89,7 @@ fun LoginScreen(
                 .imePadding()
                 .padding(horizontal = 24.dp, vertical = 16.dp),
         ) {
-            // 1. Sección superior deslizable (weight 1f toma todo el espacio disponible arriba)
+            // Sección deslizable
             Column(
                 modifier = Modifier
                     .weight(1f)
@@ -153,11 +154,10 @@ fun LoginScreen(
                         .clickable { onForgotPassword(state.identifier) },
                 )
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(32.dp))
 
-                // Checkbox de marketing bien posicionado antes del botón de login
                 Row(
-                    verticalAlignment = Alignment.CenterVertically,
+                    verticalAlignment = Alignment.Top,
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -170,25 +170,18 @@ fun LoginScreen(
                         text = "Si no deseas recibir comunicaciones de marketing sobre nuestros productos y servicios, marca esta casilla.",
                         style = MaterialTheme.typography.bodySmall,
                         color = TextSecondary,
+                        modifier = Modifier.padding(top = 8.dp)
                     )
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(24.dp))
             }
 
-            // 2. Sección inferior fijada en el fondo de la pantalla
+            // Sección inferior fija (Registro + Botón)
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                GaplyPrimaryButton(
-                    text = "Ingresar",
-                    onClick = viewModel::onLogin,
-                    loading = state.isLoading,
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.Center,
@@ -206,6 +199,14 @@ fun LoginScreen(
                         modifier = Modifier.clickable(onClick = onRegister),
                     )
                 }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                GaplyPrimaryButton(
+                    text = "Ingresar",
+                    onClick = viewModel::onLogin,
+                    loading = state.isLoading,
+                )
 
                 Spacer(modifier = Modifier.height(12.dp))
             }

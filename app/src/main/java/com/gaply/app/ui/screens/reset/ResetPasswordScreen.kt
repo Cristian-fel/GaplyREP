@@ -3,6 +3,7 @@ package com.gaply.app.ui.screens.reset
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -26,8 +27,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -57,76 +60,94 @@ fun ResetPasswordScreen(
         }
     }
 
-    // Box para poder poner la imagen desvanecida DETRÁS del contenido,
-    // anclada abajo, igual que en el Figma.
     Box(modifier = Modifier.fillMaxSize()) {
 
-        // --- Imagen de fondo (el edificio) ---
+        // Imagen de fondo colocada bien abajo (offset desplaza la base para que quede tras el botón)
         Image(
             painter = painterResource(id = R.drawable.bg_building_bottom),
-            contentDescription = null, // decorativa, no necesita descripción
+            contentDescription = null,
+            contentScale = ContentScale.FillWidth,
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.BottomCenter)
-                .alpha(0.10f)
-                .offset(y = 245.dp),
+                .alpha(0.08f)
+                .offset(y = 120.dp)
         )
 
-        // --- Contenido real de la pantalla, por encima de la imagen ---
+        // Contenido interactivo por encima de la imagen
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
                 .systemBarsPadding()
                 .imePadding()
                 .padding(horizontal = 24.dp, vertical = 16.dp),
         ) {
-            androidx.compose.foundation.layout.Row(
-                verticalAlignment = Alignment.CenterVertically,
+            // Contenido superior
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState()),
             ) {
-                IconButton(onClick = onBack) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Volver",
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Volver",
+                        )
+                    }
+                    Text(
+                        text = "Recuperar contraseña",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
                     )
                 }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
                 Text(
-                    text = "Recuperar contraseña",
-                    style = MaterialTheme.typography.titleLarge,
+                    text = "Recupera tu contraseña",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
                 )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Text(
+                    text = "Ingresa tu correo electrónico y te enviaremos un enlace para crear una nueva contraseña.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = TextSecondary,
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                GaplyTextField(
+                    value = state.email,
+                    onValueChange = viewModel::onEmailChange,
+                    label = "Correo electrónico",
+                    keyboardType = KeyboardType.Email,
+                    imeAction = ImeAction.Done,
+                    onImeAction = viewModel::onSendEmail,
+                    errorText = state.emailError,
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            // Botón anclado abajo
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                GaplyPrimaryButton(
+                    text = "Enviar Correo",
+                    onClick = viewModel::onSendEmail,
+                    loading = state.isLoading,
+                )
 
-            Text(
-                text = "Recupera tu contraseña",
-                style = MaterialTheme.typography.headlineSmall,
-            )
-            Text(
-                text = "Ingresa tu correo electrónico y te enviaremos un enlace para crear una nueva contraseña.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = TextSecondary,
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            GaplyTextField(
-                value = state.email,
-                onValueChange = viewModel::onEmailChange,
-                label = "Correo electrónico",
-                keyboardType = KeyboardType.Email,
-                imeAction = ImeAction.Done,
-                onImeAction = viewModel::onSendEmail,
-                errorText = state.emailError,
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            GaplyPrimaryButton(
-                text = "Enviar Correo",
-                onClick = viewModel::onSendEmail,
-                loading = state.isLoading,
-            )
+                Spacer(modifier = Modifier.height(12.dp))
+            }
         }
     }
 
