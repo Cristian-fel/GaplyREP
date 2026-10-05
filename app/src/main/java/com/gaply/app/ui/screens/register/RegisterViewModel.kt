@@ -1,5 +1,6 @@
 package com.gaply.app.ui.screens.register
 
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -43,6 +44,7 @@ data class RegisterUiState(
     val isLoading: Boolean = false,
     val dialog: RegisterDialog? = null,
     val finishAndGoHome: Boolean = false,
+    val profileImageUri: Uri? = null,
 )
 
 enum class RegisterDialog { SAVED_PROFILE, GALLERY_INFO, CAMERA_INFO, ERROR_SAVE, ERROR_CONNECTION }
@@ -127,6 +129,10 @@ class RegisterViewModel(
     fun onGoalChange(value: String) = _uiState.update { it.copy(goal = value) }
 
     fun onBioChange(value: String) = _uiState.update { it.copy(bio = value) }
+
+    fun onProfileImageSelected(uri: Uri?) {
+        _uiState.update { it.copy(profileImageUri = uri) }
+    }
 
     fun onToggleInterest(interest: String) {
         _uiState.update { state ->

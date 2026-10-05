@@ -1,8 +1,12 @@
 package com.gaply.app.ui.screens.register
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,7 +19,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -46,7 +49,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -54,6 +60,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.FileProvider
+import coil.compose.AsyncImage
 import com.gaply.app.R
 import com.gaply.app.ui.components.GaplyOutlineButton
 import com.gaply.app.ui.components.GaplyPrimaryButton
@@ -61,6 +69,11 @@ import com.gaply.app.ui.components.GaplyTextField
 import com.gaply.app.ui.theme.BrandGreen
 import com.gaply.app.ui.theme.Mint
 import com.gaply.app.ui.theme.TextSecondary
+import java.io.File
+
+// ===================================================================
+// PASO 1: CUENTA
+// ===================================================================
 
 @Composable
 internal fun StepAccountContent(
@@ -140,6 +153,10 @@ internal fun StepAccountContent(
         Spacer(modifier = Modifier.height(24.dp))
     }
 }
+
+// ===================================================================
+// PASO 2: INFORMACIÓN PERSONAL
+// ===================================================================
 
 @Composable
 internal fun StepPersonalContent(
@@ -271,7 +288,10 @@ internal fun StepPersonalContent(
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
+// ===================================================================
+// PASO 3: OBJETIVO
+// ===================================================================
+
 @Composable
 internal fun StepGoalContent(
     state: RegisterUiState,
@@ -287,12 +307,12 @@ internal fun StepGoalContent(
                 .weight(1f)
                 .verticalScroll(rememberScrollState()),
         ) {
-            Text(text = "\u00bfQu\u00e9 te trae a Gaply?", style = MaterialTheme.typography.headlineSmall)
+            Text(text = "¿Qué te trae a Gaply?", style = MaterialTheme.typography.headlineSmall)
 
             Spacer(modifier = Modifier.height(4.dp))
 
             Text(
-                text = "Elige el objetivo que mejor te describa. Podr\u00e1s cambiarlo despu\u00e9s.",
+                text = "Elige el objetivo que mejor te describa. Podrás cambiarlo después.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = TextSecondary,
             )
@@ -380,6 +400,10 @@ private fun GoalCard(
     }
 }
 
+// ===================================================================
+// PASO 4: INTERESES
+// ===================================================================
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun StepInterestsContent(
@@ -408,6 +432,7 @@ internal fun StepInterestsContent(
                     text = "${state.selectedInterests.size}/${RegisterData.MAX_INTERESTS}",
                     style = MaterialTheme.typography.titleMedium,
                     color = BrandGreen,
+                    fontWeight = FontWeight.Bold,
                 )
             }
 
@@ -419,18 +444,27 @@ internal fun StepInterestsContent(
                 color = TextSecondary,
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                (RegisterData.interests + state.extraInterests).forEach { interest ->
-                    InterestChip(
-                        label = interest,
-                        selected = state.selectedInterests.contains(interest),
-                        onClick = { viewModel.onToggleInterest(interest) },
-                    )
+            val allInterests = RegisterData.interests + state.extraInterests
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                allInterests.chunked(3).forEach { rowInterests ->
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        rowInterests.forEach { interest ->
+                            InterestCard(
+                                label = interest,
+                                selected = state.selectedInterests.contains(interest),
+                                onClick = { viewModel.onToggleInterest(interest) },
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                        repeat(3 - rowInterests.size) {
+                            Spacer(modifier = Modifier.weight(1f))
+                        }
+                    }
                 }
             }
 
@@ -466,61 +500,95 @@ internal fun StepInterestsContent(
 }
 
 @Composable
-private fun InterestChip(
+private fun InterestCard(
     label: String,
     selected: Boolean,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val imageRes = interestImageFor(label)
-    FilterChip(
-        selected = selected,
+
+    Card(
         onClick = onClick,
-        label = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                if (imageRes != null) {
-                    Image(
-                        painter = painterResource(id = imageRes),
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .size(24.dp)
-                            .clip(RoundedCornerShape(6.dp)),
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                }
-                Text(label)
-            }
-        },
-        leadingIcon = if (selected) {
-            {
-                Icon(
-                    imageVector = Icons.Filled.Check,
-                    contentDescription = null,
-                    modifier = Modifier.size(FilterChipDefaults.IconSize),
+        modifier = modifier
+            .height(110.dp)
+            .then(
+                if (selected) {
+                    Modifier.border(2.5.dp, BrandGreen, RoundedCornerShape(16.dp))
+                } else Modifier
+            ),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+    ) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            if (imageRes != null) {
+                Image(
+                    painter = painterResource(id = imageRes),
+                    contentDescription = label,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize(),
                 )
             }
-        } else {
-            null
-        },
-        colors = FilterChipDefaults.filterChipColors(
-            selectedContainerColor = Mint,
-            selectedLabelColor = BrandGreen,
-            selectedLeadingIconColor = BrandGreen,
-        ),
-    )
+
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color.Transparent,
+                                Color.Black.copy(alpha = 0.75f)
+                            ),
+                            startY = 60f
+                        )
+                    )
+            )
+
+            if (selected) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(8.dp)
+                        .size(22.dp)
+                        .background(Color.White, CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Check,
+                        contentDescription = null,
+                        tint = BrandGreen,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
+
+            Text(
+                text = label,
+                color = Color.White,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(8.dp)
+            )
+        }
+    }
 }
 
-private fun interestImageFor(label: String): Int? = when (label) {
-    "Deportes" -> R.drawable.ic_deportes
-    "Música" -> R.drawable.ic_musica
-    "Videojuegos" -> R.drawable.ic_videojuegos
-    "Artes" -> R.drawable.ic_arte
-    "Juegos de mesa" -> R.drawable.ic_juegosmesa
-    "Películas" -> R.drawable.ic_peliculas
-    "Estudio" -> R.drawable.ic_estudio
-    "Eventos" -> R.drawable.ic_eventos
-    "Baile" -> R.drawable.ic_baile
-    else -> null
+private fun interestImageFor(label: String): Int? {
+    val cleanLabel = label.lowercase().trim()
+    return when {
+        cleanLabel.contains("deporte") -> R.drawable.ic_deportes
+        cleanLabel.contains("música") || cleanLabel.contains("musica") -> R.drawable.ic_musica
+        cleanLabel.contains("videojuego") || cleanLabel.contains("video juegos") -> R.drawable.ic_videojuegos
+        cleanLabel.contains("arte") -> R.drawable.ic_arte
+        cleanLabel.contains("mesa") -> R.drawable.ic_juegosmesa
+        cleanLabel.contains("película") || cleanLabel.contains("pelicula") -> R.drawable.ic_peliculas
+        cleanLabel.contains("estudio") -> R.drawable.ic_estudio
+        cleanLabel.contains("evento") -> R.drawable.ic_eventos
+        cleanLabel.contains("baile") -> R.drawable.ic_baile
+        else -> null
+    }
 }
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -536,7 +604,7 @@ private fun InterestsExtrasDialog(
         text = {
             Column {
                 Text(
-                    text = "M\u00e1ximo ${RegisterData.MAX_INTERESTS} intereses en total " +
+                    text = "Máximo ${RegisterData.MAX_INTERESTS} intereses en total " +
                             "(${state.selectedInterests.size}/${RegisterData.MAX_INTERESTS}).",
                     style = MaterialTheme.typography.bodySmall,
                     color = TextSecondary,
@@ -547,10 +615,14 @@ private fun InterestsExtrasDialog(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     RegisterData.extraOptions.forEach { option ->
-                        InterestChip(
-                            label = option,
+                        FilterChip(
                             selected = state.selectedInterests.contains(option),
                             onClick = { viewModel.onToggleInterest(option) },
+                            label = { Text(option) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = Mint,
+                                selectedLabelColor = BrandGreen,
+                            )
                         )
                     }
                 }
@@ -564,99 +636,223 @@ private fun InterestsExtrasDialog(
     )
 }
 
+// ===================================================================
+// PASO 5: FOTO Y BIOGRAFÍA
+// ===================================================================
+
 @Composable
 internal fun StepPhotoContent(
     state: RegisterUiState,
     viewModel: RegisterViewModel,
 ) {
+    val context = LocalContext.current
     val displayName = state.firstName.trim().ifBlank {
         state.username.trim().ifBlank { "Gaply" }
     }
 
+    // Launchers para Galería y Cámara
+    val galleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let { viewModel.onProfileImageSelected(it) }
+    }
+
+    var tempCameraUri by remember { mutableStateOf<Uri?>(null) }
+
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture()
+    ) { success ->
+        if (success && tempCameraUri != null) {
+            viewModel.onProfileImageSelected(tempCameraUri)
+        }
+    }
+
+    val launchCamera = {
+        val tempFile = File.createTempFile("profile_temp_", ".jpg", context.cacheDir).apply {
+            createNewFile()
+            deleteOnExit()
+        }
+        val uri = FileProvider.getUriForFile(
+            context,
+            "${context.packageName}.provider",
+            tempFile
+        )
+        tempCameraUri = uri
+        cameraLauncher.launch(uri)
+    }
+
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 24.dp),
+        modifier = Modifier.fillMaxSize(),
     ) {
         Column(
             modifier = Modifier
                 .weight(1f)
                 .verticalScroll(rememberScrollState()),
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            // Header superior extendido con gradiente de contraste
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(210.dp)
+            ) {
+                // Imagen ic_uniarriba desde el borde superior
+                Image(
+                    painter = painterResource(id = R.drawable.ic_uniarriba),
+                    contentDescription = "Header Universidad",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(170.dp)
+                        .clip(RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp))
+                )
+
+                // Capa de degradado semi-transparente para mayor opacidad/contraste
                 Box(
                     modifier = Modifier
-                        .size(72.dp)
-                        .background(color = Mint, shape = CircleShape),
-                    contentAlignment = Alignment.Center,
+                        .fillMaxWidth()
+                        .height(170.dp)
+                        .clip(RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp))
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(
+                                    Color.Black.copy(alpha = 0.25f),
+                                    Color.Black.copy(alpha = 0.55f)
+                                )
+                            )
+                        )
+                )
+
+                // Tarjeta flotante con vista previa del avatar y botones de acción
+                Card(
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = Mint.copy(alpha = 0.92f)
+                    ),
+                    border = BorderStroke(1.dp, BrandGreen.copy(alpha = 0.3f)),
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(horizontal = 24.dp)
                 ) {
-                    Text(
-                        text = displayName.first().uppercase(),
-                        style = MaterialTheme.typography.titleLarge,
-                        color = BrandGreen,
-                    )
-                }
-                Spacer(modifier = Modifier.width(16.dp))
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.weight(1f),
-                ) {
-                    GaplyOutlineButton(
-                        text = "Cargar foto",
-                        onClick = viewModel::onShowGalleryInfo,
-                        modifier = Modifier.weight(1f),
-                    )
-                    GaplyPrimaryButton(
-                        text = "Tomar Foto",
-                        onClick = viewModel::onShowCameraInfo,
-                        modifier = Modifier.weight(1f),
-                    )
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.padding(14.dp)
+                    ) {
+                        // Vista Previa de la Foto de Perfil
+                        Box(
+                            modifier = Modifier
+                                .size(72.dp)
+                                .background(color = Color.White, shape = CircleShape)
+                                .border(2.5.dp, BrandGreen, CircleShape)
+                                .clip(CircleShape),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            if (state.profileImageUri != null) {
+                                AsyncImage(
+                                    model = state.profileImageUri,
+                                    contentDescription = "Vista previa de foto de perfil",
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            } else {
+                                Text(
+                                    text = displayName.firstOrNull()?.uppercase() ?: "G",
+                                    style = MaterialTheme.typography.titleLarge,
+                                    color = BrandGreen,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        // Botones Cargar / Tomar foto
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            GaplyOutlineButton(
+                                text = "Cargar foto",
+                                onClick = { galleryLauncher.launch("image/*") },
+                                modifier = Modifier.weight(1f)
+                            )
+                            GaplyPrimaryButton(
+                                text = "Tomar Foto",
+                                onClick = { launchCamera() },
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
                 }
             }
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            Text(
-                text = "Hola $displayName",
-                style = MaterialTheme.typography.headlineSmall,
-            )
-            Text(
-                text = "Danos una breve descripci\u00f3n:",
-                style = MaterialTheme.typography.bodyMedium,
-                color = TextSecondary,
-            )
+            // Sección de saludo y descripción
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "Hola $displayName",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center
+                )
 
-            Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(4.dp))
 
-            GaplyTextField(
-                value = state.bio,
-                onValueChange = viewModel::onBioChange,
-                label = "Biograf\u00eda",
-                singleLine = false,
-                minLines = 4,
-                maxLines = 6,
-                imeAction = ImeAction.Default,
-            )
+                Text(
+                    text = "Danos una breve descripción:",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = TextSecondary,
+                    textAlign = TextAlign.Center
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                GaplyTextField(
+                    value = state.bio,
+                    onValueChange = viewModel::onBioChange,
+                    label = "Biografía",
+                    singleLine = false,
+                    minLines = 4,
+                    maxLines = 6,
+                    imeAction = ImeAction.Default,
+                )
+            }
 
             Spacer(modifier = Modifier.height(24.dp))
         }
 
-        GaplyPrimaryButton(
-            text = "Guardar perfil",
-            onClick = viewModel::onSaveProfile,
-            loading = state.isLoading,
-        )
+        // Botones inferiores de guardado y navegación
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+        ) {
+            GaplyPrimaryButton(
+                text = "Guardar perfil",
+                onClick = viewModel::onSaveProfile,
+                loading = state.isLoading,
+            )
 
-        Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-        GaplyOutlineButton(
-            text = "Siguiente",
-            onClick = viewModel::onNextStep
-        )
+            GaplyOutlineButton(
+                text = "Siguiente",
+                onClick = viewModel::onNextStep
+            )
 
-        Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(24.dp))
+        }
     }
 }
+
+// ===================================================================
+// COMPONENTE AUXILIAR DROPDOWN
+// ===================================================================
 
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
