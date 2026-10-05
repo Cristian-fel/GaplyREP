@@ -97,7 +97,15 @@ class LoginViewModel(
             passwordError = if (password.isBlank()) "Este campo es obligatorio" else null,
         )
 
-        RepoError.WRONG_CREDENTIALS -> copy(credentialsError = "Usuario o contraseña son incorrectos")
+        // CAMBIO: ahora también marcamos los campos en rojo (con un espacio en
+        // blanco, para no duplicar el mensaje de texto) cuando el usuario o la
+        // contraseña son incorrectos, igual que en el Figma.
+        RepoError.WRONG_CREDENTIALS -> copy(
+            identifierError = " ",
+            passwordError = " ",
+            credentialsError = "Usuario o contraseña son incorrectos",
+        )
+
         RepoError.USER_NOT_FOUND -> copy(dialog = LoginDialog.USER_NOT_FOUND)
         RepoError.CONNECTION -> copy(dialog = LoginDialog.CONNECTION)
         else -> copy(credentialsError = "Usuario o contraseña son incorrectos")

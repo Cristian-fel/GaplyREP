@@ -1,11 +1,14 @@
 package com.gaply.app.ui.screens.reset
 
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.rememberScrollState
@@ -22,9 +25,13 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.gaply.app.R
 import com.gaply.app.di.appContainer
 import com.gaply.app.ui.components.AppDialog
 import com.gaply.app.ui.components.DialogStyle
@@ -50,84 +57,91 @@ fun ResetPasswordScreen(
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .systemBarsPadding()
-            .imePadding()
-            .padding(horizontal = 24.dp, vertical = 16.dp),
-    ) {
-        androidx.compose.foundation.layout.Row(
-            verticalAlignment = Alignment.CenterVertically,
+    // Box para poder poner la imagen desvanecida DETRÁS del contenido,
+    // anclada abajo, igual que en el Figma.
+    Box(modifier = Modifier.fillMaxSize()) {
+
+        // --- Imagen de fondo (el edificio) ---
+        Image(
+            painter = painterResource(id = R.drawable.bg_building_bottom),
+            contentDescription = null, // decorativa, no necesita descripción
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.BottomCenter)
+                .alpha(0.10f)
+                .offset(y = 245.dp),
+        )
+
+        // --- Contenido real de la pantalla, por encima de la imagen ---
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .systemBarsPadding()
+                .imePadding()
+                .padding(horizontal = 24.dp, vertical = 16.dp),
         ) {
-            IconButton(onClick = onBack) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Volver",
+            androidx.compose.foundation.layout.Row(
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                IconButton(onClick = onBack) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Volver",
+                    )
+                }
+                Text(
+                    text = "Recuperar contraseña",
+                    style = MaterialTheme.typography.titleLarge,
                 )
             }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
             Text(
-                text = "Recuperar contraseña",
-                style = MaterialTheme.typography.titleLarge,
+                text = "Recupera tu contraseña",
+                style = MaterialTheme.typography.headlineSmall,
+            )
+            Text(
+                text = "Ingresa tu correo electrónico y te enviaremos un enlace para crear una nueva contraseña.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = TextSecondary,
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            GaplyTextField(
+                value = state.email,
+                onValueChange = viewModel::onEmailChange,
+                label = "Correo electrónico",
+                keyboardType = KeyboardType.Email,
+                imeAction = ImeAction.Done,
+                onImeAction = viewModel::onSendEmail,
+                errorText = state.emailError,
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            GaplyPrimaryButton(
+                text = "Enviar Correo",
+                onClick = viewModel::onSendEmail,
+                loading = state.isLoading,
             )
         }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        Text(
-            text = "Crea una nueva contraseña",
-            style = MaterialTheme.typography.headlineSmall,
-        )
-        Text(
-            text = "Ingresa y confirma tu nueva contraseña para volver a iniciar sesión.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = TextSecondary,
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        GaplyTextField(
-            value = state.newPassword,
-            onValueChange = viewModel::onNewPasswordChange,
-            label = "Nueva Contraseña",
-            isPassword = true,
-            errorText = state.newPasswordError,
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        GaplyTextField(
-            value = state.confirmPassword,
-            onValueChange = viewModel::onConfirmPasswordChange,
-            label = "Confirmar Contraseña",
-            isPassword = true,
-            errorText = state.confirmPasswordError,
-            imeAction = ImeAction.Done,
-            onImeAction = viewModel::onSavePassword,
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        GaplyPrimaryButton(
-            text = "Guardar Contraseña",
-            onClick = viewModel::onSavePassword,
-            loading = state.isLoading,
-        )
     }
 
     when (state.dialog) {
         ResetDialog.SUCCESS -> AppDialog(
             style = DialogStyle.SUCCESS,
-            title = "¡Contraseña actualizada!",
-            message = "¡Contraseña actualizada! Tu contraseña se ha cambiado con éxito. Ya puedes iniciar sesión con tus nuevos datos.",
+            title = "¡Correo enviado!",
+            message = "Hemos enviado un enlace a tu correo para que crees una nueva contraseña. Revisa tu bandeja de entrada.",
             onDismiss = viewModel::consumeDialog,
         )
 
         ResetDialog.ERROR -> AppDialog(
             style = DialogStyle.ERROR,
-            title = "¡Error al guardar su contraseña!",
-            message = "¡Error al guardar su contraseña! Disculpa, inténtalo más tarde.",
+            title = "No pudimos enviar el correo",
+            message = "Verifica tu correo o tu conexión e inténtalo más tarde.",
             onDismiss = viewModel::consumeDialog,
         )
 

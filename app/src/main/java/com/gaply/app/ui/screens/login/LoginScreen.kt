@@ -1,7 +1,9 @@
 package com.gaply.app.ui.screens.login
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -9,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.rememberScrollState
@@ -27,10 +30,13 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.gaply.app.R
 import com.gaply.app.di.appContainer
 import com.gaply.app.ui.components.AppDialog
 import com.gaply.app.ui.components.DialogStyle
@@ -38,6 +44,8 @@ import com.gaply.app.ui.components.GaplyPrimaryButton
 import com.gaply.app.ui.components.GaplyTextField
 import com.gaply.app.ui.theme.ErrorRed
 import com.gaply.app.ui.theme.TextSecondary
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.graphicsLayer
 
 @Composable
 fun LoginScreen(
@@ -59,125 +67,140 @@ fun LoginScreen(
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .systemBarsPadding()
-            .imePadding()
-            .padding(horizontal = 24.dp, vertical = 16.dp),
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+    // Box para poder poner la imagen desvanecida DETRÁS del contenido,
+    // anclada abajo, igual que en el Figma.
+    Box(modifier = Modifier.fillMaxSize()) {
+
+        // --- Imagen de fondo desvanecida (el edificio) ---
+        Image(
+            painter = painterResource(id = R.drawable.bg_building_bottom),
+            contentDescription = null, // decorativa, no necesita descripción
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.BottomCenter)
+                .alpha(0.10f) // ajusta este valor (0f a 1f) según qué tan "desvanecida" la quieras
+                .offset(y = 245.dp),   // súbelo o bájalo hasta que toque el borde
+
+        )
+
+        // --- Contenido real de la pantalla, por encima de la imagen ---
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .systemBarsPadding()
+                .imePadding()
+                .padding(horizontal = 24.dp, vertical = 16.dp),
+        ) {
             IconButton(onClick = onBack) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Volver",
                 )
             }
-            Text(text = "Inicia Sesión", style = MaterialTheme.typography.titleLarge)
-        }
 
-        Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-        Text(
-            text = "Bienvenido de nuevo",
-            style = MaterialTheme.typography.headlineSmall,
-        )
-        Text(
-            text = "Ingresa a tu cuenta para continuar con Gaply.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = TextSecondary,
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        GaplyTextField(
-            value = state.identifier,
-            onValueChange = viewModel::onIdentifierChange,
-            label = "Usuario",
-            errorText = state.identifierError,
-            keyboardType = androidx.compose.ui.text.input.KeyboardType.Email,
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        GaplyTextField(
-            value = state.password,
-            onValueChange = viewModel::onPasswordChange,
-            label = "Contraseña",
-            isPassword = true,
-            errorText = state.passwordError,
-            imeAction = androidx.compose.ui.text.input.ImeAction.Done,
-            onImeAction = viewModel::onLogin,
-        )
-
-        if (state.credentialsError != null) {
-            Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = state.credentialsError.orEmpty(),
-                color = ErrorRed,
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.fillMaxWidth(),
-            )
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Text(
-            text = "¿Olvidaste tu contraseña?",
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.primary,
-            textAlign = TextAlign.End,
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { onForgotPassword(state.identifier) },
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Row(
-            verticalAlignment = Alignment.Top,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Checkbox(
-                checked = state.receiveMarketing,
-                onCheckedChange = viewModel::onMarketingToggle,
-                colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.colorScheme.primary),
-            )
-            Text(
-                text = "Si no deseas recibir comunicaciones de marketing sobre nuestros productos y servicios, marca esta casilla.",
-                style = MaterialTheme.typography.bodySmall,
-                color = TextSecondary,
-                modifier = Modifier.padding(top = 10.dp),
-            )
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        GaplyPrimaryButton(
-            text = "Ingresar",
-            onClick = viewModel::onLogin,
-            loading = state.isLoading,
-        )
-
-        Spacer(modifier = Modifier.height(20.dp))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center,
-        ) {
-            Text(
-                text = "¿Aún no tienes cuenta? ",
-                style = MaterialTheme.typography.bodyMedium,
-                color = TextSecondary,
-            )
-            Text(
-                text = "Regístrate",
-                style = MaterialTheme.typography.bodyMedium,
+                text = "Inicia Sesión Con Cuenta de Gaply",
+                style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.clickable(onClick = onRegister),
             )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            GaplyTextField(
+                value = state.identifier,
+                onValueChange = viewModel::onIdentifierChange,
+                label = "Usuario",
+                // Si el error viene de credenciales incorrectas, el ViewModel
+                // manda un espacio en blanco (" ") solo para poner el campo
+                // en rojo sin repetir el mensaje de texto.
+                errorText = state.identifierError,
+                keyboardType = androidx.compose.ui.text.input.KeyboardType.Email,
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            GaplyTextField(
+                value = state.password,
+                onValueChange = viewModel::onPasswordChange,
+                label = "Contraseña",
+                isPassword = true,
+                errorText = state.passwordError,
+                imeAction = androidx.compose.ui.text.input.ImeAction.Done,
+                onImeAction = viewModel::onLogin,
+            )
+
+            if (state.credentialsError != null) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = state.credentialsError.orEmpty(),
+                    color = ErrorRed,
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = "¿Olvidaste tu contraseña?",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+                textAlign = TextAlign.End,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onForgotPassword(state.identifier) },
+            )
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            GaplyPrimaryButton(
+                text = "Ingresar",
+                onClick = viewModel::onLogin,
+                loading = state.isLoading,
+            )
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center,
+            ) {
+                Text(
+                    text = "¿Aún no tienes cuenta? ",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = TextSecondary,
+                )
+                Text(
+                    text = "Regístrate",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.clickable(onClick = onRegister),
+                )
+            }
+
+            // El checkbox ahora va AL FINAL, igual que en el Figma.
+            Spacer(modifier = Modifier.height(240.dp))
+
+            Row(
+                verticalAlignment = Alignment.Top,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Checkbox(
+                    checked = state.receiveMarketing,
+                    onCheckedChange = viewModel::onMarketingToggle,
+                    colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.colorScheme.primary),
+                )
+                Text(
+                    text = "Si no deseas recibir comunicaciones de marketing sobre nuestros productos y servicios, marca esta casilla.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = TextSecondary,
+                    modifier = Modifier.padding(top = 10.dp),
+                )
+            }
         }
     }
 

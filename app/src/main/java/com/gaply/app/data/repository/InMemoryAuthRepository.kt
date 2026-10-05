@@ -59,7 +59,7 @@ class InMemoryAuthRepository(
 
         val user = users.find {
             it.username.equals(trimmed, ignoreCase = true) ||
-                it.email.equals(trimmed, ignoreCase = true)
+                    it.email.equals(trimmed, ignoreCase = true)
         } ?: return RepoResult.Error(RepoError.WRONG_CREDENTIALS)
 
         if (user.passwordHash != hash(password)) {
@@ -83,7 +83,7 @@ class InMemoryAuthRepository(
                 it.username.equals(id, ignoreCase = true) || it.email.equals(id, ignoreCase = true)
             }
         } ?: store.currentUser.value ?: users.firstOrNull()
-            ?: return RepoResult.Error(RepoError.USER_NOT_FOUND)
+        ?: return RepoResult.Error(RepoError.USER_NOT_FOUND)
 
         val index = users.indexOfFirst { it.userId == target.userId }
         if (index < 0) return RepoResult.Error(RepoError.USER_NOT_FOUND)
@@ -91,6 +91,8 @@ class InMemoryAuthRepository(
         store.saveUsers(users)
         return RepoResult.Success(Unit)
     }
+    override suspend fun sendResetEmail(email: String): RepoResult<Unit> =
+        RepoResult.Success(Unit) // modo local: no manda correos de verdad
 
     override suspend fun signOut() {
         store.setSession(null)

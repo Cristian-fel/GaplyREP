@@ -1,7 +1,9 @@
 package com.gaply.app.ui.screens.home
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -24,15 +26,21 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
+import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ChatBubble
+import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Park
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.SportsSoccer
+import androidx.compose.material.icons.filled.TheaterComedy
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
@@ -48,45 +56,79 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.gaply.app.R
 import com.gaply.app.di.appContainer
 import com.gaply.app.ui.components.AppDialog
 import com.gaply.app.ui.components.DialogStyle
 import com.gaply.app.ui.components.GaplyOutlineButton
 import com.gaply.app.ui.theme.BackgroundApp
 import com.gaply.app.ui.theme.BrandGreen
-import com.gaply.app.ui.theme.BrandGreenLight
 import com.gaply.app.ui.theme.ErrorRed
 import com.gaply.app.ui.theme.Mint
 import com.gaply.app.ui.theme.Sage
 import com.gaply.app.ui.theme.SurfaceWhite
 import com.gaply.app.ui.theme.TextSecondary
 
-private data class Place(val emoji: String, val name: String)
+private data class PlaceItem(
+    val title: String,
+    val imageRes: Int,
+    val icon: ImageVector
+)
 
-private data class Event(val title: String, val date: String, val color: Color)
+private data class CulturalEventItem(
+    val title: String,
+    val imageRes: Int,
+    val url: String
+)
 
 private val suggestedPlaces = listOf(
-    Place("\uD83C\uDFDB", "Biblioteca"),
-    Place("\uD83C\uDFC0", "Cancha M7A"),
-    Place("\uD83C\uDFCB", "Sal\u00f3n M4"),
+    PlaceItem("Biblioteca", R.drawable.img_biblioteca, Icons.Default.AccountBalance),
+    PlaceItem("Cancha M7A", R.drawable.img_cancha, Icons.Default.SportsSoccer),
+    PlaceItem("Salón Polifuncional", R.drawable.img_gimnasio, Icons.Default.FitnessCenter),
+    PlaceItem("Zona Verde", R.drawable.img_zona_verde, Icons.Default.Park),
+    PlaceItem("Auditorio", R.drawable.img_auditorio, Icons.Default.TheaterComedy)
 )
 
 private val culturalEvents = listOf(
-    Event("Expo Tadeo", "Octubre", BrandGreenLight),
-    Event("Dale Rumbo", "Octubre", Color(0xFF2E4A7D)),
-    Event("Torneo de Ajedrez", "Noviembre", Color(0xFF7D4A2E)),
-    Event("El Paro", "Noviembre", Color(0xFF5E2E7D)),
+    CulturalEventItem(
+        title = "Expo Tadeo",
+        imageRes = R.drawable.img_expotadeo,
+        url = "https://www.utadeo.edu.co/es/eventos/expotadeo-fest"
+    ),
+    CulturalEventItem(
+        title = "Cátedra",
+        imageRes = R.drawable.img_catedra,
+        url = "https://www.utadeo.edu.co/es/eventos/presupuesto-deuda-y-crecimiento-los-desafios-que-enfrenta-colombia-para-sostener-su-estado"
+    ),
+    CulturalEventItem(
+        title = "Cabito Fest",
+        imageRes = R.drawable.img_cabitofest,
+        url = "https://www.utadeo.edu.co/es/noticia/especiales/sistema-de-bibliotecas/104046/participa-con-tu-emprendimiento-en-cabito-fest-2026"
+    ),
+    CulturalEventItem(
+        title = "Torneo de Ajedrez",
+        imageRes = R.drawable.img_ajedrez,
+        url = "https://www.utadeo.edu.co/es/noticia/novedades/sistema-de-bibliotecas/104046/inscripciones-abiertas-torneo-de-ajedrez"
+    )
 )
 
+private const val URL_AGENDA_GENERAL =
+    "https://www.utadeo.edu.co/es/eventos?viewsreference%5Bcompressed%5D=eJxdkNEKgzAMRf8lzz44x5jzZ0pGYw20VWp0iPjva-lm2R5Kc3PP5UJ20CgI3Q4YzOLIC3R-sbaCgVBTgK6uwLLjcz_2_UynmtAkKAthsRQTRwXk8WlJq4gKezP_NpTxDH3-0vsdjlQSIqviY9mUbFPi4xJNwGmAf4B1tC_3tmmL1TNZrTy6FM1iZXoVINDKM48-p29t87hGM5Ms5JQmmw5VH2_zqWo_&page=1"
+
 @Composable
-fun HomeScreen(onLogout: () -> Unit) {
+fun HomeScreen(onLogout: () -> Unit = {}) {
     val context = LocalContext.current
     val viewModel: HomeViewModel = androidx.lifecycle.viewmodel.compose.viewModel(
         factory = HomeViewModel.factory(context.appContainer()),
@@ -106,15 +148,15 @@ fun HomeScreen(onLogout: () -> Unit) {
             when (state.selectedTab) {
                 0 -> DiscoverTab(state = state, viewModel = viewModel)
                 1 -> PlaceholderTab(
-                    emoji = "\uD83D\uDC65",
+                    emoji = "👥",
                     title = "Matches",
-                    message = "Tus matches aparecer\u00e1n aqu\u00ed.",
+                    message = "Tus matches aparecerán aquí.",
                 )
 
                 2 -> PlaceholderTab(
-                    emoji = "\uD83D\uDCAC",
+                    emoji = "💬",
                     title = "Chats",
-                    message = "Tus conversaciones aparecer\u00e1n aqu\u00ed.",
+                    message = "Tus conversaciones aparecerán aquí.",
                 )
 
                 else -> ProfileTab(
@@ -132,14 +174,14 @@ fun HomeScreen(onLogout: () -> Unit) {
         HomeDialog.CREATE_ACTIVITY -> AppDialog(
             style = DialogStyle.INFO,
             title = "Crear la actividad",
-            message = "En la versi\u00f3n final, este bot\u00f3n abrir\u00e1 el formulario para crear tu propia actividad.",
+            message = "En la versión final, este botón abrirá el formulario para crear tu propia actividad.",
             onDismiss = viewModel::consumeDialog,
         )
 
         HomeDialog.EVENT_SITE -> AppDialog(
             style = DialogStyle.INFO,
             title = "Agenda cultural",
-            message = "En la versi\u00f3n final, este enlace abrir\u00e1 el sitio del evento.",
+            message = "En la versión final, este enlace abrirá el sitio del evento.",
             onDismiss = viewModel::consumeDialog,
         )
 
@@ -159,7 +201,11 @@ private fun GaplyBottomBar(
         "Perfil" to Icons.Filled.Person,
     )
 
-    NavigationBar(containerColor = SurfaceWhite) {
+    NavigationBar(
+        containerColor = Color.White,
+        contentColor = BrandGreen,
+        tonalElevation = 8.dp
+    ) {
         tabs.forEachIndexed { index, tab ->
             NavigationBarItem(
                 selected = selected == index,
@@ -173,7 +219,10 @@ private fun GaplyBottomBar(
                 label = {
                     Text(
                         text = tab.first,
-                        style = MaterialTheme.typography.labelSmall,
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontWeight = if (selected == index) FontWeight.Bold else FontWeight.Normal,
+                            fontSize = 11.sp
+                        ),
                     )
                 },
                 colors = NavigationBarItemDefaults.colors(
@@ -193,9 +242,7 @@ private fun DiscoverTab(
     state: HomeUiState,
     viewModel: HomeViewModel,
 ) {
-    val displayName = state.user?.firstName?.trim()?.takeIf { it.isNotEmpty() }
-        ?: state.user?.let { "@${it.username}" }
-        ?: "Usuario"
+    val uriHandler = LocalUriHandler.current
 
     Column(
         modifier = Modifier
@@ -203,146 +250,195 @@ private fun DiscoverTab(
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 16.dp, vertical = 12.dp),
     ) {
+        // Cabecera de bienvenida
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth(),
         ) {
             Box(
                 modifier = Modifier
-                    .size(46.dp)
-                    .background(color = Mint, shape = CircleShape),
+                    .size(40.dp)
+                    .background(color = BrandGreen, shape = CircleShape),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     imageVector = Icons.Filled.Person,
                     contentDescription = "Perfil",
-                    tint = BrandGreen,
-                    modifier = Modifier.size(26.dp),
+                    tint = Color.White,
+                    modifier = Modifier.size(24.dp),
                 )
             }
             Spacer(modifier = Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "Bienvenido",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = TextSecondary,
-                )
-                Text(
-                    text = displayName,
-                    style = MaterialTheme.typography.titleMedium,
-                )
-            }
+            Text(
+                text = state.user?.firstName?.takeIf { it.isNotBlank() } ?: "Bienvenido",
+                style = MaterialTheme.typography.titleLarge.copy(
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 22.sp
+                ),
+                color = Color.Black,
+                modifier = Modifier.weight(1f)
+            )
             IconButton(onClick = { }) {
                 Icon(
                     imageVector = Icons.Filled.Notifications,
                     contentDescription = "Notificaciones",
-                    tint = BrandGreen,
+                    tint = Color.Black,
+                    modifier = Modifier.size(26.dp)
                 )
             }
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
+        // Banner del Horario Libre
         Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = Mint),
+            shape = RoundedCornerShape(50.dp),
+            colors = CardDefaults.cardColors(containerColor = BrandGreen),
+            modifier = Modifier.fillMaxWidth()
         ) {
             Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(16.dp),
+                modifier = Modifier
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
+                    .fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(text = "\uD83D\uDD52", fontSize = 28.sp)
+                Icon(
+                    imageVector = Icons.Filled.Schedule,
+                    contentDescription = null,
+                    tint = Color.White
+                )
                 Spacer(modifier = Modifier.width(12.dp))
-                Column {
-                    Text(
-                        text = "Tienes 2 horas libres",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = BrandGreen,
-                    )
-                    Text(
-                        text = "12:00 - 2:00 p.m.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = BrandGreenLight,
-                    )
-                }
+                Text(
+                    text = "Tienes 2 horas libres 12:00 - 2:00 p.m.",
+                    color = Color.White,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 14.sp
+                )
             }
         }
 
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
         SectionTitle(text = "Sugerencias para hoy")
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            contentPadding = PaddingValues(end = 16.dp)
+        ) {
             items(suggestedPlaces) { place ->
                 PlaceCard(place = place)
             }
         }
 
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(24.dp))
+
+        SectionTitle(text = "Crear la actividad")
+
+        Spacer(modifier = Modifier.height(12.dp))
 
         Card(
-            modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = BrandGreen),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(1.dp, BrandGreen, RoundedCornerShape(16.dp))
+                .clickable(onClick = viewModel::onShowCreateActivityInfo)
         ) {
             Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(16.dp),
+                modifier = Modifier
+                    .padding(16.dp)
+                    .fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Agregar tu propia actividad",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = Color.White,
-                    )
-                    Text(
-                        text = "Invita a otros a unirse en tu hueco",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Mint,
-                    )
-                }
-                Spacer(modifier = Modifier.width(12.dp))
-                FilledIconButton(
-                    onClick = viewModel::onShowCreateActivityInfo,
-                    colors = androidx.compose.material3.IconButtonDefaults.filledIconButtonColors(
-                        containerColor = Color.White,
-                        contentColor = BrandGreen,
-                    ),
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .background(BrandGreen, CircleShape),
+                    contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Filled.Add,
-                        contentDescription = "Crear actividad",
+                        contentDescription = "Agregar",
+                        tint = Color.White
+                    )
+                }
+                Spacer(modifier = Modifier.width(16.dp))
+                Column {
+                    Text(
+                        text = "Agregar tu propia actividad",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp,
+                        color = BrandGreen
+                    )
+                    Text(
+                        text = "Invita a otros a unirse en tu hueco",
+                        fontSize = 12.sp,
+                        color = Color.Gray
                     )
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
-        SectionTitle(text = "Agenda cultural")
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            items(culturalEvents) { event ->
-                EventCard(event = event)
+        // Encabezado de Agenda Cultural con link al sitio general
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            SectionTitle(text = "Agenda cultural")
+            Row(
+                modifier = Modifier.clickable { uriHandler.openUri(URL_AGENDA_GENERAL) },
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "ir al sitio",
+                    color = BrandGreen,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.OpenInNew,
+                    contentDescription = "Ir al sitio",
+                    tint = BrandGreen,
+                    modifier = Modifier.size(16.dp)
+                )
             }
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
-        Text(
-            text = "ir al sitio \u2197",
-            style = MaterialTheme.typography.labelLarge,
-            color = BrandGreen,
-            modifier = Modifier
-                .align(Alignment.End)
-                .padding(vertical = 4.dp)
-                .clickable(onClick = viewModel::onShowEventSiteInfo),
-        )
+        // Grid 2x2 de eventos culturales
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                EventCard(
+                    event = culturalEvents[0],
+                    modifier = Modifier.weight(1f),
+                    onOpenUrl = { url -> uriHandler.openUri(url) }
+                )
+                EventCard(
+                    event = culturalEvents[1],
+                    modifier = Modifier.weight(1f),
+                    onOpenUrl = { url -> uriHandler.openUri(url) }
+                )
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                EventCard(
+                    event = culturalEvents[2],
+                    modifier = Modifier.weight(1f),
+                    onOpenUrl = { url -> uriHandler.openUri(url) }
+                )
+                EventCard(
+                    event = culturalEvents[3],
+                    modifier = Modifier.weight(1f),
+                    onOpenUrl = { url -> uriHandler.openUri(url) }
+                )
+            }
+        }
 
         Spacer(modifier = Modifier.height(24.dp))
     }
@@ -352,71 +448,91 @@ private fun DiscoverTab(
 private fun SectionTitle(text: String) {
     Text(
         text = text,
-        style = MaterialTheme.typography.titleLarge,
-        color = MaterialTheme.colorScheme.onBackground,
+        style = MaterialTheme.typography.titleLarge.copy(
+            fontWeight = FontWeight.Bold,
+            fontSize = 20.sp
+        ),
+        color = Color.Black,
     )
 }
 
 @Composable
-private fun PlaceCard(place: Place) {
+private fun PlaceCard(place: PlaceItem) {
     Card(
+        shape = RoundedCornerShape(18.dp),
         modifier = Modifier
             .width(140.dp)
-            .height(110.dp),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = SurfaceWhite),
-        border = androidx.compose.foundation.BorderStroke(1.dp, Sage),
+            .height(150.dp)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(12.dp),
-            verticalArrangement = Arrangement.Center,
-        ) {
-            Text(text = place.emoji, fontSize = 30.sp)
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = place.name,
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold,
+        Box(modifier = Modifier.fillMaxSize()) {
+            Image(
+                painter = painterResource(id = place.imageRes),
+                contentDescription = place.title,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
             )
-            Text(
-                text = "Disponible ahora",
-                style = MaterialTheme.typography.labelSmall,
-                color = BrandGreenLight,
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(60.dp)
+                    .align(Alignment.BottomCenter)
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.7f))
+                        )
+                    )
             )
+
+            Row(
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(28.dp)
+                        .background(Color.White, CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = place.icon,
+                        contentDescription = null,
+                        tint = BrandGreen,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = place.title,
+                    color = Color.White,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
         }
     }
 }
 
 @Composable
-private fun EventCard(event: Event) {
+private fun EventCard(
+    event: CulturalEventItem,
+    modifier: Modifier = Modifier,
+    onOpenUrl: (String) -> Unit = {}
+) {
     Card(
-        modifier = Modifier
-            .width(160.dp)
-            .height(190.dp),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = event.color),
+        shape = RoundedCornerShape(12.dp),
+        modifier = modifier
+            .height(100.dp)
+            .clickable { onOpenUrl(event.url) }
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(14.dp),
-            verticalArrangement = Arrangement.Bottom,
-        ) {
-            Text(
-                text = event.title,
-                style = MaterialTheme.typography.titleSmall,
-                color = Color.White,
-                fontWeight = FontWeight.Bold,
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = event.date,
-                style = MaterialTheme.typography.labelSmall,
-                color = Mint,
-            )
-        }
+        Image(
+            painter = painterResource(id = event.imageRes),
+            contentDescription = event.title,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize()
+        )
     }
 }
 
@@ -494,7 +610,7 @@ private fun ProfileTab(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(containerColor = SurfaceWhite),
-            border = androidx.compose.foundation.BorderStroke(1.dp, Sage),
+            border = BorderStroke(1.dp, Sage),
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 InfoRow(label = "Correo", value = user?.email.orEmpty().ifBlank { "-" })
@@ -506,9 +622,9 @@ private fun ProfileTab(
                     label = "Fecha de nacimiento",
                     value = user?.birthDate.orEmpty().ifBlank { "-" },
                 )
-                InfoRow(label = "G\u00e9nero", value = user?.gender.orEmpty().ifBlank { "-" })
+                InfoRow(label = "Género", value = user?.gender.orEmpty().ifBlank { "-" })
                 InfoRow(
-                    label = "Prop\u00f3sito",
+                    label = "Propósito",
                     value = user?.goal.orEmpty().ifBlank { "-" },
                 )
             }
@@ -526,7 +642,7 @@ private fun ProfileTab(
 
         if (user == null || user.interests.isEmpty()) {
             Text(
-                text = "A\u00fan no has seleccionado intereses.",
+                text = "Aún no has seleccionado intereses.",
                 style = MaterialTheme.typography.bodySmall,
                 color = TextSecondary,
                 modifier = Modifier.fillMaxWidth(),
@@ -555,7 +671,7 @@ private fun ProfileTab(
         if (bio.isNotBlank()) {
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                text = "Biograf\u00eda",
+                text = "Biografía",
                 style = MaterialTheme.typography.titleSmall,
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -569,7 +685,7 @@ private fun ProfileTab(
         Spacer(modifier = Modifier.height(24.dp))
 
         GaplyOutlineButton(
-            text = "Cerrar sesi\u00f3n",
+            text = "Cerrar sesión",
             onClick = onLogout,
             borderColor = ErrorRed,
             contentColor = ErrorRed,
@@ -597,5 +713,13 @@ private fun InfoRow(label: String, value: String) {
             style = MaterialTheme.typography.bodyMedium,
             modifier = Modifier.weight(1f),
         )
+    }
+}
+
+@Preview(showBackground = true, showSystemUi = true)
+@Composable
+fun HomeScreenPreview() {
+    MaterialTheme {
+        HomeScreen(onLogout = {})
     }
 }

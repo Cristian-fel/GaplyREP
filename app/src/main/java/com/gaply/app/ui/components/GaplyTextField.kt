@@ -49,8 +49,7 @@ fun GaplyTextField(
         minLines = minLines,
         maxLines = maxLines,
         isError = errorText != null,
-        supportingText = if (errorText != null) {
-            { Text(text = errorText) }
+        supportingText = if (errorText != null && errorText.isNotBlank()) {            { Text(text = errorText) }
         } else {
             null
         },

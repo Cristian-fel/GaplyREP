@@ -4,7 +4,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.gaply.app.di.AppContainer
-import com.gaply.app.domain.model.RepoError
 import com.gaply.app.domain.model.RepoResult
 import com.gaply.app.domain.repository.AuthRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,10 +13,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 data class ResetPasswordUiState(
-    val newPassword: String = "",
-    val confirmPassword: String = "",
-    val newPasswordError: String? = null,
-    val confirmPasswordError: String? = null,
+    val email: String = "",
+    val emailError: String? = null,
     val isLoading: Boolean = false,
     val dialog: ResetDialog? = null,
     val successHandled: Boolean = false,
@@ -27,44 +24,40 @@ enum class ResetDialog { SUCCESS, ERROR }
 
 class ResetPasswordViewModel(
     private val authRepository: AuthRepository,
-    private val identifier: String,
+    identifier: String,
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(ResetPasswordUiState())
+    // Si venía un correo desde el login, lo dejamos escrito en el campo
+    private val _uiState = MutableStateFlow(
+        ResetPasswordUiState(
+            email = if (identifier.contains("@")) identifier.trim() else "",
+        ),
+    )
     val uiState: StateFlow<ResetPasswordUiState> = _uiState.asStateFlow()
 
-    fun onNewPasswordChange(value: String) {
-        _uiState.update { it.copy(newPassword = value, newPasswordError = null) }
+    fun onEmailChange(value: String) {
+        _uiState.update { it.copy(email = value, emailError = null) }
     }
 
-    fun onConfirmPasswordChange(value: String) {
-        _uiState.update { it.copy(confirmPassword = value, confirmPasswordError = null) }
-    }
-
-    fun onSavePassword() {
+    fun onSendEmail() {
         val current = _uiState.value
         if (current.isLoading) return
 
-        val newError = when {
-            current.newPassword.isBlank() -> "Este campo es obligatorio"
-            current.newPassword.length < MIN_PASSWORD -> "Mínimo $MIN_PASSWORD caracteres"
+        val email = current.email.trim()
+        val error = when {
+            email.isEmpty() -> "Este campo es obligatorio"
+            !email.contains("@") -> "Ingresa un correo válido"
             else -> null
         }
-        val confirmError = when {
-            current.confirmPassword.isBlank() -> "Este campo es obligatorio"
-            current.confirmPassword != current.newPassword -> "Las contraseñas no coinciden"
-            else -> null
-        }
-        if (newError != null || confirmError != null) {
-            _uiState.update {
-                it.copy(newPasswordError = newError, confirmPasswordError = confirmError)
-            }
+        if (error != null) {
+            _uiState.update { it.copy(emailError = error) }
             return
         }
 
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
-            when (val result = authRepository.updatePassword(identifier, current.newPassword)) {
+
+            when (authRepository.sendResetEmail(email)) {
                 is RepoResult.Success -> _uiState.update {
                     it.copy(isLoading = false, dialog = ResetDialog.SUCCESS)
                 }
@@ -82,8 +75,6 @@ class ResetPasswordViewModel(
     }
 
     companion object {
-        private const val MIN_PASSWORD = 6
-
         fun factory(container: AppContainer, identifier: String): ViewModelProvider.Factory =
             object : ViewModelProvider.Factory {
                 @Suppress("UNCHECKED_CAST")

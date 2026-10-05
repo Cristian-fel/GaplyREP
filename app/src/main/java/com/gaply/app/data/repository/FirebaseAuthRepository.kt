@@ -20,6 +20,7 @@ import kotlinx.coroutines.tasks.await
 import java.io.IOException
 import java.net.UnknownHostException
 import java.util.concurrent.TimeoutException
+import android.util.Log
 
 class FirebaseAuthRepository(
     private val auth: FirebaseAuth = FirebaseAuth.getInstance(),
@@ -157,8 +158,17 @@ class FirebaseAuthRepository(
             auth.sendPasswordResetEmail(email).await()
             RepoResult.Success(Unit)
         } catch (e: Exception) {
+            Log.e("Gaply", "Fallo al enviar el correo de recuperación", e)
             RepoResult.Error(mapError(e))
         }
+    }
+
+    override suspend fun sendResetEmail(email: String): RepoResult<Unit> = try {
+        auth.sendPasswordResetEmail(email.trim()).await()
+        RepoResult.Success(Unit)
+    } catch (e: Exception) {
+        Log.e("Gaply", "Fallo al enviar el correo de recuperación", e)
+        RepoResult.Error(mapError(e))
     }
 
     override suspend fun signOut() {
@@ -184,7 +194,7 @@ class FirebaseAuthRepository(
         is FirebaseFirestoreException -> when (e.code) {
             FirebaseFirestoreException.Code.UNAVAILABLE,
             FirebaseFirestoreException.Code.DEADLINE_EXCEEDED,
-            -> RepoError.CONNECTION
+                -> RepoError.CONNECTION
 
             else -> RepoError.UNKNOWN
         }
