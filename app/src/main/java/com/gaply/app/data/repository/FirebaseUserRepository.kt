@@ -1,6 +1,7 @@
 package com.gaply.app.data.repository
 
 import android.net.Uri
+import android.util.Log
 import com.gaply.app.data.mapper.toFirestoreMap
 import com.gaply.app.data.mapper.toUser
 import com.gaply.app.domain.model.RepoError
@@ -44,6 +45,7 @@ class FirebaseUserRepository(
         ref.putFile(localUri).await()
         RepoResult.Success(ref.downloadUrl.await().toString())
     } catch (e: Exception) {
+        Log.e(TAG, "Fallo al subir la foto de perfil: $localUri", e)
         RepoResult.Error(mapError(e))
     }
 
@@ -65,5 +67,6 @@ class FirebaseUserRepository(
 
     companion object {
         private const val USERS = "users"
+        private const val TAG = "Gaply"
     }
 }
