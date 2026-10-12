@@ -220,7 +220,7 @@ internal fun EditStepDetailsContent(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            StepLabel(text = "Fecha de nacimiento")
+            StepLabel(text = "Fecha de nacimiento *")
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 GaplySelectField(
                     selected = state.birthDay,

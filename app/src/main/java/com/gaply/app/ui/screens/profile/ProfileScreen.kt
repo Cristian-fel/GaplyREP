@@ -302,6 +302,8 @@ private fun ProfileHeader(
                 )
             }
 
+            Spacer(modifier = Modifier.height(8.dp))
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End,
@@ -326,7 +328,7 @@ private fun ProfileHeader(
                 }
             }
 
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -436,13 +438,14 @@ private fun HeaderCircleButton(
     IconButton(
         onClick = onClick,
         modifier = Modifier
-            .size(44.dp)
+            .size(38.dp)
             .background(color = SurfaceWhite, shape = CircleShape),
     ) {
         Icon(
             imageVector = icon,
             contentDescription = contentDescription,
             tint = BrandGreen,
+            modifier = Modifier.size(20.dp),
         )
     }
 }
