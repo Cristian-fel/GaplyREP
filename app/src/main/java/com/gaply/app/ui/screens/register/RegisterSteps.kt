@@ -206,7 +206,7 @@ internal fun StepPersonalContent(
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = "Fecha de nacimiento",
+                text = "Fecha de nacimiento *",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface,
             )

@@ -119,6 +119,14 @@ class FirebaseAuthRepository(
 
         return try {
             val email = if (trimmed.contains("@")) {
+                val byEmail = firestore.collection(USERS)
+                    .whereEqualTo("email", trimmed)
+                    .limit(1)
+                    .get()
+                    .await()
+                if (byEmail.isEmpty) {
+                    return RepoResult.Error(RepoError.EMAIL_NOT_FOUND)
+                }
                 trimmed
             } else {
                 val result = firestore.collection(USERS)

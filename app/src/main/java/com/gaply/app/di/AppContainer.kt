@@ -4,10 +4,13 @@ import android.content.Context
 import com.gaply.app.GaplyApp
 import com.gaply.app.data.local.LocalUserStore
 import com.gaply.app.data.repository.FirebaseAuthRepository
+import com.gaply.app.data.repository.FirebaseScheduleRepository
 import com.gaply.app.data.repository.FirebaseUserRepository
 import com.gaply.app.data.repository.InMemoryAuthRepository
+import com.gaply.app.data.repository.LocalScheduleRepository
 import com.gaply.app.data.repository.LocalUserRepository
 import com.gaply.app.domain.repository.AuthRepository
+import com.gaply.app.domain.repository.ScheduleRepository
 import com.gaply.app.domain.repository.UserRepository
 
 class AppContainer(context: Context) {
@@ -24,6 +27,12 @@ class AppContainer(context: Context) {
         FirebaseUserRepository()
     } else {
         LocalUserRepository(userStore)
+    }
+
+    val scheduleRepository: ScheduleRepository = if (USE_FIREBASE) {
+        FirebaseScheduleRepository()
+    } else {
+        LocalScheduleRepository()
     }
 
     companion object {

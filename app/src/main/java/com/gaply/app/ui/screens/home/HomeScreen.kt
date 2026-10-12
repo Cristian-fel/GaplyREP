@@ -30,6 +30,7 @@ import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ChatBubble
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.Notifications
@@ -39,6 +40,7 @@ import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SportsSoccer
 import androidx.compose.material.icons.filled.TheaterComedy
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
@@ -49,6 +51,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -75,6 +78,7 @@ import com.gaply.app.di.appContainer
 import com.gaply.app.ui.components.AppDialog
 import com.gaply.app.ui.components.DialogStyle
 import com.gaply.app.ui.components.GaplyOutlineButton
+import com.gaply.app.ui.screens.profile.ProfileScreen
 import com.gaply.app.ui.theme.BackgroundApp
 import com.gaply.app.ui.theme.BrandGreen
 import com.gaply.app.ui.theme.ErrorRed
@@ -130,7 +134,12 @@ private const val URL_AGENDA_GENERAL =
     "https://www.utadeo.edu.co/es/eventos?viewsreference%5Bcompressed%5D=eJxdkNEKgzAMRf8lzz44x5jzZ0pGYw20VWp0iPjva-lm2R5Kc3PP5UJ20CgI3Q4YzOLIC3R-sbaCgVBTgK6uwLLjcz_2_UynmtAkKAthsRQTRwXk8WlJq4gKezP_NpTxDH3-0vsdjlQSIqviY9mUbFPi4xJNwGmAf4B1tC_3tmmL1TNZrTy6FM1iZXoVINDKM48-p29t87hGM5Ms5JQmmw5VH2_zqWo_&page=1"
 
 @Composable
-fun HomeScreen(onLogout: () -> Unit = {}) {
+fun HomeScreen(
+    onLogout: () -> Unit = {},
+    onEditProfile: () -> Unit = {},
+    onOpenSettings: () -> Unit = {},
+    onOpenSchedule: () -> Unit = {},
+) {
     val context = LocalContext.current
     val viewModel: HomeViewModel = androidx.lifecycle.viewmodel.compose.viewModel(
         factory = HomeViewModel.factory(context.appContainer()),
@@ -161,8 +170,11 @@ fun HomeScreen(onLogout: () -> Unit = {}) {
                     message = "Tus conversaciones aparecerán aquí.",
                 )
 
-                else -> ProfileTab(
-                    state = state,
+                else -> ProfileScreen(
+                    user = state.user,
+                    onEditProfile = onEditProfile,
+                    onOpenSettings = onOpenSettings,
+                    onOpenSchedule = onOpenSchedule,
                     onLogout = {
                         viewModel.signOut()
                         onLogout()
@@ -570,172 +582,6 @@ private fun PlaceholderTab(
             color = TextSecondary,
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(horizontal = 32.dp),
-        )
-    }
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun ProfileTab(
-    state: HomeUiState,
-    onLogout: () -> Unit,
-) {
-    val user = state.user
-    val displayName = user?.firstName?.trim()?.takeIf { it.isNotEmpty() }
-        ?: user?.username.orEmpty().ifBlank { "Usuario" }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 24.dp, vertical = 16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Box(
-            modifier = Modifier
-                .size(84.dp)
-                .background(color = Mint, shape = CircleShape)
-                .clip(CircleShape),
-            contentAlignment = Alignment.Center,
-        ) {
-            val avatarUrl = user?.profilePictureUrl.orEmpty()
-            if (avatarUrl.isNotBlank()) {
-                AsyncImage(
-                    model = avatarUrl,
-                    contentDescription = "Foto de perfil",
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize(),
-                )
-            } else {
-                Text(
-                    text = displayName.first().uppercase(),
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = BrandGreen,
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Text(
-            text = displayName,
-            style = MaterialTheme.typography.headlineSmall,
-            textAlign = TextAlign.Center,
-        )
-        Text(
-            text = "@${user?.username.orEmpty()}",
-            style = MaterialTheme.typography.bodyMedium,
-            color = TextSecondary,
-        )
-
-        Spacer(modifier = Modifier.height(20.dp))
-
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = SurfaceWhite),
-            border = BorderStroke(1.dp, Sage),
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                InfoRow(label = "Correo", value = user?.email.orEmpty().ifBlank { "-" })
-                InfoRow(
-                    label = "Universidad",
-                    value = user?.university.orEmpty().ifBlank { "-" },
-                )
-                InfoRow(
-                    label = "Fecha de nacimiento",
-                    value = user?.birthDate.orEmpty().ifBlank { "-" },
-                )
-                InfoRow(label = "Género", value = user?.gender.orEmpty().ifBlank { "-" })
-                InfoRow(
-                    label = "Propósito",
-                    value = user?.goal.orEmpty().ifBlank { "-" },
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Text(
-            text = "Intereses",
-            style = MaterialTheme.typography.titleSmall,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 8.dp),
-        )
-
-        if (user == null || user.interests.isEmpty()) {
-            Text(
-                text = "Aún no has seleccionado intereses.",
-                style = MaterialTheme.typography.bodySmall,
-                color = TextSecondary,
-                modifier = Modifier.fillMaxWidth(),
-            )
-        } else {
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                user.interests.forEach { interest ->
-                    FilterChip(
-                        selected = true,
-                        onClick = { },
-                        label = { Text(interest) },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = Mint,
-                            selectedLabelColor = BrandGreen,
-                        ),
-                    )
-                }
-            }
-        }
-
-        val bio = user?.bio.orEmpty()
-        if (bio.isNotBlank()) {
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = "Biografía",
-                style = MaterialTheme.typography.titleSmall,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Text(
-                text = bio,
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.fillMaxWidth(),
-            )
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        GaplyOutlineButton(
-            text = "Cerrar sesión",
-            onClick = onLogout,
-            borderColor = ErrorRed,
-            contentColor = ErrorRed,
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-    }
-}
-
-@Composable
-private fun InfoRow(label: String, value: String) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodySmall,
-            color = TextSecondary,
-            modifier = Modifier.width(150.dp),
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.weight(1f),
         )
     }
 }

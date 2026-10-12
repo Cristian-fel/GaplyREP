@@ -11,6 +11,7 @@ import com.google.firebase.FirebaseException
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
+import com.google.firebase.firestore.SetOptions
 import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.tasks.await
 import java.io.IOException
@@ -26,7 +27,10 @@ class FirebaseUserRepository(
     private var lastSaved: User? = null
 
     override suspend fun saveProfile(user: User): RepoResult<User> = try {
-        firestore.collection(USERS).document(user.userId).set(user.toFirestoreMap()).await()
+        // merge: actualiza solo los campos del perfil para no borrar el
+        // horario (campo "schedule") que vive en el mismo documento.
+        firestore.collection(USERS).document(user.userId)
+            .set(user.toFirestoreMap(), SetOptions.merge()).await()
         lastSaved = user
         RepoResult.Success(user)
     } catch (e: Exception) {

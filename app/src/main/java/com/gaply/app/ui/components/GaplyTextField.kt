@@ -37,6 +37,7 @@ fun GaplyTextField(
     singleLine: Boolean = true,
     minLines: Int = 1,
     maxLines: Int = 1,
+    placeholder: String? = null,
 ) {
     var passwordVisible by remember { mutableStateOf(false) }
 
@@ -44,6 +45,7 @@ fun GaplyTextField(
         value = value,
         onValueChange = onValueChange,
         label = { Text(label) },
+        placeholder = placeholder?.let { text -> { Text(text = text) } },
         modifier = modifier.fillMaxWidth(),
         singleLine = singleLine,
         minLines = minLines,

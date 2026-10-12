@@ -8,8 +8,12 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.gaply.app.ui.screens.home.HomeScreen
 import com.gaply.app.ui.screens.login.LoginScreen
+import com.gaply.app.ui.screens.profile.edit.EditProfileScreen
 import com.gaply.app.ui.screens.register.RegisterScreen
 import com.gaply.app.ui.screens.reset.ResetPasswordScreen
+import com.gaply.app.ui.screens.schedule.HuecosScreen
+import com.gaply.app.ui.screens.schedule.ScheduleEditScreen
+import com.gaply.app.ui.screens.schedule.ScheduleScreen
 import com.gaply.app.ui.screens.welcome.WelcomeScreen
 
 @Composable
@@ -79,6 +83,81 @@ fun GaplyNavHost() {
                         launchSingleTop = true
                     }
                 },
+                onEditProfile = { navController.navigate(Routes.EDIT_PROFILE) },
+                onOpenSchedule = { navController.navigate(Routes.SCHEDULE) },
+            )
+        }
+
+        composable(Routes.EDIT_PROFILE) {
+            EditProfileScreen(
+                onBack = { navController.popBackStack() },
+                onSaved = { navController.popBackStack() },
+            )
+        }
+
+        composable(Routes.SCHEDULE) {
+            ScheduleScreen(
+                onBack = { navController.popBackStack() },
+                onAddClass = { dia ->
+                    navController.navigate(Routes.scheduleEdit(dia = dia))
+                },
+                onEditClass = { classId ->
+                    navController.navigate(Routes.scheduleEdit(classId = classId))
+                },
+                onOpenHuecos = { dia, inicio, fin ->
+                    navController.navigate(Routes.huecos(dia = dia, inicio = inicio, fin = fin))
+                },
+            )
+        }
+
+        composable(
+            // El patrón DEBE declarar los query params con {llaves}: sin eso,
+            // Navigation descarta classId/dia al navegar y el formulario siempre
+            // abría una clase nueva (al guardar, se duplicaba en vez de editar).
+            route = "${Routes.SCHEDULE_EDIT}?${Routes.ARG_CLASS_ID}={${Routes.ARG_CLASS_ID}}" +
+                "&${Routes.ARG_DIA}={${Routes.ARG_DIA}}",
+            arguments = listOf(
+                navArgument(Routes.ARG_CLASS_ID) {
+                    type = NavType.StringType
+                    defaultValue = ""
+                },
+                navArgument(Routes.ARG_DIA) {
+                    type = NavType.StringType
+                    defaultValue = ""
+                },
+            ),
+        ) { entry ->
+            ScheduleEditScreen(
+                classId = entry.arguments?.getString(Routes.ARG_CLASS_ID).orEmpty(),
+                diaInicial = entry.arguments?.getString(Routes.ARG_DIA).orEmpty(),
+                onBack = { navController.popBackStack() },
+                onSaved = { navController.popBackStack() },
+            )
+        }
+
+        composable(
+            route = "${Routes.HUECOS}?${Routes.ARG_DIA}={${Routes.ARG_DIA}}" +
+                "&${Routes.ARG_INICIO}={${Routes.ARG_INICIO}}&${Routes.ARG_FIN}={${Routes.ARG_FIN}}",
+            arguments = listOf(
+                navArgument(Routes.ARG_DIA) {
+                    type = NavType.StringType
+                    defaultValue = ""
+                },
+                navArgument(Routes.ARG_INICIO) {
+                    type = NavType.StringType
+                    defaultValue = ""
+                },
+                navArgument(Routes.ARG_FIN) {
+                    type = NavType.StringType
+                    defaultValue = ""
+                },
+            ),
+        ) { entry ->
+            HuecosScreen(
+                onBack = { navController.popBackStack() },
+                diaInicial = entry.arguments?.getString(Routes.ARG_DIA).orEmpty(),
+                inicioInicial = entry.arguments?.getString(Routes.ARG_INICIO).orEmpty(),
+                finInicial = entry.arguments?.getString(Routes.ARG_FIN).orEmpty(),
             )
         }
     }

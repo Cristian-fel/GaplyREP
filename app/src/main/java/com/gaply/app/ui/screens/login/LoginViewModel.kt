@@ -1,5 +1,6 @@
 package com.gaply.app.ui.screens.login
 
+import android.util.Patterns
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -56,7 +57,17 @@ class LoginViewModel(
         val current = _uiState.value
         if (current.isLoading) return
 
-        val identifierError = if (current.identifier.isBlank()) "Este campo es obligatorio" else null
+        // Validación en el cliente: si escribe "@" pero no es un correo válido,
+        // se avisa ANTES de consultar Firestore o Firebase Auth.
+        val identifierError = when {
+            current.identifier.isBlank() -> "Este campo es obligatorio"
+
+            current.identifier.contains("@") &&
+                !Patterns.EMAIL_ADDRESS.matcher(current.identifier.trim()).matches() ->
+                "El formato del correo no es válido"
+
+            else -> null
+        }
         val passwordError = if (current.password.isBlank()) "Este campo es obligatorio" else null
         if (identifierError != null || passwordError != null) {
             _uiState.update {
@@ -91,24 +102,34 @@ class LoginViewModel(
         _uiState.update { it.copy(isLoggedIn = false) }
     }
 
+    /**
+     * Errores diferenciados (correo vs contraseña):
+     *
+     * - `signIn` en el repositorio verifica el correo/usuario en Firestore ANTES
+     *   de llamar a Firebase Auth, así que si llega `WRONG_CREDENTIALS` el correo
+     *   sí existe: el problema es la contraseña, y el mensaje lo dice.
+     * - `EMAIL_NOT_FOUND` = el correo no está registrado (se marca el campo del
+     *   correo en rojo).
+     */
     private fun LoginUiState.applyError(error: RepoError): LoginUiState = when (error) {
         RepoError.EMPTY_FIELDS -> copy(
             identifierError = if (identifier.isBlank()) "Este campo es obligatorio" else null,
             passwordError = if (password.isBlank()) "Este campo es obligatorio" else null,
         )
 
-        // CAMBIO: ahora también marcamos los campos en rojo (con un espacio en
-        // blanco, para no duplicar el mensaje de texto) cuando el usuario o la
-        // contraseña son incorrectos, igual que en el Figma.
-        RepoError.WRONG_CREDENTIALS -> copy(
+        RepoError.EMAIL_NOT_FOUND -> copy(
             identifierError = " ",
+            credentialsError = "No existe una cuenta con ese correo",
+        )
+
+        RepoError.WRONG_CREDENTIALS -> copy(
             passwordError = " ",
-            credentialsError = "Usuario o contraseña son incorrectos",
+            credentialsError = "La contraseña es incorrecta",
         )
 
         RepoError.USER_NOT_FOUND -> copy(dialog = LoginDialog.USER_NOT_FOUND)
         RepoError.CONNECTION -> copy(dialog = LoginDialog.CONNECTION)
-        else -> copy(credentialsError = "Usuario o contraseña son incorrectos")
+        else -> copy(credentialsError = "No se pudo iniciar sesión. Intenta de nuevo.")
     }
 
     companion object {

@@ -67,4 +67,14 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.8.1")
 
     debugImplementation("androidx.compose.ui:ui-tooling")
+
+    // Pruebas unitarias del agente (JVM puro: corren sin emulador ni dispositivo)
+    testImplementation("junit:junit:4.13.2")
+}
+
+// Muestra cada prueba en la terminal (evidencia para la sustentación de IA)
+tasks.withType<Test>().configureEach {
+    testLogging {
+        events("passed", "failed", "skipped")
+    }
 }

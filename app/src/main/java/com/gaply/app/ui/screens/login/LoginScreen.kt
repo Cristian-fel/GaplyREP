@@ -224,7 +224,7 @@ fun LoginScreen(
         LoginDialog.USER_NOT_FOUND -> AppDialog(
             style = DialogStyle.ERROR,
             title = "¡Cuenta no encontrada!",
-            message = "No se han encontrado usuarios.",
+            message = "No existe una cuenta con ese usuario. Revísalo o regístrate.",
             onDismiss = viewModel::consumeDialog,
         )
 
