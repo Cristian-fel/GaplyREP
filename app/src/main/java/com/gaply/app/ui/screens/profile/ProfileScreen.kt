@@ -304,18 +304,23 @@ private fun ProfileHeader(
                 horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                IconButton(onClick = onLogout) {
+                // Ícono Y palabra: toda la zona es clicable, no solo el ícono.
+                Row(
+                    modifier = Modifier.clickable(onClick = onLogout),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ExitToApp,
                         contentDescription = "Cerrar sesión",
                         tint = SurfaceWhite,
                     )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "Cerrar sesión",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = SurfaceWhite,
+                    )
                 }
-                Text(
-                    text = "Cerrar sesión",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = SurfaceWhite,
-                )
             }
 
             Spacer(modifier = Modifier.height(4.dp))

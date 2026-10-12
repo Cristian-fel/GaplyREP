@@ -99,4 +99,28 @@ data class HuecoLibre(
         }
 
     fun aFranjaHoraria(dia: DiaSemana): FranjaHoraria = FranjaHoraria(dia, inicioMinutos, finMinutos)
+
+    companion object {
+
+        /**
+         * Huecos de al menos [minimoMinutos] entre clases consecutivas del día,
+         * en orden. Los usa la pantalla del horario y el banner del Home
+         * (el mismo dato con el que trabaja el agente de utilidad).
+         */
+        fun deClases(clases: List<ScheduleClass>, minimoMinutos: Int): List<HuecoLibre> {
+            return clases
+                .filter { it.endMinutes > it.startMinutes }
+                .sortedBy { it.startMinutes }
+                .zipWithNext()
+                .mapNotNull { (anterior, siguiente) ->
+                    val inicio = anterior.endMinutes
+                    val fin = siguiente.startMinutes
+                    if (fin - inicio >= minimoMinutos) {
+                        HuecoLibre(inicioMinutos = inicio, finMinutos = fin)
+                    } else {
+                        null
+                    }
+                }
+        }
+    }
 }

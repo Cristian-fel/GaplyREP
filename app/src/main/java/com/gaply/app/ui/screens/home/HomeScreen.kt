@@ -55,6 +55,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -145,6 +146,12 @@ fun HomeScreen(
         factory = HomeViewModel.factory(context.appContainer()),
     )
     val state by viewModel.uiState.collectAsState()
+
+    // Recarga el hueco de hoy cada vez que se entra/vuelve a la pantalla
+    // (por ejemplo, después de editar el horario en "Mi horario").
+    LaunchedEffect(Unit) {
+        viewModel.cargarHorario()
+    }
 
     Scaffold(
         containerColor = BackgroundApp,
@@ -315,7 +322,8 @@ private fun DiscoverTab(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Banner del Horario Libre
+        // Banner del Horario Libre: el hueco más grande de hoy según el
+        // horario real del usuario (el mismo dato que procesa el agente).
         Card(
             shape = RoundedCornerShape(50.dp),
             colors = CardDefaults.cardColors(containerColor = BrandGreen),
@@ -334,10 +342,18 @@ private fun DiscoverTab(
                 )
                 Spacer(modifier = Modifier.width(12.dp))
                 Text(
-                    text = "Tienes 2 horas libres 12:00 - 2:00 p.m.",
+                    text = when {
+                        state.huecoDeHoy != null -> "Tienes ${state.huecoDeHoy}"
+
+                        !state.tieneHorario ->
+                            "Agrega tus clases en Mi horario para ver tus huecos libres"
+
+                        else -> "Hoy no tienes huecos libres"
+                    },
                     color = Color.White,
                     fontWeight = FontWeight.SemiBold,
-                    fontSize = 14.sp
+                    fontSize = 14.sp,
+                    modifier = Modifier.weight(1f)
                 )
             }
         }

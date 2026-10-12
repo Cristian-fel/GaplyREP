@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -29,14 +30,17 @@ data class ScheduleUiState(
     val mesCorto: String = "",
     /** Huecos libres entre clases del día visible. */
     val huecos: List<HuecoLibre> = emptyList(),
+    /** true si hay clases en otros días (para orientar en el estado vacío). */
+    val hayClasesOtrosDias: Boolean = false,
     val error: String? = null,
 )
 
 /**
  * Módulo 2B · "Mi horario".
  *
- * Carga las clases del usuario, decide qué día mostrar, calcula los huecos
- * libres entre clases y expone las operaciones de guardado.
+ * Carga las clases de la semana, permite moverse entre los días con las
+ * flechas ‹ ›, calcula los huecos libres del día visible y expone las
+ * operaciones de guardado.
  */
 class ScheduleViewModel(
     private val scheduleRepository: ScheduleRepository,
@@ -44,6 +48,9 @@ class ScheduleViewModel(
 
     private val _uiState = MutableStateFlow(ScheduleUiState(cargando = true))
     val uiState: StateFlow<ScheduleUiState> = _uiState.asStateFlow()
+
+    /** Semana completa: sirve para cambiar de día sin volver a consultar. */
+    private var clasesSemana: List<ScheduleClass> = emptyList()
 
     // La carga inicial la dispara LaunchedEffect(Unit) en ScheduleScreen: así la
     // lista se recarga también cada vez que se vuelve del formulario (clase
@@ -54,7 +61,12 @@ class ScheduleViewModel(
             _uiState.value = _uiState.value.copy(cargando = true, error = null)
 
             when (val resultado = scheduleRepository.getClasses()) {
-                is RepoResult.Success -> _uiState.value = construir(resultado.data)
+                is RepoResult.Success -> {
+                    clasesSemana = resultado.data
+                    // Se conserva el día que se estaba mirando: regresar del
+                    // formulario no debe mandar a otro día.
+                    _uiState.value = construir(diaPreferido = _uiState.value.dia)
+                }
 
                 is RepoResult.Error -> _uiState.value = _uiState.value.copy(
                     cargando = false,
@@ -62,6 +74,13 @@ class ScheduleViewModel(
                 )
             }
         }
+    }
+
+    /** Mueve el día visible con las flechas ‹ › (cicla de sábado a lunes). */
+    fun cambiarDia(paso: Int) {
+        val actual = DIAS_ORDEN.indexOf(_uiState.value.dia).coerceAtLeast(0)
+        val nuevo = (actual + paso + DIAS_ORDEN.size) % DIAS_ORDEN.size
+        _uiState.value = construir(diaPreferido = DIAS_ORDEN[nuevo])
     }
 
     fun eliminar(classId: String) {
@@ -72,30 +91,33 @@ class ScheduleViewModel(
     }
 
     /**
-     * Muestra el día de hoy si tiene clases; si no, el primer día con clases;
-     * si el horario está vacío, hoy mismo (o lunes si hoy es domingo).
+     * Arma el estado del día visible. Orden de decisión:
+     * 1. el día elegido con las flechas (o el que ya se estaba viendo);
+     * 2. si no, hoy si tiene clases;
+     * 3. si no, el primer día con clases;
+     * 4. si el horario está vacío, hoy mismo (o lunes si hoy es domingo).
      */
-    private fun construir(clases: List<ScheduleClass>): ScheduleUiState {
+    private fun construir(diaPreferido: String): ScheduleUiState {
         val hoy = LocalDate.now()
         val diaDeHoy = tituloDia(hoy)
 
-        // El modelo solo programó clases de lunes a sábado: si hoy es domingo y
-        // el horario está vacío, el día visible arranca en lunes.
-        val diaVisible = diaDeHoy.takeIf { dia -> clases.any { it.day == dia } }
-            ?: DIAS_ORDEN.firstOrNull { dia -> clases.any { it.day == dia } }
+        val diaVisible = diaPreferido.takeIf { it in DIAS_ORDEN }
+            ?: diaDeHoy.takeIf { dia -> clasesSemana.any { it.day == dia } }
+            ?: DIAS_ORDEN.firstOrNull { dia -> clasesSemana.any { it.day == dia } }
             ?: diaDeHoy.takeIf { it in DIAS_ORDEN }
             ?: DIAS_ORDEN.first()
 
-        val clasesDelDia = clases.filter { it.day == diaVisible }
+        val clasesDelDia = clasesSemana.filter { it.day == diaVisible }
             .sortedBy { it.startMinutes }
 
-        // Próxima fecha en la que cae ese día de la semana (hoy mismo si coincide).
-        // Se compara por título en español: DayOfWeek.valueOf() espera nombres en
-        // inglés (MONDAY, SUNDAY…) y tronaba con "DOMINGO"/"LUNES".
-        val fechaDeHoy = (0..7)
-            .map { hoy.plusDays(it.toLong()) }
-            .firstOrNull { tituloDia(it) == diaVisible }
-            ?: hoy
+        // Fecha de ese día dentro de la semana en curso (lunes de esta semana).
+        // Si hoy es domingo, la semana "actual" del modelo empieza mañana lunes.
+        val inicioSemana = if (hoy.dayOfWeek == DayOfWeek.SUNDAY) {
+            hoy.plusDays(1)
+        } else {
+            hoy.with(DayOfWeek.MONDAY)
+        }
+        val fechaDelDia = inicioSemana.plusDays(DIAS_ORDEN.indexOf(diaVisible).toLong())
 
         val formatoLargo = DateTimeFormatter.ofPattern("d 'de' MMMM", LOCALE)
         val formatoCorto = DateTimeFormatter.ofPattern("MMM", LOCALE)
@@ -104,28 +126,16 @@ class ScheduleViewModel(
             cargando = false,
             clases = clasesDelDia,
             dia = diaVisible,
-            fecha = formatoLargo.format(fechaDeHoy),
-            mesCorto = formatoCorto.format(fechaDeHoy),
+            fecha = formatoLargo.format(fechaDelDia),
+            mesCorto = formatoCorto.format(fechaDelDia),
             huecos = calcularHuecos(clasesDelDia),
+            hayClasesOtrosDias = clasesSemana.any { it.day != diaVisible },
         )
     }
 
     /** Huecos de al menos una hora entre clases consecutivas del día. */
-    private fun calcularHuecos(clasesDelDia: List<ScheduleClass>): List<HuecoLibre> {
-        return clasesDelDia
-            .filter { it.endMinutes > it.startMinutes }
-            .sortedBy { it.startMinutes }
-            .zipWithNext()
-            .mapNotNull { (anterior, siguiente) ->
-                val inicio = anterior.endMinutes
-                val fin = siguiente.startMinutes
-                if (fin - inicio >= HUECO_MINIMO_MINUTOS) {
-                    HuecoLibre(inicioMinutos = inicio, finMinutos = fin)
-                } else {
-                    null
-                }
-            }
-    }
+    private fun calcularHuecos(clasesDelDia: List<ScheduleClass>): List<HuecoLibre> =
+        HuecoLibre.deClases(clasesDelDia, HUECO_MINIMO_MINUTOS)
 
     private fun mensajeDe(error: RepoError): String = when (error) {
         RepoError.CONNECTION -> "Sin conexión. Revisa tu internet e intenta de nuevo."

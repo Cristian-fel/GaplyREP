@@ -24,6 +24,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Image
@@ -125,6 +127,8 @@ fun ScheduleScreen(
 
                 else -> ContenidoHorario(
                     state = state,
+                    onDiaAnterior = { viewModel.cambiarDia(-1) },
+                    onDiaSiguiente = { viewModel.cambiarDia(+1) },
                     onAddClass = onAddClass,
                     onEditClass = onEditClass,
                     onOpenHuecos = onOpenHuecos,
@@ -163,6 +167,8 @@ fun ScheduleScreen(
 @Composable
 private fun ContenidoHorario(
     state: ScheduleUiState,
+    onDiaAnterior: () -> Unit,
+    onDiaSiguiente: () -> Unit,
     onAddClass: (String) -> Unit,
     onEditClass: (String) -> Unit,
     onOpenHuecos: (String, String, String) -> Unit,
@@ -181,31 +187,51 @@ private fun ContenidoHorario(
             modifier = Modifier.padding(horizontal = 24.dp),
         )
 
+        // Encabezado del día: flechas ‹ › para recorrer la semana y mirar todo
+        // el horario sin salir de la pantalla (el Figma no las trae).
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 24.dp),
+                .padding(horizontal = 12.dp),
         ) {
+            IconButton(onClick = onDiaAnterior) {
+                Icon(
+                    imageVector = Icons.Filled.KeyboardArrowLeft,
+                    contentDescription = "Día anterior",
+                    tint = BrandGreen,
+                )
+            }
             Text(
                 text = state.dia,
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
                 color = BrandGreen,
-                modifier = Modifier.weight(1f),
             )
+            IconButton(onClick = onDiaSiguiente) {
+                Icon(
+                    imageVector = Icons.Filled.KeyboardArrowRight,
+                    contentDescription = "Día siguiente",
+                    tint = BrandGreen,
+                )
+            }
+            Spacer(modifier = Modifier.weight(1f))
             Text(
                 text = state.fecha,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.padding(end = 12.dp),
             )
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
         if (state.clases.isEmpty()) {
-            EstadoVacio(onImportar = onImportar)
+            EstadoVacio(
+                hayClasesEnOtrosDias = state.hayClasesOtrosDias,
+                onImportar = onImportar,
+            )
         } else {
             state.clases.forEachIndexed { indice, clase ->
                 ClaseBand(
@@ -255,6 +281,15 @@ private fun ClaseBand(
                     fontWeight = FontWeight.Bold,
                     color = Color.Black,
                 )
+                if (clase.note.isNotBlank()) {
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = "Nota: ${clase.note}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium,
+                        color = Color.Black.copy(alpha = 0.75f),
+                    )
+                }
             }
 
             Box(
@@ -319,7 +354,10 @@ private fun HuecoBand(
 
 /** Estado vacío: calendario, "Agregar Horario" e "Importar desde galería". */
 @Composable
-private fun EstadoVacio(onImportar: () -> Unit) {
+private fun EstadoVacio(
+    hayClasesEnOtrosDias: Boolean,
+    onImportar: () -> Unit,
+) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
@@ -353,6 +391,17 @@ private fun EstadoVacio(onImportar: () -> Unit) {
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurface,
         )
+
+        if (hayClasesEnOtrosDias) {
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = "Este día está libre. Usa ‹ › para ver los demás días.",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium,
+                textAlign = TextAlign.Center,
+                color = BrandGreen,
+            )
+        }
 
         Spacer(modifier = Modifier.height(32.dp))
 

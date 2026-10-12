@@ -5,6 +5,7 @@ import com.gaply.app.domain.model.RepoResult
 import com.gaply.app.domain.model.ScheduleClass
 import com.gaply.app.domain.repository.ScheduleRepository
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.SetOptions
@@ -51,7 +52,13 @@ class FirebaseScheduleRepository(
 
     override suspend fun deleteClass(classId: String): RepoResult<String> = try {
         val uid = auth.currentUser?.uid ?: return RepoResult.Error(RepoError.PERMISSION)
-        escribirHorario(uid, mapaHorario(uid) - classId)
+        // FieldValue.delete() sobre la ruta "schedule.<id>" es la única forma
+        // garantizada de quitar la llave del mapa: reescribir el mapa sin ella
+        // con SetOptions.merge() no la elimina (Firestore mezcla los mapas y la
+        // clase reaparecía al recargar).
+        firestore.collection(USERS).document(uid)
+            .update(mapOf("$CAMPO_HORARIO.$classId" to FieldValue.delete()))
+            .await()
         RepoResult.Success(classId)
     } catch (e: Exception) {
         RepoResult.Error(mapError(e))
