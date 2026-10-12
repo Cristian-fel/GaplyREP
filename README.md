@@ -1,9 +1,8 @@
 # GaplyREP
 
-Aplicación móvil universitaria desarrollada para las materias de **Programación de
-Aplicaciones Móviles** e **Inteligencia Artificial**. Gaply organiza el horario del
-estudiante, detecta sus huecos libres y le sugiere actividades con un **agente de
-utilidad** basado en sus intereses.
+Aplicación móvil universitaria desarrollada en el curso de **Programación de
+Aplicaciones Móviles**. Gaply organiza el horario del estudiante, detecta sus
+huecos libres y le sugiere actividades para ese tiempo.
 
 ## Módulos implementados
 
@@ -11,13 +10,13 @@ utilidad** basado en sus intereses.
   de contraseña con Firebase Authentication.
 - **Módulo 2 — Perfil y horario:** perfil con foto (Firebase Storage), edición en
   3 pasos, "Mi horario" con clases por día, edición y eliminación, cálculo de huecos
-  libres y sugerencias del agente de utilidad.
+  libres y pantalla de sugerencias ("Mis huecos").
 
 ## Pantallas
 
 Welcome · Login · Recuperar contraseña · Registro · Home (Descubrir / Matches /
 Chats / Perfil) · Editar perfil (3 pasos) · Mi horario · Formulario de clase ·
-Mis huecos (sugerencias del agente).
+Mis huecos (sugerencias para un hueco libre).
 
 ## Tecnologías
 
@@ -40,12 +39,11 @@ El horario se guarda como **campo** del documento del usuario con
 `SetOptions.merge()` (las reglas de Firestore cubren `users/{uid}`) y se elimina
 con `FieldValue.delete()`.
 
-## El agente de utilidad
+## Sugerencias de actividades
 
-En `app/src/main/java/com/gaply/app/domain/agent/` vive un agente puro de Kotlin
-(modelo **PEAS**): percibe los huecos libres del horario, evalúa actividades
-candidatas con una función de utilidad
-`0.65 · intereses + 0.35 · encaje horario` y devuelve recomendaciones explicadas.
+La pantalla "Mis huecos" muestra actividades que caben en un hueco libre del
+horario según los intereses del usuario. La lógica está aislada en
+`app/src/main/java/com/gaply/app/domain/agent/`.
 
 ## Compilar
 
