@@ -66,8 +66,10 @@ import com.gaply.app.R
 import com.gaply.app.ui.components.GaplyOutlineButton
 import com.gaply.app.ui.components.GaplyPrimaryButton
 import com.gaply.app.ui.components.GaplyTextField
+import com.gaply.app.ui.components.interestIconFor
 import com.gaply.app.ui.theme.BrandGreen
 import com.gaply.app.ui.theme.Mint
+import com.gaply.app.ui.theme.Sage
 import com.gaply.app.ui.theme.TextSecondary
 import java.io.File
 
@@ -528,6 +530,36 @@ private fun InterestCard(
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize(),
                 )
+            } else {
+                // Interés personalizado (Fotografía, Viajes, ...): degradado
+                // menta con su icono en lugar de una tarjeta gris vacía.
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.horizontalGradient(
+                                colors = listOf(Mint, Sage),
+                            ),
+                        ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    val icon = interestIconFor(label)
+                    if (icon != null) {
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = label,
+                            tint = BrandGreen,
+                            modifier = Modifier.size(42.dp),
+                        )
+                    } else {
+                        Text(
+                            text = label.take(1).uppercase(),
+                            color = BrandGreen,
+                            fontSize = 28.sp,
+                            fontWeight = FontWeight.Bold,
+                        )
+                    }
+                }
             }
 
             Box(

@@ -294,7 +294,10 @@ internal fun EditStepInterestsContent(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                RegisterData.interests.forEach { interest ->
+                // Los intereses personalizados del registro también se
+                // muestran aquí para poder quitarlos o volver a elegirlos.
+                val extras = state.interests.filter { it !in RegisterData.interests }
+                (RegisterData.interests + extras).forEach { interest ->
                     InterestPill(
                         label = interest,
                         selected = interest in state.interests,

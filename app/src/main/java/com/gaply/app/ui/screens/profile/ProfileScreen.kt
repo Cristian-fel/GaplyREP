@@ -191,12 +191,15 @@ fun ProfileScreen(
             ) {
                 Spacer(modifier = Modifier.height(12.dp))
                 val selected = user?.interests.orEmpty()
+                // Los intereses personalizados (agregados al registrarse)
+                // también se muestran en el perfil, con su ícono.
+                val extras = selected.filter { it !in RegisterData.interests }
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    RegisterData.interests.forEach { interest ->
+                    (RegisterData.interests + extras).forEach { interest ->
                         InterestPill(
                             label = interest,
                             selected = interest in selected,

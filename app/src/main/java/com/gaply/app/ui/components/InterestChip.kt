@@ -14,6 +14,7 @@ import androidx.compose.material.icons.filled.Nightlife
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.School
+import androidx.compose.material.icons.filled.Checkroom
 import androidx.compose.material.icons.filled.Science
 import androidx.compose.material.icons.filled.SportsEsports
 import androidx.compose.material.icons.filled.SportsSoccer
@@ -114,6 +115,7 @@ fun interestIconFor(label: String): ImageVector? {
             Icons.Filled.Code
 
         clean.contains("ciencia") -> Icons.Filled.Science
+        clean.contains("moda") -> Icons.Filled.Checkroom
         else -> Icons.Filled.School
     }
 }
