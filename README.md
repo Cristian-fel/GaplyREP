@@ -51,9 +51,3 @@ horario según los intereses del usuario. La lógica está aislada en
 2. Abrir el proyecto y dejar sincronizar Gradle.
 3. Ejecutar en emulador o dispositivo (`Run ▶`), o por terminal:
    `gradlew.bat :app:assembleDebug`.
-
-## Equipo
-
-- Iván Santiago García Ñustes
-- Albeiro José Pérez Terán
-- Juan Camilo Vargas Rodríguez
