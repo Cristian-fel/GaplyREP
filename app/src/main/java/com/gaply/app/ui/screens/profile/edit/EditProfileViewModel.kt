@@ -10,7 +10,6 @@ import com.gaply.app.domain.model.RepoResult
 import com.gaply.app.domain.model.User
 import com.gaply.app.domain.repository.AuthRepository
 import com.gaply.app.domain.repository.UserRepository
-import com.gaply.app.ui.screens.register.RegisterData
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -76,7 +75,7 @@ class EditProfileViewModel(
                     university = user.university,
                     birthDay = parts.getOrNull(0).orEmpty(),
                     birthMonth = if (monthNumber in 1..12) {
-                        RegisterData.months[monthNumber - 1]
+                        monthNumber.toString().padStart(2, '0')
                     } else {
                         ""
                     },
@@ -207,9 +206,7 @@ class EditProfileViewModel(
                 }
             }
 
-            val monthNumber = (RegisterData.months.indexOf(state.birthMonth) + 1)
-                .toString()
-                .padStart(2, '0')
+            val monthNumber = state.birthMonth.padStart(2, '0')
             val birthDate = if (state.birthDay.isNotBlank() && state.birthYear.isNotBlank()) {
                 "${state.birthDay}/$monthNumber/${state.birthYear}"
             } else {
