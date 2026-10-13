@@ -10,6 +10,9 @@ object Routes {
     const val SCHEDULE = "schedule"
     const val SCHEDULE_EDIT = "schedule_edit"
     const val HUECOS = "huecos"
+    const val SETTINGS = "settings"
+    const val ACCOUNT_OPTIONS = "account_options"
+    const val CONFIRM_DEACTIVATE = "confirm_deactivate"
 
     const val ARG_IDENTIFIER = "identifier"
     const val ARG_CLASS_ID = "classId"

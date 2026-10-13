@@ -193,9 +193,9 @@ fun HomeScreen(
 
     when (state.dialog) {
         HomeDialog.CREATE_ACTIVITY -> AppDialog(
-            style = DialogStyle.INFO,
-            title = "Crear la actividad",
-            message = "En la versión final, este botón abrirá el formulario para crear tu propia actividad.",
+            style = DialogStyle.ERROR,
+            title = "¡Error de conexión!",
+            message = "Comprueba tu conexión, inténtalo más tarde.",
             onDismiss = viewModel::consumeDialog,
         )
 

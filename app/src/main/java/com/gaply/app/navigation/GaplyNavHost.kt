@@ -14,6 +14,9 @@ import com.gaply.app.ui.screens.reset.ResetPasswordScreen
 import com.gaply.app.ui.screens.schedule.HuecosScreen
 import com.gaply.app.ui.screens.schedule.ScheduleEditScreen
 import com.gaply.app.ui.screens.schedule.ScheduleScreen
+import com.gaply.app.ui.screens.settings.AccountOptionsScreen
+import com.gaply.app.ui.screens.settings.ConfirmDeactivateScreen
+import com.gaply.app.ui.screens.settings.SettingsScreen
 import com.gaply.app.ui.screens.welcome.WelcomeScreen
 
 @Composable
@@ -85,6 +88,7 @@ fun GaplyNavHost() {
                 },
                 onEditProfile = { navController.navigate(Routes.EDIT_PROFILE) },
                 onOpenSchedule = { navController.navigate(Routes.SCHEDULE) },
+                onOpenSettings = { navController.navigate(Routes.SETTINGS) },
             )
         }
 
@@ -158,6 +162,34 @@ fun GaplyNavHost() {
                 diaInicial = entry.arguments?.getString(Routes.ARG_DIA).orEmpty(),
                 inicioInicial = entry.arguments?.getString(Routes.ARG_INICIO).orEmpty(),
                 finInicial = entry.arguments?.getString(Routes.ARG_FIN).orEmpty(),
+            )
+        }
+
+        composable(Routes.SETTINGS) {
+            SettingsScreen(
+                onBack = { navController.popBackStack() },
+                onLogout = {
+                    navController.navigate(Routes.WELCOME) {
+                        popUpTo(Routes.HOME) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                },
+                onOpenDeactivateOptions = { navController.navigate(Routes.ACCOUNT_OPTIONS) },
+            )
+        }
+
+        composable(Routes.ACCOUNT_OPTIONS) {
+            AccountOptionsScreen(
+                onBack = { navController.popBackStack() },
+                onDeactivate = { navController.navigate(Routes.CONFIRM_DEACTIVATE) },
+                onDeleteAccount = { navController.navigate(Routes.CONFIRM_DEACTIVATE) },
+            )
+        }
+
+        composable(Routes.CONFIRM_DEACTIVATE) {
+            ConfirmDeactivateScreen(
+                onBack = { navController.popBackStack() },
+                onConfirm = { navController.popBackStack(Routes.HOME, inclusive = false) },
             )
         }
     }

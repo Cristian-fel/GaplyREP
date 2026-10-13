@@ -158,7 +158,7 @@ internal fun EditStepBasicsContent(
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 IconOutlineButton(
-                    text = "Cambiar foto",
+                    text = "Galería",
                     icon = Icons.Filled.Image,
                     onClick = { galleryLauncher.launch("image/*") },
                     modifier = Modifier.weight(1f),

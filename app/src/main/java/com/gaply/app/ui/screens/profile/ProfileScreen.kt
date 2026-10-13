@@ -27,7 +27,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Favorite
@@ -78,7 +77,7 @@ import java.io.File
 /**
  * Módulo 2 · Pestaña "Perfil" del Home.
  * Reproduce el Figma: cabecera verde con onda, engranaje de Configuración,
- * cerrar sesión, foto con badge de cámara, botón Editar, descripción,
+ * foto con badge de cámara, botón Editar, descripción,
  * intereses y acceso a "Mi horario".
  */
 @OptIn(ExperimentalLayoutApi::class)
@@ -147,7 +146,6 @@ fun ProfileScreen(
             onCameraClick = { galleryLauncher.launch("image/*") },
             onGalleryClick = launchCamera,
             onOpenSettings = onOpenSettings,
-            onLogout = onLogout,
             onEditProfile = onEditProfile,
         )
 
@@ -191,8 +189,6 @@ fun ProfileScreen(
             ) {
                 Spacer(modifier = Modifier.height(12.dp))
                 val selected = user?.interests.orEmpty()
-                // Los intereses personalizados (agregados al registrarse)
-                // también se muestran en el perfil, con su ícono.
                 val extras = selected.filter { it !in RegisterData.interests }
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -259,6 +255,7 @@ private fun DrawScope.drawHeaderWave(color: Color) {
         moveTo(0f, 0f)
         lineTo(size.width, 0f)
         lineTo(size.width, size.height - wave)
+
         quadraticTo(
             x1 = size.width * 0.6f,
             y1 = size.height,
@@ -278,7 +275,6 @@ private fun ProfileHeader(
     onCameraClick: () -> Unit,
     onGalleryClick: () -> Unit,
     onOpenSettings: () -> Unit,
-    onLogout: () -> Unit,
     onEditProfile: () -> Unit,
 ) {
     Box(modifier = Modifier.fillMaxWidth()) {
@@ -302,33 +298,7 @@ private fun ProfileHeader(
                 )
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                // Ícono Y palabra: toda la zona es clicable, no solo el ícono.
-                Row(
-                    modifier = Modifier.clickable(onClick = onLogout),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ExitToApp,
-                        contentDescription = "Cerrar sesión",
-                        tint = SurfaceWhite,
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = "Cerrar sesión",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = SurfaceWhite,
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
