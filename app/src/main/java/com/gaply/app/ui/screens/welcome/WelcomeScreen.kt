@@ -11,9 +11,16 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -28,15 +35,23 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.gaply.app.R
+import com.gaply.app.ui.components.AppDialog
+import com.gaply.app.ui.components.DialogStyle
 import com.gaply.app.ui.components.GaplyOutlineButton
 import com.gaply.app.ui.components.GaplyPrimaryButton
 import com.gaply.app.ui.theme.BrandGreen
+import com.gaply.app.ui.theme.ErrorRed
+import com.gaply.app.ui.theme.SuccessGreen
+import com.gaply.app.ui.theme.SurfaceWhite
 
 @Composable
 fun WelcomeScreen(
     onLogin: () -> Unit = {},
     onRegister: () -> Unit = {},
+    accountMessage: String? = null,
 ) {
+    var showAccountDialog by remember { mutableStateOf(!accountMessage.isNullOrBlank()) }
+    val deleted = accountMessage == ACCOUNT_DELETED
     // Matriz de color para convertir la imagen negra original en líneas gris claro muy suave
     val invertToLightGrayMatrix = ColorMatrix(
         floatArrayOf(
@@ -131,7 +146,29 @@ fun WelcomeScreen(
             Spacer(modifier = Modifier.height(12.dp))
         }
     }
+
+    if (showAccountDialog && accountMessage != null) {
+        val isDeleted = accountMessage == ACCOUNT_DELETED
+        AppDialog(
+            style = if (isDeleted) DialogStyle.ERROR else DialogStyle.SUCCESS,
+            title = if (isDeleted) "¡Cuenta eliminada!" else "¡Cuenta desactivada!",
+            message = if (isDeleted) {
+                "Tu cuenta y datos se han eliminado correctamente."
+            } else {
+                "Puedes reactivarla cuando quieras con tus mismos datos de acceso."
+            },
+            onDismiss = { showAccountDialog = false },
+            showConfirmButton = false,
+            icon = if (isDeleted) Icons.Filled.Delete else Icons.Filled.CheckCircle,
+            iconTint = if (isDeleted) SurfaceWhite else SuccessGreen,
+            iconBackgroundColor = if (isDeleted) ErrorRed else null,
+        )
+    }
 }
+
+/** Valores posibles del argumento accountMessage de Welcome. */
+const val ACCOUNT_DELETED = "deleted"
+const val ACCOUNT_DEACTIVATED = "deactivated"
 
 @Preview(showBackground = true, showSystemUi = true)
 @Composable

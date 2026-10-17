@@ -5,14 +5,16 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.gaply.app.di.AppContainer
 import com.gaply.app.domain.repository.AuthRepository
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 /**
  * Módulo 2 · Configuración.
- * Cierra la sesión desde Ajustes y desde la confirmación de desactivar cuenta.
+ * Cierra la sesión y expone el idioma seleccionado (persistente).
  */
 class SettingsViewModel(
     private val authRepository: AuthRepository,
+    val language: StateFlow<String>,
 ) : ViewModel() {
 
     fun signOut() {
@@ -26,6 +28,7 @@ class SettingsViewModel(
                 override fun <T : ViewModel> create(modelClass: Class<T>): T {
                     return SettingsViewModel(
                         authRepository = container.authRepository,
+                        language = container.appLanguage,
                     ) as T
                 }
             }

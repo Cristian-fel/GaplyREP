@@ -1,6 +1,7 @@
 package com.gaply.app.ui.components
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -25,7 +26,9 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -37,6 +40,14 @@ import com.gaply.app.ui.theme.SuccessGreen
 // 1. Añadimos WARNING al enum
 enum class DialogStyle { SUCCESS, ERROR, WARNING, INFO }
 
+/**
+ * Diálogo modal compartido.
+ *
+ * @param icon     Icono personalizado opcional; si es null usa el del [style].
+ * @param iconTint Tinte del icono personalizado; si es null usa el del [style].
+ * @param iconBackgroundColor Color de fondo circular tras el icono (opcional).
+ * @param borderColor Color del borde del modal (los mockups usan verde en los éxito).
+ */
 @Composable
 fun AppDialog(
     style: DialogStyle,
@@ -44,12 +55,17 @@ fun AppDialog(
     message: String,
     onDismiss: () -> Unit,
     confirmText: String = "Aceptar",
+    showConfirmButton: Boolean = true,
+    icon: ImageVector? = null,
+    iconTint: Color? = null,
+    iconBackgroundColor: Color? = null,
+    borderColor: Color = Color.Black,
 ) {
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             shape = RoundedCornerShape(24.dp),
             color = Color.White,
-            border = BorderStroke(3.dp, Color.Black),
+            border = BorderStroke(3.dp, borderColor),
             modifier = Modifier.fillMaxWidth()
         ) {
             Box(
@@ -81,9 +97,35 @@ fun AppDialog(
                         .fillMaxWidth()
                         .padding(top = 16.dp)
                 ) {
-                    // 2. Evaluamos los estilos aquí
-                    when (style) {
-                        DialogStyle.SUCCESS -> {
+                    // Icono: personalizado si se pasó, o el propio del estilo
+                    when {
+                        icon != null -> {
+                            if (iconBackgroundColor != null) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(64.dp)
+                                        .clip(CircleShape)
+                                        .background(iconBackgroundColor),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Icon(
+                                        imageVector = icon,
+                                        contentDescription = null,
+                                        tint = iconTint ?: Color.White,
+                                        modifier = Modifier.size(36.dp),
+                                    )
+                                }
+                            } else {
+                                Icon(
+                                    imageVector = icon,
+                                    contentDescription = null,
+                                    tint = iconTint ?: Color.Unspecified,
+                                    modifier = Modifier.size(56.dp),
+                                )
+                            }
+                        }
+                        // 2. Evaluamos los estilos aquí
+                        style == DialogStyle.SUCCESS -> {
                             Icon(
                                 imageVector = Icons.Filled.CheckCircle,
                                 contentDescription = "Éxito",
@@ -91,7 +133,7 @@ fun AppDialog(
                                 modifier = Modifier.size(56.dp)
                             )
                         }
-                        DialogStyle.INFO -> {
+                        style == DialogStyle.INFO -> {
                             Icon(
                                 imageVector = Icons.Filled.Info,
                                 contentDescription = "Información",
@@ -99,7 +141,7 @@ fun AppDialog(
                                 modifier = Modifier.size(56.dp)
                             )
                         }
-                        DialogStyle.WARNING -> {
+                        style == DialogStyle.WARNING -> {
                             Icon(
                                 imageVector = Icons.Filled.Warning,
                                 contentDescription = "Advertencia",
@@ -107,7 +149,7 @@ fun AppDialog(
                                 modifier = Modifier.size(56.dp)
                             )
                         }
-                        DialogStyle.ERROR -> {
+                        else -> {
                             Icon(
                                 painter = painterResource(id = R.drawable.wifi),
                                 contentDescription = "Error / Sin conexión",
@@ -137,12 +179,14 @@ fun AppDialog(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    TextButton(onClick = onDismiss) {
-                        Text(
-                            text = confirmText,
-                            style = MaterialTheme.typography.labelLarge,
-                            color = Color.Black
-                        )
+                    if (showConfirmButton) {
+                        TextButton(onClick = onDismiss) {
+                            Text(
+                                text = confirmText,
+                                style = MaterialTheme.typography.labelLarge,
+                                color = Color.Black
+                            )
+                        }
                     }
                 }
             }

@@ -17,6 +17,11 @@ class AppContainer(context: Context) {
 
     private val userStore = LocalUserStore(context)
 
+    /** Preferencia de idioma de Configuración (lectura reactiva + guardado). */
+    val appLanguage: kotlinx.coroutines.flow.StateFlow<String> = userStore.language
+
+    fun setAppLanguage(language: String) = userStore.setLanguage(language)
+
     val authRepository: AuthRepository = if (USE_FIREBASE) {
         FirebaseAuthRepository()
     } else {

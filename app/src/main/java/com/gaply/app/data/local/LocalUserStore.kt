@@ -41,6 +41,17 @@ class LocalUserStore(context: Context) {
         _currentUser.value = sessionId?.let { id -> loadUsers().find { it.userId == id } }
     }
 
+    /** Idioma seleccionado en Configuración (persistente entre sesiones). */
+    private val _language = MutableStateFlow(
+        prefs.getString(KEY_LANGUAGE, DEFAULT_LANGUAGE) ?: DEFAULT_LANGUAGE,
+    )
+    val language: StateFlow<String> = _language
+
+    fun setLanguage(value: String) {
+        prefs.edit().putString(KEY_LANGUAGE, value).apply()
+        _language.value = value
+    }
+
     private fun loadSessionUser(): User? {
         val sessionId = prefs.getString(KEY_SESSION, null) ?: return null
         return loadUsers().find { it.userId == sessionId }
@@ -88,5 +99,7 @@ class LocalUserStore(context: Context) {
         private const val PREFS_NAME = "gaply_store"
         private const val KEY_USERS = "users"
         private const val KEY_SESSION = "session_user_id"
+        private const val KEY_LANGUAGE = "app_language"
+        private const val DEFAULT_LANGUAGE = "Español (ES)"
     }
 }

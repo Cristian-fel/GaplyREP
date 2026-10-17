@@ -20,10 +20,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.gaply.app.di.appContainer
+import com.gaply.app.ui.components.AppDialog
+import com.gaply.app.ui.components.DialogStyle
 import com.gaply.app.ui.components.GaplyPrimaryButton
 import com.gaply.app.ui.theme.BackgroundApp
 import com.gaply.app.ui.theme.BrandGreenDark
@@ -37,8 +42,13 @@ import com.gaply.app.ui.theme.GaplyTheme
 @Composable
 fun ConfirmDeactivateScreen(
     onBack: () -> Unit,
-    onConfirm: () -> Unit = {},
+    onDeactivated: () -> Unit = {},
 ) {
+    val context = LocalContext.current
+    val viewModel: DeactivateViewModel = viewModel(
+        factory = DeactivateViewModel.factory(context.appContainer()),
+    )
+
     val bullets = listOf(
         "Nadie podrá ver tu cuenta ni su contenido.",
         "Los datos que no se almacenan en tu cuenta (como los mensajes " +
@@ -59,9 +69,9 @@ fun ConfirmDeactivateScreen(
     ) {
         Spacer(modifier = Modifier.height(4.dp))
 
-        SettingsTopBar(
-            title = "Desactivar cuenta",
-            onBack = onBack,
+        SettingsBackButton(
+            onClick = onBack,
+            modifier = Modifier.align(Alignment.Start),
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -94,11 +104,23 @@ fun ConfirmDeactivateScreen(
 
         GaplyPrimaryButton(
             text = "Desactivar",
-            onClick = onConfirm,
+            onClick = {
+                viewModel.deactivate(onDeactivated = onDeactivated)
+            },
+            loading = viewModel.loading,
             containerColor = BrandGreenDark,
         )
 
         Spacer(modifier = Modifier.height(24.dp))
+    }
+
+    viewModel.errorMessage?.let { message ->
+        AppDialog(
+            style = DialogStyle.ERROR,
+            title = "No se pudo desactivar",
+            message = message,
+            onDismiss = viewModel::consumeError,
+        )
     }
 }
 

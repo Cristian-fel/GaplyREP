@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -22,8 +23,8 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
@@ -58,15 +59,10 @@ internal fun SettingsTopBar(
             .padding(horizontal = 8.dp, vertical = 4.dp),
         contentAlignment = Alignment.Center,
     ) {
-        IconButton(
+        SettingsBackButton(
             onClick = onBack,
             modifier = Modifier.align(Alignment.CenterStart),
-        ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = "Volver",
-            )
-        }
+        )
         Text(
             text = title,
             style = MaterialTheme.typography.titleLarge,
@@ -76,11 +72,37 @@ internal fun SettingsTopBar(
     }
 }
 
+/**
+ * Botón de retroceso circular blanco con sombra suave,
+ * tal como aparece en los mockups del módulo Configuración.
+ */
+@Composable
+internal fun SettingsBackButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        onClick = onClick,
+        modifier = modifier.size(48.dp),
+        shape = CircleShape,
+        color = SurfaceWhite,
+        shadowElevation = 4.dp,
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = "Volver",
+            )
+        }
+    }
+}
+
 /** Tarjeta contenedora de sección con título serif (Cuenta y Seguridad, Preferencias, Acerca). */
 @Composable
 internal fun SettingsSectionCard(
     title: String,
     modifier: Modifier = Modifier,
+    headerIcon: ImageVector? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Card(
@@ -90,18 +112,29 @@ internal fun SettingsSectionCard(
         border = BorderStroke(1.dp, Sage),
     ) {
         Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (headerIcon != null) {
+                    Icon(
+                        imageVector = headerIcon,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.size(22.dp),
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                }
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                )
+            }
             Spacer(modifier = Modifier.height(4.dp))
             content()
         }
     }
 }
 
-/** Fila de ajuste: icono verde, título + subtítulo y trailing (flecha o Switch). */
+/** Fila de ajuste: icono verde en círculo blanco, título + subtítulo y trailing (flecha o Switch). */
 @Composable
 internal fun SettingsItemRow(
     icon: ImageVector,
@@ -118,18 +151,21 @@ internal fun SettingsItemRow(
             .padding(vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(
-            modifier = Modifier
-                .size(38.dp)
-                .background(color = BrandGreen, shape = RoundedCornerShape(12.dp)),
-            contentAlignment = Alignment.Center,
+        Surface(
+            modifier = Modifier.size(40.dp),
+            shape = CircleShape,
+            color = SurfaceWhite,
+            shadowElevation = 2.dp,
+            border = BorderStroke(1.dp, Sage),
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = SurfaceWhite,
-                modifier = Modifier.size(20.dp),
-            )
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = BrandGreen,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
         }
         Spacer(modifier = Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {

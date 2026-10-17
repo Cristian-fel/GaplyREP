@@ -13,15 +13,25 @@ object Routes {
     const val SETTINGS = "settings"
     const val ACCOUNT_OPTIONS = "account_options"
     const val CONFIRM_DEACTIVATE = "confirm_deactivate"
+    const val CHANGE_PASSWORD = "change_password"
+    const val DELETE_ACCOUNT = "delete_account"
+    const val RATE_APP = "rate_app"
+    const val LANGUAGE = "language"
+    const val ABOUT = "about"
 
     const val ARG_IDENTIFIER = "identifier"
     const val ARG_CLASS_ID = "classId"
     const val ARG_DIA = "dia"
     const val ARG_INICIO = "inicio"
     const val ARG_FIN = "fin"
+    const val ARG_ACCOUNT_MESSAGE = "accountMessage"
 
     fun reset(identifier: String): String =
         "$RESET?$ARG_IDENTIFIER=${android.net.Uri.encode(identifier)}"
+
+    /** Welcome con el modal de cuenta desactivada/eliminada tras salir. */
+    fun welcome(accountMessage: String): String =
+        "$WELCOME?$ARG_ACCOUNT_MESSAGE=${android.net.Uri.encode(accountMessage)}"
 
     /** Formulario del horario: vacío crea una clase nueva; con id la edita. */
     fun scheduleEdit(classId: String = "", dia: String = ""): String =

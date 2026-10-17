@@ -55,18 +55,18 @@ fun AccountOptionsScreen(
     ) {
         Spacer(modifier = Modifier.height(4.dp))
 
-        SettingsTopBar(
-            title = "Cuenta",
-            onBack = onBack,
+        SettingsBackButton(
+            onClick = onBack,
+            modifier = Modifier.align(Alignment.Start),
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
         Text(
             text = "¿Eliminar o desactivar?",
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center,
+            textAlign = TextAlign.Start,
             modifier = Modifier.fillMaxWidth(),
         )
 
@@ -77,7 +77,7 @@ fun AccountOptionsScreen(
                 "Si eliges eliminarla, no podrás recuperarla después de trascurridos 30 días.",
             style = MaterialTheme.typography.bodyMedium,
             color = TextSecondary,
-            textAlign = TextAlign.Center,
+            textAlign = TextAlign.Start,
             modifier = Modifier.fillMaxWidth(),
         )
 

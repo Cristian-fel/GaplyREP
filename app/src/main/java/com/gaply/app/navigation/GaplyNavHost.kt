@@ -14,9 +14,16 @@ import com.gaply.app.ui.screens.reset.ResetPasswordScreen
 import com.gaply.app.ui.screens.schedule.HuecosScreen
 import com.gaply.app.ui.screens.schedule.ScheduleEditScreen
 import com.gaply.app.ui.screens.schedule.ScheduleScreen
+import com.gaply.app.ui.screens.settings.AboutScreen
 import com.gaply.app.ui.screens.settings.AccountOptionsScreen
+import com.gaply.app.ui.screens.settings.ChangePasswordScreen
 import com.gaply.app.ui.screens.settings.ConfirmDeactivateScreen
+import com.gaply.app.ui.screens.settings.DeleteAccountScreen
+import com.gaply.app.ui.screens.settings.LanguageScreen
+import com.gaply.app.ui.screens.settings.RateAppScreen
 import com.gaply.app.ui.screens.settings.SettingsScreen
+import com.gaply.app.ui.screens.welcome.ACCOUNT_DEACTIVATED
+import com.gaply.app.ui.screens.welcome.ACCOUNT_DELETED
 import com.gaply.app.ui.screens.welcome.WelcomeScreen
 
 @Composable
@@ -27,10 +34,21 @@ fun GaplyNavHost() {
         navController = navController,
         startDestination = Routes.WELCOME,
     ) {
-        composable(Routes.WELCOME) {
+        composable(
+            route = "${Routes.WELCOME}?${Routes.ARG_ACCOUNT_MESSAGE}={${Routes.ARG_ACCOUNT_MESSAGE}}",
+            arguments = listOf(
+                navArgument(Routes.ARG_ACCOUNT_MESSAGE) {
+                    type = NavType.StringType
+                    defaultValue = ""
+                },
+            ),
+        ) { entry ->
             WelcomeScreen(
                 onLogin = { navController.navigate(Routes.LOGIN) },
                 onRegister = { navController.navigate(Routes.REGISTER) },
+                accountMessage = entry.arguments
+                    ?.getString(Routes.ARG_ACCOUNT_MESSAGE)
+                    ?.takeIf { it.isNotBlank() },
             )
         }
 
@@ -174,7 +192,35 @@ fun GaplyNavHost() {
                         launchSingleTop = true
                     }
                 },
+                onOpenChangePassword = { navController.navigate(Routes.CHANGE_PASSWORD) },
                 onOpenDeactivateOptions = { navController.navigate(Routes.ACCOUNT_OPTIONS) },
+                onOpenLanguage = { navController.navigate(Routes.LANGUAGE) },
+                onOpenRateApp = { navController.navigate(Routes.RATE_APP) },
+                onOpenAbout = { navController.navigate(Routes.ABOUT) },
+            )
+        }
+
+        composable(Routes.CHANGE_PASSWORD) {
+            ChangePasswordScreen(
+                onBack = { navController.popBackStack() },
+            )
+        }
+
+        composable(Routes.LANGUAGE) {
+            LanguageScreen(
+                onBack = { navController.popBackStack() },
+            )
+        }
+
+        composable(Routes.RATE_APP) {
+            RateAppScreen(
+                onBack = { navController.popBackStack() },
+            )
+        }
+
+        composable(Routes.ABOUT) {
+            AboutScreen(
+                onBack = { navController.popBackStack() },
             )
         }
 
@@ -182,14 +228,31 @@ fun GaplyNavHost() {
             AccountOptionsScreen(
                 onBack = { navController.popBackStack() },
                 onDeactivate = { navController.navigate(Routes.CONFIRM_DEACTIVATE) },
-                onDeleteAccount = { navController.navigate(Routes.CONFIRM_DEACTIVATE) },
+                onDeleteAccount = { navController.navigate(Routes.DELETE_ACCOUNT) },
             )
         }
 
         composable(Routes.CONFIRM_DEACTIVATE) {
             ConfirmDeactivateScreen(
                 onBack = { navController.popBackStack() },
-                onConfirm = { navController.popBackStack(Routes.HOME, inclusive = false) },
+                onDeactivated = {
+                    navController.navigate(Routes.welcome(ACCOUNT_DEACTIVATED)) {
+                        popUpTo(0) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                },
+            )
+        }
+
+        composable(Routes.DELETE_ACCOUNT) {
+            DeleteAccountScreen(
+                onBack = { navController.popBackStack() },
+                onDeleted = {
+                    navController.navigate(Routes.welcome(ACCOUNT_DELETED)) {
+                        popUpTo(0) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                },
             )
         }
     }

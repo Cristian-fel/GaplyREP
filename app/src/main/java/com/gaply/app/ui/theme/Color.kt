@@ -14,3 +14,5 @@ val TextSecondary = Color(0xFF5A6763)
 val ErrorRed = Color(0xFFC62828)
 val SuccessGreen = Color(0xFF2E7D32)
 val OutlineGray = Color(0xFFCFD8D4)
+/** Ámbar de las estrellas de la pantalla "Califica esta aplicación". */
+val StarGold = Color(0xFFE9A13B)

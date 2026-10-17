@@ -179,6 +179,56 @@ class FirebaseAuthRepository(
         RepoResult.Error(mapError(e))
     }
 
+    override suspend fun changePassword(newPassword: String): RepoResult<Unit> {
+        if (newPassword.isEmpty()) return RepoResult.Error(RepoError.EMPTY_FIELDS)
+        if (newPassword.length < MIN_PASSWORD_LENGTH) {
+            return RepoResult.Error(RepoError.WEAK_PASSWORD)
+        }
+        val user = auth.currentUser ?: return RepoResult.Error(RepoError.USER_NOT_FOUND)
+
+        return try {
+            // updatePassword exige sesión reciente; si Firebase lo pide,
+            // mapError lo traduce a PERMISSION y la UI lo explica.
+            user.updatePassword(newPassword).await()
+            RepoResult.Success(Unit)
+        } catch (e: Exception) {
+            Log.e("Gaply", "Fallo al cambiar la contraseña", e)
+            RepoResult.Error(mapError(e))
+        }
+    }
+
+    override suspend fun deactivateAccount(): RepoResult<Unit> {
+        val uid = auth.currentUser?.uid ?: return RepoResult.Error(RepoError.USER_NOT_FOUND)
+
+        return try {
+            // Se conservan todos los datos; solo se marca la cuenta como
+            // desactivada para que deje de ser visible/usable hasta reactivarla.
+            firestore.collection(USERS).document(uid)
+                .set(mapOf(KEY_DEACTIVATED to true), com.google.firebase.firestore.SetOptions.merge())
+                .await()
+            auth.signOut()
+            RepoResult.Success(Unit)
+        } catch (e: Exception) {
+            Log.e("Gaply", "Fallo al desactivar la cuenta", e)
+            RepoResult.Error(mapError(e))
+        }
+    }
+
+    override suspend fun deleteAccount(): RepoResult<Unit> {
+        val user = auth.currentUser ?: return RepoResult.Error(RepoError.USER_NOT_FOUND)
+
+        return try {
+            // Primero el documento de Firestore, después la cuenta de Auth
+            // (si fallara Auth, no quedaría un usuario huérfano en la app).
+            firestore.collection(USERS).document(user.uid).delete().await()
+            user.delete().await()
+            RepoResult.Success(Unit)
+        } catch (e: Exception) {
+            Log.e("Gaply", "Fallo al eliminar la cuenta", e)
+            RepoResult.Error(mapError(e))
+        }
+    }
+
     override suspend fun signOut() {
         auth.signOut()
     }
@@ -199,6 +249,9 @@ class FirebaseAuthRepository(
         is FirebaseAuthInvalidUserException -> RepoError.USER_NOT_FOUND
         is FirebaseAuthInvalidCredentialsException -> RepoError.WRONG_CREDENTIALS
         is FirebaseAuthUserCollisionException -> RepoError.EMAIL_TAKEN
+        is com.google.firebase.auth.FirebaseAuthRecentLoginRequiredException ->
+            // Cambiar/eliminar contraseña exige reautenticación reciente
+            RepoError.PERMISSION
         is FirebaseFirestoreException -> when (e.code) {
             FirebaseFirestoreException.Code.UNAVAILABLE,
             FirebaseFirestoreException.Code.DEADLINE_EXCEEDED,
@@ -214,6 +267,7 @@ class FirebaseAuthRepository(
 
     companion object {
         private const val USERS = "users"
+        private const val KEY_DEACTIVATED = "deactivated"
         const val MIN_PASSWORD_LENGTH = 6
     }
 }

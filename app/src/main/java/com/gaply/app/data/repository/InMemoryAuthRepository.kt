@@ -94,6 +94,39 @@ class InMemoryAuthRepository(
     override suspend fun sendResetEmail(email: String): RepoResult<Unit> =
         RepoResult.Success(Unit) // modo local: no manda correos de verdad
 
+    override suspend fun changePassword(newPassword: String): RepoResult<Unit> {
+        delay(latencyMs)
+        if (simulateConnectionError) return RepoResult.Error(RepoError.CONNECTION)
+        if (newPassword.isEmpty()) return RepoResult.Error(RepoError.EMPTY_FIELDS)
+        if (newPassword.length < MIN_PASSWORD_LENGTH) {
+            return RepoResult.Error(RepoError.WEAK_PASSWORD)
+        }
+        val current = store.currentUser.value ?: return RepoResult.Error(RepoError.USER_NOT_FOUND)
+
+        val users = store.loadUsers().toMutableList()
+        val index = users.indexOfFirst { it.userId == current.userId }
+        if (index < 0) return RepoResult.Error(RepoError.USER_NOT_FOUND)
+        users[index] = users[index].copy(passwordHash = hash(newPassword))
+        store.saveUsers(users)
+        return RepoResult.Success(Unit)
+    }
+
+    override suspend fun deactivateAccount(): RepoResult<Unit> {
+        delay(latencyMs)
+        if (simulateConnectionError) return RepoResult.Error(RepoError.CONNECTION)
+        store.setSession(null)
+        return RepoResult.Success(Unit)
+    }
+
+    override suspend fun deleteAccount(): RepoResult<Unit> {
+        delay(latencyMs)
+        if (simulateConnectionError) return RepoResult.Error(RepoError.CONNECTION)
+        val current = store.currentUser.value ?: return RepoResult.Error(RepoError.USER_NOT_FOUND)
+        store.saveUsers(store.loadUsers().filterNot { it.userId == current.userId })
+        store.setSession(null)
+        return RepoResult.Success(Unit)
+    }
+
     override suspend fun signOut() {
         store.setSession(null)
     }
