@@ -47,6 +47,7 @@ import androidx.compose.material3.TimePickerDefaults
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -73,6 +74,7 @@ import com.gaply.app.ui.theme.SurfaceWhite
 import com.gaply.app.ui.theme.TextSecondary
 import java.time.Instant
 import java.time.ZoneId
+import java.time.ZoneOffset
 import java.util.UUID
 
 /**
@@ -98,28 +100,42 @@ fun NewActivityScreen(
     val state by viewModel.uiState.collectAsState()
     val s = LocalStrings.current
 
-    // En modo edición se precarga la actividad existente (una sola vez).
-    val existing = remember(activityId) {
-        if (activityId.isBlank()) null else viewModel.findById(activityId)
+    // En modo edición se precarga la actividad existente de forma reactiva:
+    // si la lista aún no contiene la actividad (proceso recreado), el estado
+    // se rellena en cuanto aparece y "Guardar cambios" no crea un duplicado.
+    val existing = if (activityId.isBlank()) {
+        null
+    } else {
+        state.activities.find { it.id == activityId }
     }
-    val isEditing = existing != null
+    val isEditing = activityId.isNotBlank()
 
-    var title by remember { mutableStateOf(existing?.title ?: "") }
-    var category by remember {
-        mutableStateOf(existing?.category ?: RegisterData.interests.first())
-    }
-    var location by remember { mutableStateOf(existing?.location ?: "") }
-    var duration by remember { mutableStateOf(existing?.duration ?: ActivityFormat.DUR_1H) }
-    var description by remember { mutableStateOf(existing?.description ?: "") }
-    var imageUri by remember { mutableStateOf<Uri?>(existing?.imageUri?.let(Uri::parse)) }
+    var title by remember { mutableStateOf("") }
+    var category by remember { mutableStateOf(RegisterData.interests.first()) }
+    var location by remember { mutableStateOf("") }
+    var duration by remember { mutableStateOf(ActivityFormat.DUR_1H) }
+    var description by remember { mutableStateOf("") }
+    var imageUri by remember { mutableStateOf<Uri?>(null) }
 
     // Fecha + hora inicial: la actividad existente, o hoy a las 12:00.
-    var dateMillis by remember {
-        mutableStateOf(
-            existing?.date?.toLongOrNull() ?: ActivityFormat.hoyAMediodia(),
-        )
+    var dateMillis by remember { mutableStateOf(ActivityFormat.hoyAMediodia()) }
+    var startHour by remember { mutableStateOf("12:00") }
+
+    // Precarga los datos solo la primera vez que la actividad está disponible.
+    var precargadoPor by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(existing) {
+        if (existing != null && precargadoPor != existing.id) {
+            precargadoPor = existing.id
+            title = existing.title
+            category = existing.category
+            location = existing.location
+            duration = existing.duration
+            description = existing.description
+            imageUri = existing.imageUri?.let(Uri::parse)
+            dateMillis = existing.date?.toLongOrNull() ?: ActivityFormat.hoyAMediodia()
+            startHour = existing.startTime ?: "12:00"
+        }
     }
-    var startHour by remember { mutableStateOf(existing?.startTime ?: "12:00") }
 
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
@@ -308,7 +324,15 @@ fun NewActivityScreen(
 
     // ------------------------------------------------------ selectores
     if (showDatePicker) {
-        val datePickerState = rememberDatePickerState(initialSelectedDateMillis = dateMillis)
+        // El picker interpreta los millis como UTC; convertimos la medianoche
+        // local a UTC para que muestre el día correcto al reabrirlo.
+        val utcMillis = Instant.ofEpochMilli(dateMillis)
+            .atZone(ZoneId.systemDefault())
+            .toLocalDate()
+            .atStartOfDay(ZoneOffset.UTC)
+            .toInstant()
+            .toEpochMilli()
+        val datePickerState = rememberDatePickerState(initialSelectedDateMillis = utcMillis)
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },
             confirmButton = {

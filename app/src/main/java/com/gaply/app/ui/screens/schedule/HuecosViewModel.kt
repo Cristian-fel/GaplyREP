@@ -2,6 +2,7 @@ package com.gaply.app.ui.screens.schedule
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewModelScope
 import com.gaply.app.core.i18n.AppStrings
 import com.gaply.app.core.i18n.StringsEs
 import com.gaply.app.di.AppContainer
@@ -15,6 +16,9 @@ import com.gaply.app.domain.repository.AuthRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 
 data class HuecosUiState(
     val interesesSeleccionados: List<String> = emptyList(),
@@ -46,7 +50,8 @@ class HuecosViewModel(
 
     private val _uiState = MutableStateFlow(
         HuecosUiState(
-            // Prefiltra con los intereses que el usuario ya eligió en el registro.
+            // Con InMemory el usuario ya está; con Firebase puede tardar,
+            // así que la preselección real se hace en init (asíncrono).
             interesesSeleccionados = authRepository.currentUser.value?.interests
                 .orEmpty()
                 .take(MAX_INTERESES),
@@ -66,6 +71,19 @@ class HuecosViewModel(
 
     init {
         recalcular()
+        // Espera (con tope) al usuario real para preseleccionar intereses.
+        viewModelScope.launch {
+            val user = withTimeoutOrNull(5_000L) {
+                authRepository.currentUser.first { it != null }
+            } ?: return@launch
+            val intereses = user.interests.take(MAX_INTERESES)
+            if (intereses.isNotEmpty() &&
+                _uiState.value.interesesSeleccionados.isEmpty()
+            ) {
+                _uiState.value = _uiState.value.copy(interesesSeleccionados = intereses)
+                recalcular()
+            }
+        }
     }
 
     fun alternarInteres(etiqueta: String) {
@@ -107,10 +125,10 @@ class HuecosViewModel(
     /** Vuelve a correr el agente con los datos actuales de entrada. */
     private fun recalcular() {
         val estado = _uiState.value
-        val inicio = FranjaHoraria.aMinutos(estado.horaInicio)
-        val fin = FranjaHoraria.aMinutos(estado.horaFin)
+        val inicio = runCatching { FranjaHoraria.aMinutos(estado.horaInicio) }.getOrNull()
+        val fin = runCatching { FranjaHoraria.aMinutos(estado.horaFin) }.getOrNull()
 
-        if (inicio >= fin) {
+        if (inicio == null || fin == null || inicio >= fin) {
             _uiState.value = estado.copy(
                 resultado = null,
                 aviso = HuecosAviso.END_BEFORE_START,
@@ -118,7 +136,15 @@ class HuecosViewModel(
             return
         }
 
-        val hueco = FranjaHoraria(estado.dia, inicio, fin)
+        val hueco = runCatching { FranjaHoraria(estado.dia, inicio, fin) }.getOrNull()
+        if (hueco == null) {
+            _uiState.value = estado.copy(
+                resultado = null,
+                aviso = HuecosAviso.END_BEFORE_START,
+            )
+            return
+        }
+
         val perfil = PerfilAgente(
             intereses = estado.interesesSeleccionados,
             huecos = listOf(hueco),

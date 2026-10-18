@@ -3,43 +3,51 @@ package com.gaply.app.ui.screens.settings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.gaply.app.core.i18n.AppLanguage
-import com.gaply.app.di.AppContainer
+import com.gaply.app.di.LanguagePreference
 import kotlinx.coroutines.flow.StateFlow
 
 /**
  * Módulo 2 · Idioma.
  * Mantiene el idioma seleccionado de forma reactiva y lo persiste
- * en [AppContainer.setAppLanguage] al pulsar "Guardar idioma".
+ * en [LanguagePreference.setAppLanguage] al pulsar "Guardar idioma".
+ *
+ * En esta versión solo se muestran y permiten Español e Inglés; el
+ * resto de idiomas se mantiene implementado en el código y se
+ * habilitará en la versión final.
  */
 class LanguageViewModel(
-    private val container: AppContainer,
+    private val preference: LanguagePreference,
     initialLanguage: AppLanguage,
 ) : ViewModel() {
 
-    val languages: List<AppLanguage> = AppLanguage.entries
+    /** Idiomas visibles y seleccionables en esta versión. */
+    val languages: List<AppLanguage> = listOf(AppLanguage.ES, AppLanguage.EN)
 
-    var selected: AppLanguage = initialLanguage
+    var selected: AppLanguage =
+        if (initialLanguage in languages) initialLanguage else AppLanguage.DEFAULT
         private set
 
-    val savedLanguage: StateFlow<AppLanguage> = container.appLanguage
+    val savedLanguage: StateFlow<AppLanguage> = preference.appLanguage
 
     fun select(language: AppLanguage) {
-        selected = language
+        if (language in languages) {
+            selected = language
+        }
     }
 
     fun save() {
-        container.setAppLanguage(selected)
+        preference.setAppLanguage(selected)
     }
 
     companion object {
 
-        fun factory(container: AppContainer): ViewModelProvider.Factory =
+        fun factory(preference: LanguagePreference): ViewModelProvider.Factory =
             object : ViewModelProvider.Factory {
                 @Suppress("UNCHECKED_CAST")
                 override fun <T : ViewModel> create(modelClass: Class<T>): T {
                     return LanguageViewModel(
-                        container = container,
-                        initialLanguage = container.appLanguage.value,
+                        preference = preference,
+                        initialLanguage = preference.appLanguage.value,
                     ) as T
                 }
             }

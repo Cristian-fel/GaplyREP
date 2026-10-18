@@ -6,7 +6,6 @@ import androidx.lifecycle.viewModelScope
 import com.gaply.app.di.AppContainer
 import com.gaply.app.domain.model.HuecoLibre
 import com.gaply.app.domain.model.RepoResult
-import com.gaply.app.domain.model.ScheduleClass
 import com.gaply.app.domain.model.User
 import com.gaply.app.domain.repository.AuthRepository
 import com.gaply.app.domain.repository.ScheduleRepository

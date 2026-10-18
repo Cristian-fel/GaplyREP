@@ -13,15 +13,15 @@ import com.gaply.app.domain.repository.AuthRepository
 import com.gaply.app.domain.repository.ScheduleRepository
 import com.gaply.app.domain.repository.UserRepository
 
-class AppContainer(context: Context) {
+class AppContainer(context: Context) : LanguagePreference {
 
     private val userStore = LocalUserStore(context)
 
     /** Preferencia de idioma de Configuración (lectura reactiva + guardado). */
-    val appLanguage: kotlinx.coroutines.flow.StateFlow<com.gaply.app.core.i18n.AppLanguage> =
+    override val appLanguage: kotlinx.coroutines.flow.StateFlow<com.gaply.app.core.i18n.AppLanguage> =
         userStore.language
 
-    fun setAppLanguage(language: com.gaply.app.core.i18n.AppLanguage) =
+    override fun setAppLanguage(language: com.gaply.app.core.i18n.AppLanguage) =
         userStore.setLanguage(language)
 
     val authRepository: AuthRepository = if (USE_FIREBASE) {

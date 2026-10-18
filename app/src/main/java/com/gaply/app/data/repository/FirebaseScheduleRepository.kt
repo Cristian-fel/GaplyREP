@@ -36,6 +36,8 @@ class FirebaseScheduleRepository(
                 (datos as? Map<*, *>)?.let { aClase(id, it) }
             },
         )
+    } catch (e: kotlinx.coroutines.CancellationException) {
+        throw e
     } catch (e: Exception) {
         RepoResult.Error(mapError(e))
     }
@@ -46,6 +48,8 @@ class FirebaseScheduleRepository(
         val guardada = scheduleClass.copy(id = id)
         escribirHorario(uid, mapaHorario(uid) + (id to guardada.aMapa()))
         RepoResult.Success(guardada)
+    } catch (e: kotlinx.coroutines.CancellationException) {
+        throw e
     } catch (e: Exception) {
         RepoResult.Error(mapError(e))
     }
@@ -60,6 +64,8 @@ class FirebaseScheduleRepository(
             .update(mapOf("$CAMPO_HORARIO.$classId" to FieldValue.delete()))
             .await()
         RepoResult.Success(classId)
+    } catch (e: kotlinx.coroutines.CancellationException) {
+        throw e
     } catch (e: Exception) {
         RepoResult.Error(mapError(e))
     }

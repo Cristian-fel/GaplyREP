@@ -432,6 +432,7 @@ object StringsZh : AppStrings {
     override val configureAlerts = "配置提醒"
     override val language = "语言"
     override val saveLanguage = "保存语言"
+    override val languageSoonMessage = "将在正式版本中推出，我们正在开发中。"
     override val aboutSection = "关于"
     override val rateTheApp = "给应用评分"
     override val aboutGaply = "关于 Gaply"

@@ -1,6 +1,5 @@
 package com.gaply.app.ui.screens.schedule
 
-import android.graphics.Color as AndroidColor
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -461,7 +460,7 @@ private fun BotonColor(
                 modifier = Modifier
                     .size(22.dp)
                     .clip(CircleShape)
-                    .background(Color(AndroidColor.parseColor(color))),
+                    .background(colorSeguro(color)),
             )
             Spacer(modifier = Modifier.width(12.dp))
             Text(
@@ -666,7 +665,7 @@ private fun DialogoDeColor(
                                 modifier = Modifier
                                     .size(if (elegido) 76.dp else 68.dp)
                                     .clip(CircleShape)
-                                    .background(Color(AndroidColor.parseColor(color)))
+                                    .background(colorSeguro(color))
                                     .clickable { onSeleccionar(color) },
                                 contentAlignment = Alignment.Center,
                             ) {
@@ -694,4 +693,11 @@ private fun DialogoDeColor(
             }
         },
     )
+}
+
+/** Color parseado con seguridad: si el hex es inválido se usa el verde de marca. */
+private fun colorSeguro(hex: String): Color = try {
+    Color(android.graphics.Color.parseColor(hex))
+} catch (e: IllegalArgumentException) {
+    BrandGreen
 }

@@ -18,6 +18,12 @@ interface AuthRepository {
     /** Cambia la contraseña del usuario autenticado (pantalla "Cambiar contraseña"). */
     suspend fun changePassword(newPassword: String): RepoResult<Unit>
 
+    /**
+     * Reautentica al usuario con su contraseña actual. Firebase lo exige
+     * antes de [changePassword] cuando la sesión ya no es "reciente".
+     */
+    suspend fun reauthenticate(currentPassword: String): RepoResult<Unit>
+
     /** Marca la cuenta como desactivada (reversible) y cierra la sesión. */
     suspend fun deactivateAccount(): RepoResult<Unit>
 

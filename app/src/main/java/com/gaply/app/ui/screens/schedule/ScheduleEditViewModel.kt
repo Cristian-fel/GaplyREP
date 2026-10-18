@@ -160,7 +160,9 @@ class ScheduleEditViewModel(
             _uiState.value = estado.copy(error = ScheduleEditError.TITLE_REQUIRED)
             return
         }
-        if (ScheduleClass.minutosDeHora(estado.horaFin) <= ScheduleClass.minutosDeHora(estado.horaInicio)) {
+        val inicio = ScheduleClass.minutosDeHora(estado.horaInicio)
+        val fin = ScheduleClass.minutosDeHora(estado.horaFin)
+        if (inicio == null || fin == null || fin <= inicio) {
             _uiState.value = estado.copy(error = ScheduleEditError.END_BEFORE_START)
             return
         }

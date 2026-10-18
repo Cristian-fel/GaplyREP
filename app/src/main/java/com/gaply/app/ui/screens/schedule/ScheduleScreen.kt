@@ -242,13 +242,13 @@ private fun ContenidoHorario(
                 onImportar = onImportar,
             )
         } else {
-            state.clases.forEachIndexed { indice, clase ->
+            state.clases.forEach { clase ->
                 ClaseBand(
                     clase = clase,
                     onEdit = { onEditClass(clase.id) },
                 )
 
-                state.huecos.getOrNull(indice)?.let { hueco ->
+                state.huecos.find { it.inicioMinutos == clase.endMinutes }?.let { hueco ->
                     HuecoBand(
                         hueco = hueco,
                         dia = state.dia,
@@ -268,7 +268,7 @@ private fun ClaseBand(
     onEdit: () -> Unit,
 ) {
     val s = LocalStrings.current
-    val color = remember(clase.color) { Color(AndroidColor.parseColor(clase.color)) }
+    val color = remember(clase.color) { colorSeguro(clase.color) }
 
     Box(
         modifier = Modifier
@@ -498,4 +498,11 @@ private fun BotonVolver(onBack: () -> Unit) {
             )
         }
     }
+}
+
+/** Color parseado con seguridad: si el hex de Firestore es inválido se usa el verde de marca. */
+private fun colorSeguro(hex: String): Color = try {
+    Color(AndroidColor.parseColor(hex))
+} catch (e: IllegalArgumentException) {
+    BrandGreen
 }

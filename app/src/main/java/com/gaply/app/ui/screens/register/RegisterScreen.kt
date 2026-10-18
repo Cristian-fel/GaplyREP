@@ -43,6 +43,7 @@ fun RegisterScreen(
     )
     val state by viewModel.uiState.collectAsState()
     val s = LocalStrings.current
+    androidx.compose.runtime.SideEffect { viewModel.strings = s }
 
     LaunchedEffect(state.finishAndGoHome) {
         if (state.finishAndGoHome) {
