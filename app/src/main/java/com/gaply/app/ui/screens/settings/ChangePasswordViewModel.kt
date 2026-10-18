@@ -30,10 +30,21 @@ class ChangePasswordViewModel(
     var confirmPassword by mutableStateOf("")
         private set
 
+    /** Contraseña actual: solo se pide cuando Firebase exige reautenticación. */
+    var currentPassword by mutableStateOf("")
+        private set
+
+    /** true = la sesión ya no es "reciente" y hay que reautenticarse. */
+    var needsReauth by mutableStateOf(false)
+        private set
+
     var newPasswordError by mutableStateOf<FieldError?>(null)
         private set
 
     var confirmPasswordError by mutableStateOf<FieldError?>(null)
+        private set
+
+    var currentPasswordError by mutableStateOf<FieldError?>(null)
         private set
 
     var loading by mutableStateOf(false)
@@ -57,6 +68,11 @@ class ChangePasswordViewModel(
     fun onConfirmPasswordChange(value: String) {
         confirmPassword = value
         confirmPasswordError = null
+    }
+
+    fun onCurrentPasswordChange(value: String) {
+        currentPassword = value
+        currentPasswordError = null
     }
 
     fun submit() {
@@ -84,22 +100,51 @@ class ChangePasswordViewModel(
 
         loading = true
         viewModelScope.launch {
-            when (val result = authRepository.changePassword(newPassword)) {
-                is RepoResult.Success -> {
-                    success = true
-                    newPassword = ""
-                    confirmPassword = ""
-                }
-                is RepoResult.Error -> when (result.type) {
-                    RepoError.EMPTY_FIELDS -> {
-                        newPasswordError = FieldError.REQUIRED
-                        confirmPasswordError = FieldError.REQUIRED
+            if (needsReauth) {
+                // Reintenta el cambio tras reautenticar con la contraseña actual.
+                when (val reauth = authRepository.reauthenticate(currentPassword)) {
+                    is RepoResult.Error -> {
+                        currentPasswordError = when (reauth.type) {
+                            RepoError.EMPTY_FIELDS -> FieldError.REQUIRED
+                            RepoError.WRONG_CREDENTIALS -> FieldError.WRONG_PASSWORD
+                            else -> null
+                        }
+                        if (currentPasswordError == null) {
+                            errorMessage = reauth.type.toDialog()
+                        }
                     }
-                    RepoError.WEAK_PASSWORD -> newPasswordError = FieldError.MIN_6
-                    else -> errorMessage = result.type.toDialog()
+
+                    is RepoResult.Success -> {
+                        currentPassword = ""
+                        needsReauth = false
+                        aplicarCambio()
+                    }
                 }
+            } else {
+                aplicarCambio()
             }
             loading = false
+        }
+    }
+
+    private suspend fun aplicarCambio() {
+        when (val result = authRepository.changePassword(newPassword)) {
+            is RepoResult.Success -> {
+                success = true
+                newPassword = ""
+                confirmPassword = ""
+            }
+
+            is RepoResult.Error -> when (result.type) {
+                RepoError.EMPTY_FIELDS -> {
+                    newPasswordError = FieldError.REQUIRED
+                    confirmPasswordError = FieldError.REQUIRED
+                }
+
+                RepoError.WEAK_PASSWORD -> newPasswordError = FieldError.MIN_6
+                RepoError.PERMISSION -> needsReauth = true
+                else -> errorMessage = result.type.toDialog()
+            }
         }
     }
 

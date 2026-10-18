@@ -43,9 +43,12 @@ class ProfileViewModel(
 
             when (val uploadResult = userRepository.uploadProfilePhoto(uri)) {
                 is RepoResult.Success -> {
-                    userRepository.saveProfile(
+                    when (val saveResult = userRepository.saveProfile(
                         user.copy(profilePictureUrl = uploadResult.data),
-                    )
+                    )) {
+                        is RepoResult.Error -> _error.value = ProfileError.PHOTO_CHANGE
+                        is RepoResult.Success -> Unit
+                    }
                 }
 
                 is RepoResult.Error -> {

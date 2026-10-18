@@ -4,7 +4,11 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.gaply.app.core.i18n.AppStrings
 import com.gaply.app.core.i18n.FieldError
+import com.gaply.app.core.i18n.StringsEs
+import com.gaply.app.core.i18n.canonicalFromLocalized
+import com.gaply.app.core.i18n.localizedFromCanonical
 import com.gaply.app.di.AppContainer
 import com.gaply.app.domain.model.RepoError
 import com.gaply.app.domain.model.RepoResult
@@ -17,6 +21,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 
 data class EditProfileUiState(
     val step: Int = 1,
@@ -56,24 +61,39 @@ class EditProfileViewModel(
     /** Copia de los datos tal como venían, para no perder lo que no se edita. */
     private var originalUser: User = User()
 
+    /** Idioma activo: lo asigna la pantalla para localizar/canonicalizar. */
+    var strings: AppStrings = StringsEs
+
     private val _uiState = MutableStateFlow(EditProfileUiState())
     val uiState: StateFlow<EditProfileUiState> = _uiState.asStateFlow()
 
     init {
         viewModelScope.launch {
-            val user = authRepository.currentUser.first { it != null } ?: return@launch
+            // Timeout: si el flujo nunca emite usuario no-nulo (sesión caída),
+            // se baja el spinner en lugar de bloquear la pantalla.
+            val user = withTimeoutOrNull(PROFILE_LOAD_TIMEOUT_MS) {
+                authRepository.currentUser.first { it != null }
+            }
+            if (user == null) {
+                _uiState.update { it.copy(loadingProfile = false) }
+                return@launch
+            }
             originalUser = user
 
             // birthDate se guarda como "15/03/2006": lo separamos otra vez.
             val parts = user.birthDate.split("/")
             val monthNumber = parts.getOrNull(1)?.toIntOrNull() ?: 0
 
+            // En Firestore están las claves canónicas (ES); se localizan para mostrar.
+            val s = strings
             _uiState.update {
                 it.copy(
                     loadingProfile = false,
                     firstName = user.firstName,
                     lastName = user.lastName,
-                    university = user.university,
+                    university = localizedFromCanonical(
+                        user.university, s.universities, StringsEs.universities,
+                    ),
                     birthDay = parts.getOrNull(0).orEmpty(),
                     birthMonth = if (monthNumber in 1..12) {
                         monthNumber.toString().padStart(2, '0')
@@ -81,7 +101,9 @@ class EditProfileViewModel(
                         ""
                     },
                     birthYear = parts.getOrNull(2).orEmpty(),
-                    gender = user.gender,
+                    gender = localizedFromCanonical(
+                        user.gender, s.genders, StringsEs.genders,
+                    ),
                     interests = user.interests,
                     bio = user.bio,
                     currentPhotoUrl = user.profilePictureUrl,
@@ -214,12 +236,17 @@ class EditProfileViewModel(
                 ""
             }
 
+            // Se persisten las claves canónicas (ES), no las etiquetas localizadas.
             val updatedUser = originalUser.copy(
                 firstName = state.firstName.trim(),
                 lastName = state.lastName.trim(),
-                university = state.university,
+                university = canonicalFromLocalized(
+                    state.university, strings.universities, StringsEs.universities,
+                ),
                 birthDate = birthDate,
-                gender = state.gender,
+                gender = canonicalFromLocalized(
+                    state.gender, strings.genders, StringsEs.genders,
+                ),
                 interests = state.interests,
                 bio = state.bio.trim(),
                 profilePictureUrl = photoUrl,
@@ -256,6 +283,7 @@ class EditProfileViewModel(
         const val TOTAL_STEPS = 3
         const val MAX_INTERESTS = 3
         const val MAX_BIO_LENGTH = 200
+        private const val PROFILE_LOAD_TIMEOUT_MS = 10_000L
 
         fun factory(container: AppContainer): ViewModelProvider.Factory =
             object : ViewModelProvider.Factory {

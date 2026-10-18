@@ -4,7 +4,10 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.gaply.app.core.i18n.AppStrings
 import com.gaply.app.core.i18n.FieldError
+import com.gaply.app.core.i18n.StringsEs
+import com.gaply.app.core.i18n.canonicalFromLocalized
 import com.gaply.app.di.AppContainer
 import com.gaply.app.domain.model.RepoError
 import com.gaply.app.domain.model.RepoResult
@@ -72,6 +75,9 @@ class RegisterViewModel(
     private val authRepository: AuthRepository,
     private val userRepository: UserRepository,
 ) : ViewModel() {
+
+    /** Idioma activo: lo asigna la pantalla (SideEffect) para canonicalizar al guardar. */
+    var strings: AppStrings = StringsEs
 
     private val _uiState = MutableStateFlow(RegisterUiState())
     val uiState: StateFlow<RegisterUiState> = _uiState.asStateFlow()
@@ -312,7 +318,7 @@ class RegisterViewModel(
 
             val monthNumber = state.birthMonthNumber.toString().padStart(2, '0')
             val birthDate = if (state.birthDay.isNotBlank() && state.birthYear.isNotBlank()) {
-                "${state.birthDay}/$monthNumber/${state.birthYear}"
+                "${state.birthDay.padStart(2, '0')}/$monthNumber/${state.birthYear}"
             } else {
                 ""
             }
@@ -326,13 +332,25 @@ class RegisterViewModel(
                 }
             }
 
+            // Guarda la clave canónica (ES), no la etiqueta localizada:
+            // al cambiar de idioma los chips siguen coincidiendo.
+            val canonicalUniversity = canonicalFromLocalized(
+                state.university, strings.universities, StringsEs.universities,
+            )
+            val canonicalGender = canonicalFromLocalized(
+                state.gender, strings.genders, StringsEs.genders,
+            )
+            val canonicalGoal = canonicalFromLocalized(
+                state.goal, strings.goals, StringsEs.goals,
+            )
+
             val completeUser = user.copy(
                 firstName = state.firstName.trim(),
                 lastName = state.lastName.trim(),
                 birthDate = birthDate,
-                university = state.university,
-                gender = state.gender,
-                goal = state.goal,
+                university = canonicalUniversity,
+                gender = canonicalGender,
+                goal = canonicalGoal,
                 interests = state.selectedInterests,
                 bio = state.bio.trim(),
                 profilePictureUrl = photoUrl,

@@ -435,6 +435,7 @@ object StringsEn : AppStrings {
     override val configureAlerts = "Configure your alerts"
     override val language = "Language"
     override val saveLanguage = "Save language"
+    override val languageSoonMessage = "It will be in the final version, we're working on it."
     override val aboutSection = "About"
     override val rateTheApp = "Rate the app"
     override val aboutGaply = "About Gaply"

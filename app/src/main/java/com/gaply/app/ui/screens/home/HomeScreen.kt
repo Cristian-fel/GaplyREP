@@ -373,18 +373,19 @@ private fun DiscoverTab(
                 )
                 Spacer(modifier = Modifier.width(12.dp))
                 Text(
-                    text = when {
-                        state.huecoDeHoy != null -> {
-                            val hueco = state.huecoDeHoy!!
-                            s.youHaveFreeSlot(
-                                "${s.freeDuration(hueco.duracionMinutos)} " +
-                                    s.formatTimeRange(hueco.inicioHora, hueco.finHora),
-                            )
+                    text = when (val hueco = state.huecoDeHoy) {
+                        null -> {
+                            if (!state.tieneHorario) {
+                                s.addClassesToSeeSlots
+                            } else {
+                                s.noFreeSlotsToday
+                            }
                         }
 
-                        !state.tieneHorario -> s.addClassesToSeeSlots
-
-                        else -> s.noFreeSlotsToday
+                        else -> s.youHaveFreeSlot(
+                            "${s.freeDuration(hueco.duracionMinutos)} " +
+                                s.formatTimeRange(hueco.inicioHora, hueco.finHora),
+                        )
                     },
                     color = Color.White,
                     fontWeight = FontWeight.SemiBold,

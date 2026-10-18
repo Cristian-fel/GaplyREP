@@ -144,8 +144,8 @@ fun ProfileScreen(
             photoUrl = user?.profilePictureUrl.orEmpty(),
             fallbackLetter = displayName.firstOrNull()?.uppercase() ?: "U",
             uploading = uploading,
-            onCameraClick = { galleryLauncher.launch("image/*") },
-            onGalleryClick = launchCamera,
+            onCameraClick = launchCamera,
+            onGalleryClick = { galleryLauncher.launch("image/*") },
             onOpenSettings = onOpenSettings,
             onEditProfile = onEditProfile,
         )

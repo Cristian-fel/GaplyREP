@@ -424,6 +424,7 @@ object StringsIt : AppStrings {
     override val configureAlerts = "Configura le tue notifiche"
     override val language = "Lingua"
     override val saveLanguage = "Salva lingua"
+    override val languageSoonMessage = "Sarà nella versione finale, ci stiamo lavorando."
     override val aboutSection = "Informazioni"
     override val rateTheApp = "Valuta l'app"
     override val aboutGaply = "Informazioni su Gaply"

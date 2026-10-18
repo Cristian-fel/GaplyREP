@@ -20,9 +20,9 @@ data class ScheduleClass(
     val note: String = "",
     val color: String = COLOR_POR_DEFECTO,
 ) {
-    val startMinutes: Int get() = minutosDeHora(startHour)
+    val startMinutes: Int get() = minutosDeHora(startHour) ?: 0
 
-    val endMinutes: Int get() = minutosDeHora(endHour)
+    val endMinutes: Int get() = minutosDeHora(endHour) ?: 0
 
     /** Rango legible del Figma: "10:00 a.m. - 12:00 p.m." */
     val rangoHorario: String
@@ -48,17 +48,18 @@ data class ScheduleClass(
 
         const val COLOR_POR_DEFECTO = "#51A391"
 
-        /** "10:00" -> 600. */
-        fun minutosDeHora(hora: String): Int {
+        /** "10:00" -> 600. Devuelve null si la hora está fuera de 00:00-23:59. */
+        fun minutosDeHora(hora: String): Int? {
             val partes = hora.trim().split(":")
-            val horas = partes.getOrNull(0)?.trim()?.toIntOrNull() ?: 0
+            val horas = partes.getOrNull(0)?.trim()?.toIntOrNull() ?: return null
             val minutos = partes.getOrNull(1)?.trim()?.toIntOrNull() ?: 0
+            if (horas !in 0..23 || minutos !in 0..59) return null
             return horas * 60 + minutos
         }
 
         /** "10:00" -> "10:00 a.m." · "12:00" -> "12:00 p.m." · "00:15" -> "12:15 a.m." */
         fun formatearHora(hora: String): String {
-            val totalMinutos = minutosDeHora(hora)
+            val totalMinutos = minutosDeHora(hora) ?: 0
             val hora24 = totalMinutos / 60
             val minutos = totalMinutos % 60
             val sufijo = if (hora24 < 12) "a.m." else "p.m."

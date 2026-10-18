@@ -114,6 +114,27 @@ fun ChangePasswordScreen(
             errorText = viewModel.confirmPasswordError?.let { s.fieldError(it) },
         )
 
+        if (viewModel.needsReauth) {
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Text(
+                text = s.changePasswordReloginMsg,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.error,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth(),
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            UnderlinePasswordField(
+                label = s.currentPasswordLabel,
+                value = viewModel.currentPassword,
+                onValueChange = viewModel::onCurrentPasswordChange,
+                errorText = viewModel.currentPasswordError?.let { s.fieldError(it) },
+            )
+        }
+
         Spacer(modifier = Modifier.height(48.dp))
 
         GaplyPrimaryButton(

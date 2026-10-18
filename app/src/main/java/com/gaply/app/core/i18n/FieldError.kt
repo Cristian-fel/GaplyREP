@@ -7,6 +7,7 @@ enum class FieldError {
     MIN_6,
     INVALID_EMAIL,
     PASSWORDS_MISMATCH,
+    WRONG_PASSWORD,
     USERNAME_TAKEN,
     EMAIL_TAKEN,
     SELECT_BIRTHDATE,
@@ -22,6 +23,7 @@ fun AppStrings.fieldError(error: FieldError): String = when (error) {
     FieldError.MIN_6 -> minChars6
     FieldError.INVALID_EMAIL -> validEmailPrompt
     FieldError.PASSWORDS_MISMATCH -> passwordsMismatch
+    FieldError.WRONG_PASSWORD -> wrongPasswordMsg
     FieldError.USERNAME_TAKEN -> usernameTaken
     FieldError.EMAIL_TAKEN -> emailTaken
     FieldError.SELECT_BIRTHDATE -> selectBirthdate

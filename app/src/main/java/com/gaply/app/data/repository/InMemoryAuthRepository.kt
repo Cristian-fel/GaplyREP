@@ -111,6 +111,17 @@ class InMemoryAuthRepository(
         return RepoResult.Success(Unit)
     }
 
+    override suspend fun reauthenticate(currentPassword: String): RepoResult<Unit> {
+        delay(latencyMs)
+        if (simulateConnectionError) return RepoResult.Error(RepoError.CONNECTION)
+        val current = store.currentUser.value ?: return RepoResult.Error(RepoError.USER_NOT_FOUND)
+        if (currentPassword.isEmpty()) return RepoResult.Error(RepoError.EMPTY_FIELDS)
+        if (current.passwordHash != hash(currentPassword)) {
+            return RepoResult.Error(RepoError.WRONG_CREDENTIALS)
+        }
+        return RepoResult.Success(Unit)
+    }
+
     override suspend fun deactivateAccount(): RepoResult<Unit> {
         delay(latencyMs)
         if (simulateConnectionError) return RepoResult.Error(RepoError.CONNECTION)

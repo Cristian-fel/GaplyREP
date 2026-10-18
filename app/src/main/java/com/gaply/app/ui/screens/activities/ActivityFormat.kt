@@ -47,7 +47,7 @@ internal object ActivityFormat {
 
     /** Suma minutos a una hora "HH:mm" y devuelve "HH:mm". */
     fun masMinutos(hora24: String, minutos: Int): String {
-        val total = ScheduleClass.minutosDeHora(hora24) + minutos
+        val total = (ScheduleClass.minutosDeHora(hora24) ?: 0) + minutos
         val normalizado = ((total % 1440) + 1440) % 1440
         return "%02d:%02d".format(normalizado / 60, normalizado % 60)
     }

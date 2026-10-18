@@ -3,7 +3,6 @@ package com.gaply.app.data.repository
 import android.net.Uri
 import android.util.Log
 import com.gaply.app.data.mapper.toFirestoreMap
-import com.gaply.app.data.mapper.toUser
 import com.gaply.app.domain.model.RepoError
 import com.gaply.app.domain.model.RepoResult
 import com.gaply.app.domain.model.User
@@ -34,6 +33,8 @@ class FirebaseUserRepository(
             .set(user.toFirestoreMap(), SetOptions.merge()).await()
         lastSaved = user
         RepoResult.Success(user)
+    } catch (e: kotlinx.coroutines.CancellationException) {
+        throw e
     } catch (e: Exception) {
         RepoResult.Error(mapError(e))
     }
@@ -44,6 +45,8 @@ class FirebaseUserRepository(
         val ref = storage.reference.child("$USERS/$uid/profile.jpg")
         ref.putFile(localUri).await()
         RepoResult.Success(ref.downloadUrl.await().toString())
+    } catch (e: kotlinx.coroutines.CancellationException) {
+        throw e
     } catch (e: Exception) {
         Log.e(TAG, "Fallo al subir la foto de perfil: $localUri", e)
         RepoResult.Error(mapError(e))
@@ -56,6 +59,10 @@ class FirebaseUserRepository(
             FirebaseFirestoreException.Code.UNAVAILABLE,
             FirebaseFirestoreException.Code.DEADLINE_EXCEEDED,
             -> RepoError.CONNECTION
+
+            FirebaseFirestoreException.Code.PERMISSION_DENIED,
+            FirebaseFirestoreException.Code.UNAUTHENTICATED,
+            -> RepoError.PERMISSION
 
             else -> RepoError.UNKNOWN
         }

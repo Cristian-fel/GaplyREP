@@ -47,6 +47,7 @@ fun EditProfileScreen(
     )
     val state by viewModel.uiState.collectAsState()
     val s = LocalStrings.current
+    androidx.compose.runtime.SideEffect { viewModel.strings = s }
 
     LaunchedEffect(state.saved) {
         if (state.saved) {

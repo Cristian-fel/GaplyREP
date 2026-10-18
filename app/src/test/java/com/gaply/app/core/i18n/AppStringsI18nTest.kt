@@ -20,7 +20,7 @@ class AppStringsI18nTest {
     @Test
     fun `ningun idioma tiene textos vacios`() {
         val getters = AppStrings::class.java.declaredMethods
-            .filter { it.parameterCount == 0 && it.returnType == String::class.java }
+            .filter { !it.isSynthetic && it.parameterCount == 0 && it.returnType == String::class.java }
         assertTrue("AppStrings no expone getters", getters.size > 200)
 
         for (lang in languages) {
@@ -39,7 +39,7 @@ class AppStringsI18nTest {
     fun `las funciones con argumentos no fallan y conservan los datos`() {
         val ref = stringsFor(AppLanguage.ES)
         val funcs = AppStrings::class.java.declaredMethods
-            .filter { it.parameterCount > 0 && it.returnType == String::class.java }
+            .filter { !it.isSynthetic && it.parameterCount > 0 && it.returnType == String::class.java }
         assertTrue("AppStrings no expone funciones con argumentos", funcs.isNotEmpty())
 
         for (f in funcs) {
@@ -73,7 +73,7 @@ class AppStringsI18nTest {
     fun `los idiomas difieren del espanol (traducciones reales, no copias)`() {
         val ref = stringsFor(AppLanguage.ES)
         val sample = AppStrings::class.java.declaredMethods
-            .filter { it.parameterCount == 0 && it.returnType == String::class.java }
+            .filter { !it.isSynthetic && it.parameterCount == 0 && it.returnType == String::class.java }
             .first { it.name == "getSaveLanguage" }
 
         for (lang in languages) {

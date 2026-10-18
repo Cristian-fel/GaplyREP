@@ -80,6 +80,8 @@ class FirebaseAuthRepository(
             )
             firestore.collection(USERS).document(uid).set(user.toFirestoreMap()).await()
             RepoResult.Success(user)
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Exception) {
             RepoResult.Error(mapError(e))
         }
@@ -105,6 +107,8 @@ class FirebaseAuthRepository(
             if (!byEmail.isEmpty) return RepoResult.Error(RepoError.EMAIL_TAKEN)
 
             RepoResult.Success(Unit)
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Exception) {
             RepoResult.Error(mapError(e))
         }
@@ -146,6 +150,8 @@ class FirebaseAuthRepository(
             RepoResult.Success(
                 profile.data?.toUser(uid) ?: User(userId = uid, email = email),
             )
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Exception) {
             RepoResult.Error(mapError(e))
         }
@@ -165,6 +171,8 @@ class FirebaseAuthRepository(
                 ?: return RepoResult.Error(RepoError.USER_NOT_FOUND)
             auth.sendPasswordResetEmail(email).await()
             RepoResult.Success(Unit)
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.e("Gaply", "Fallo al enviar el correo de recuperación", e)
             RepoResult.Error(mapError(e))
@@ -174,6 +182,8 @@ class FirebaseAuthRepository(
     override suspend fun sendResetEmail(email: String): RepoResult<Unit> = try {
         auth.sendPasswordResetEmail(email.trim()).await()
         RepoResult.Success(Unit)
+    } catch (e: kotlinx.coroutines.CancellationException) {
+        throw e
     } catch (e: Exception) {
         Log.e("Gaply", "Fallo al enviar el correo de recuperación", e)
         RepoResult.Error(mapError(e))
@@ -188,11 +198,31 @@ class FirebaseAuthRepository(
 
         return try {
             // updatePassword exige sesión reciente; si Firebase lo pide,
-            // mapError lo traduce a PERMISSION y la UI lo explica.
+            // mapError lo traduce a PERMISSION y la UI pide reautenticarse.
             user.updatePassword(newPassword).await()
             RepoResult.Success(Unit)
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.e("Gaply", "Fallo al cambiar la contraseña", e)
+            RepoResult.Error(mapError(e))
+        }
+    }
+
+    override suspend fun reauthenticate(currentPassword: String): RepoResult<Unit> {
+        val user = auth.currentUser ?: return RepoResult.Error(RepoError.USER_NOT_FOUND)
+        val email = user.email ?: return RepoResult.Error(RepoError.USER_NOT_FOUND)
+        if (currentPassword.isEmpty()) return RepoResult.Error(RepoError.EMPTY_FIELDS)
+
+        return try {
+            val credential = com.google.firebase.auth.EmailAuthProvider
+                .getCredential(email, currentPassword)
+            user.reauthenticate(credential).await()
+            RepoResult.Success(Unit)
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Log.e("Gaply", "Fallo al reautenticar", e)
             RepoResult.Error(mapError(e))
         }
     }
@@ -208,6 +238,8 @@ class FirebaseAuthRepository(
                 .await()
             auth.signOut()
             RepoResult.Success(Unit)
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.e("Gaply", "Fallo al desactivar la cuenta", e)
             RepoResult.Error(mapError(e))
@@ -223,6 +255,8 @@ class FirebaseAuthRepository(
             firestore.collection(USERS).document(user.uid).delete().await()
             user.delete().await()
             RepoResult.Success(Unit)
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.e("Gaply", "Fallo al eliminar la cuenta", e)
             RepoResult.Error(mapError(e))

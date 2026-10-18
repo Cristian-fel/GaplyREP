@@ -432,6 +432,7 @@ object StringsJa : AppStrings {
     override val configureAlerts = "通知を設定"
     override val language = "言語"
     override val saveLanguage = "言語を保存"
+    override val languageSoonMessage = "最終版に搭載予定です。開発中です。"
     override val aboutSection = "情報"
     override val rateTheApp = "アプリを評価"
     override val aboutGaply = "Gaplyについて"

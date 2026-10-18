@@ -359,6 +359,7 @@ interface AppStrings {
     val configureAlerts: String
     val language: String
     val saveLanguage: String
+    val languageSoonMessage: String
     val aboutSection: String
     val rateTheApp: String
     val aboutGaply: String
