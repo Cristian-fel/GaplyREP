@@ -3,8 +3,9 @@ package com.gaply.app.domain.model
 /**
  * Módulo de Actividades · Modelo de una actividad pública creada por un usuario.
  *
- * La lista de actividades nace vacía en [com.gaply.app.ui.screens.activities.ActivityViewModel]
- * y solo crece cuando alguien publica desde el formulario "Nueva actividad".
+ * Los datos se persisten en la colección `activities` de Firestore a través de
+ * [com.gaply.app.domain.repository.ActivityRepository]; la lista se carga al
+ * abrir el módulo en [com.gaply.app.ui.screens.activities.ActivityViewModel].
  */
 data class ActivityItem(
     /** Identificador único (UUID generado al publicar). */
@@ -31,10 +32,18 @@ data class ActivityItem(
     val organizerInitial: String = "T",
     /** Nombres de los asistentes (crece al unirse la gente). */
     val attendees: List<String> = emptyList(),
-    /** true cuando el usuario actual ya se unió ("Ya está dentro"). */
+    /** Uids de quienes se unieron; define [isJoined] al leer de Firestore. */
+    val attendeeIds: List<String> = emptyList(),
+    /** Uid de quien publicó la actividad (dueño del documento). */
+    val ownerId: String = "",
+    /** Nombre visible de quien publicó. */
+    val ownerName: String = "",
+    /** Millis de publicación; sirve para ordenar más reciente primero. */
+    val createdAt: Long = 0L,
+    /** true cuando el usuario actual ya se unió ("Ya está dentro"). Se calcula al leer. */
     val isJoined: Boolean = false,
-    /** true cuando esta actividad la publicó el usuario actual ("Tus actividades"). */
-    val isCreatedByMe: Boolean = true,
+    /** true cuando esta actividad la publicó el usuario actual ("Tus actividades"). Se calcula al leer. */
+    val isCreatedByMe: Boolean = false,
     /** Hora de inicio en 24h "HH:mm" (se guarda aparte para poder reeditarla). */
     val startTime: String = "12:00",
 ) {

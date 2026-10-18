@@ -273,7 +273,6 @@ fun NewActivityScreen(
                             ?: viewModel.organizerInitial(),
                         attendees = existing?.attendees.orEmpty(),
                         isJoined = existing?.isJoined ?: false,
-                        isCreatedByMe = existing?.isCreatedByMe ?: true,
                         startTime = startHour,
                     )
                     if (isEditing) {

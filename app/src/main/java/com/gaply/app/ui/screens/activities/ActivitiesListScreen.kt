@@ -43,6 +43,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.gaply.app.core.i18n.LocalStrings
 import com.gaply.app.domain.model.ActivityItem
+import com.gaply.app.ui.components.AppDialog
+import com.gaply.app.ui.components.DialogStyle
 import com.gaply.app.ui.theme.BrandGreen
 import com.gaply.app.ui.theme.ErrorRed
 import com.gaply.app.ui.theme.SurfaceWhite
@@ -63,6 +65,17 @@ fun ActivitiesListScreen(
     val viewModel = rememberActivityViewModel()
     val state by viewModel.uiState.collectAsState()
     val s = LocalStrings.current
+
+    // Error de guardado/borrado en el repositorio (p. ej. permisos de Firestore):
+    // se muestra aquí porque es la pantalla de aterrizaje del módulo.
+    state.error?.let { error ->
+        AppDialog(
+            style = DialogStyle.ERROR,
+            title = s.saveErrorTitle,
+            message = error,
+            onDismiss = viewModel::clearError,
+        )
+    }
 
     Column(modifier = Modifier.fillMaxSize()) {
         ActivitiesTopSection(
