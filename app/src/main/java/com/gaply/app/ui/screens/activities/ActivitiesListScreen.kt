@@ -1,6 +1,5 @@
 package com.gaply.app.ui.screens.activities
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -16,11 +15,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.Card
@@ -31,12 +27,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -46,9 +38,9 @@ import com.gaply.app.domain.model.ActivityItem
 import com.gaply.app.ui.components.AppDialog
 import com.gaply.app.ui.components.DialogStyle
 import com.gaply.app.ui.theme.BrandGreen
-import com.gaply.app.ui.theme.ErrorRed
 import com.gaply.app.ui.theme.SurfaceWhite
 import com.gaply.app.ui.theme.TextSecondary
+import java.time.LocalDate
 
 /**
  * Módulo de Actividades · Listado "Actividades para tu hueco".
@@ -80,13 +72,20 @@ fun ActivitiesListScreen(
     Column(modifier = Modifier.fillMaxSize()) {
         ActivitiesTopSection(
             title = s.activitiesListTitle,
-            huecoTexto = s.huecoBannerDemo,
+            // Banner dinámico: el mismo hueco libre real que muestra el Home.
+            huecoTexto = huecoBannerDeHoy(),
             onBack = onBack,
         )
 
         InterestsSubtitle()
 
-        if (state.activities.isEmpty()) {
+        // Solo las actividades de HOY: al cambiar el día en el dispositivo,
+        // las de otras fechas dejan de mostrarse en este listado.
+        val actividadesDeHoy = state.activities.filter {
+            ActivityFormat.esDeFecha(it.date, LocalDate.now())
+        }
+
+        if (actividadesDeHoy.isEmpty()) {
             EmptyActivitiesState(
                 message = s.activitiesEmptyListMsg,
             )
@@ -96,7 +95,7 @@ fun ActivitiesListScreen(
                 contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 24.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                items(state.activities, key = { it.id }) { activity ->
+                items(actividadesDeHoy, key = { it.id }) { activity ->
                     ActivityCard(
                         activity = activity,
                         onClick = { onOpenActivity(activity.id) },
@@ -107,16 +106,13 @@ fun ActivitiesListScreen(
     }
 }
 
-/** Tarjeta redondeada del listado: imagen, chip de categoría, corazón, datos. */
+/** Tarjeta redondeada del listado: imagen, chip de categoría y datos. */
 @Composable
 private fun ActivityCard(
     activity: ActivityItem,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var liked by remember(activity.id) { mutableStateOf(false) }
-    val s = LocalStrings.current
-
     Card(
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = SurfaceWhite),
@@ -141,25 +137,6 @@ private fun ActivityCard(
                         .align(Alignment.TopStart)
                         .padding(10.dp),
                 )
-
-                // Corazón en la esquina inferior derecha de la imagen.
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(10.dp)
-                        .size(34.dp)
-                        .clip(CircleShape)
-                        .background(SurfaceWhite)
-                        .clickable { liked = !liked },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = if (liked) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
-                        contentDescription = s.likeCd,
-                        tint = if (liked) ErrorRed else BrandGreen,
-                        modifier = Modifier.size(18.dp),
-                    )
-                }
             }
 
             Column(modifier = Modifier.padding(12.dp)) {

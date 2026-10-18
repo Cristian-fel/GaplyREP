@@ -45,4 +45,14 @@ class LocalActivityRepository : ActivityRepository {
         }
         return RepoResult.Success(activityId)
     }
+
+    /** En modo local la "subida" deja la URI, que sí se puede mostrar. */
+    override suspend fun uploadPlacePhoto(
+        activityId: String,
+        localUri: String,
+    ): RepoResult<String> = RepoResult.Success(localUri)
+
+    /** Sin Firebase no hay fotos de otros usuarios: se usan las iniciales. */
+    override suspend fun getUserPhotos(uids: List<String>): RepoResult<Map<String, String>> =
+        RepoResult.Success(emptyMap())
 }

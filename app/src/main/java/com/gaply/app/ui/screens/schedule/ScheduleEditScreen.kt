@@ -597,6 +597,8 @@ private fun DialogoDeHora(
     val estado = rememberTimePickerState(
         initialHour = partes.getOrNull(0)?.toIntOrNull() ?: 8,
         initialMinute = partes.getOrNull(1)?.toIntOrNull() ?: 0,
+        // false = reloj de 12 horas con selector AM / PM (formato único de la app).
+        is24Hour = false,
     )
 
     AlertDialog(

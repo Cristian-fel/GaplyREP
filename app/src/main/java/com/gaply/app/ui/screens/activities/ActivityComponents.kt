@@ -25,17 +25,24 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.gaply.app.core.i18n.LocalStrings
+import com.gaply.app.di.appContainer
+import com.gaply.app.ui.screens.home.HomeViewModel
 import com.gaply.app.ui.theme.BrandGreen
 import com.gaply.app.ui.theme.Sage
 import com.gaply.app.ui.theme.SurfaceWhite
@@ -116,6 +123,33 @@ internal fun HuecoBanner(
                 fontSize = 14.sp,
             )
         }
+    }
+}
+
+/**
+ * Texto del banner de tiempo libre de las pantallas del módulo: consume
+ * EXACTAMENTE el mismo [HomeViewModel] de la pantalla de Inicio
+ * (cargarHorario + huecoDeHoy + tieneHorario) y las mismas cadenas i18n,
+ * así las 3 pantallas (Inicio, Listado y Detalle) muestran siempre la
+ * misma información del horario real del usuario, nunca un texto fijo.
+ */
+@Composable
+internal fun huecoBannerDeHoy(): String {
+    val context = LocalContext.current
+    val homeViewModel: HomeViewModel = viewModel(
+        factory = HomeViewModel.factory(context.appContainer()),
+    )
+    val homeState by homeViewModel.uiState.collectAsState()
+    val s = LocalStrings.current
+
+    LaunchedEffect(Unit) { homeViewModel.cargarHorario() }
+
+    return when (val hueco = homeState.huecoDeHoy) {
+        null -> if (!homeState.tieneHorario) s.addClassesToSeeSlots else s.noFreeSlotsToday
+        else -> s.youHaveFreeSlot(
+            "${s.freeDuration(hueco.duracionMinutos)} " +
+                s.formatTimeRange(hueco.inicioHora, hueco.finHora),
+        )
     }
 }
 

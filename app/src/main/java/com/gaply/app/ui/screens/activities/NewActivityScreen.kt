@@ -149,7 +149,15 @@ fun NewActivityScreen(
         if (uri != null) imageUri = uri
     }
 
-    val canPublish = title.isNotBlank() && location.isNotBlank()
+    // Campos obligatorios (*): título, categoría, ubicación, duración, fecha
+    // y hora. Los desplegables/segmentados/fecha/hora nacen con valor, pero
+    // se validan igual por si algún día llegan vacíos.
+    val canPublish = title.isNotBlank() &&
+        category.isNotBlank() &&
+        location.isNotBlank() &&
+        duration.isNotBlank() &&
+        dateMillis > 0L &&
+        startHour.isNotBlank()
 
     Column(
         modifier = Modifier
@@ -191,7 +199,7 @@ fun NewActivityScreen(
         Column(modifier = Modifier.padding(horizontal = 20.dp)) {
             Spacer(modifier = Modifier.height(8.dp))
 
-            FormLabel(text = s.eventTitleLabel)
+            FormLabel(text = s.eventTitleLabel + " *")
             GaplyTextField(
                 value = title,
                 onValueChange = { title = it },
@@ -201,7 +209,7 @@ fun NewActivityScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            FormLabel(text = s.categoryLabel)
+            FormLabel(text = s.categoryLabel + " *")
             CategoryDropdown(
                 selected = category,
                 onSelect = { category = it },
@@ -222,7 +230,7 @@ fun NewActivityScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            FormLabel(text = s.locationPlaceLabel)
+            FormLabel(text = s.locationPlaceLabel + " *")
             GaplyTextField(
                 value = location,
                 onValueChange = { location = it },
@@ -231,7 +239,7 @@ fun NewActivityScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            FormLabel(text = s.durationLabel)
+            FormLabel(text = s.durationLabel + " *")
             DurationSegmented(
                 selected = duration,
                 onSelect = { duration = it },
@@ -242,14 +250,14 @@ fun NewActivityScreen(
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 DateTimeCard(
                     icon = Icons.Filled.CalendarMonth,
-                    title = s.dateLabel,
+                    title = s.dateLabel + " *",
                     value = ActivityFormat.fechaCorta(dateMillis, s.javaLocale),
                     onClick = { showDatePicker = true },
                     modifier = Modifier.weight(1f),
                 )
                 DateTimeCard(
                     icon = Icons.Filled.Schedule,
-                    title = s.timeSectionLabel,
+                    title = s.timeSectionLabel + " *",
                     value = timeRange,
                     onClick = { showTimePicker = true },
                     modifier = Modifier.weight(1f),

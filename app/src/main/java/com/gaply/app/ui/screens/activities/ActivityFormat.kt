@@ -74,6 +74,17 @@ internal object ActivityFormat {
             .toEpochMilli()
     }
 
+    /**
+     * true si la fecha de la actividad (millis en texto o ISO "yyyy-MM-dd")
+     * cae en [dia]. Se usa para mostrar solo las actividades de hoy.
+     */
+    fun esDeFecha(date: String, dia: LocalDate): Boolean {
+        val fecha = date.toLongOrNull()
+            ?.let { Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate() }
+            ?: runCatching { LocalDate.parse(date) }.getOrNull()
+        return fecha == dia
+    }
+
     /** Color sólido por defecto cuando no hay foto (verde de la paleta). */
     fun colorSolido(hex: String?): Color {
         val safe = hex?.takeIf { it.isNotBlank() } ?: ActivityItem.DEFAULT_COLOR_HEX

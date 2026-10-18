@@ -1,14 +1,17 @@
 package com.gaply.app.data.repository
 
+import android.net.Uri
 import com.gaply.app.domain.model.ActivityItem
 import com.gaply.app.domain.model.RepoError
 import com.gaply.app.domain.model.RepoResult
 import com.gaply.app.domain.repository.ActivityRepository
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FieldPath
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.Query
+import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.tasks.await
 
 /**
@@ -31,6 +34,7 @@ import kotlinx.coroutines.tasks.await
  */
 class FirebaseActivityRepository(
     private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance(),
+    private val storage: FirebaseStorage = FirebaseStorage.getInstance(),
     private val auth: FirebaseAuth = FirebaseAuth.getInstance(),
 ) : ActivityRepository {
 
@@ -99,6 +103,45 @@ class FirebaseActivityRepository(
     } catch (e: Exception) {
         RepoResult.Error(mapError(e))
     }
+
+    override suspend fun uploadPlacePhoto(
+        activityId: String,
+        localUri: String,
+    ): RepoResult<String> = try {
+        val uid = auth.currentUser?.uid ?: return RepoResult.Error(RepoError.PERMISSION)
+        // Misma lógica que la foto de perfil: putFile + downloadUrl. La ruta
+        // activities/{uid}/... coincide con las reglas de Storage del proyecto
+        // (lectura para autenticados, escritura para el dueño).
+        val ref = storage.reference.child("$ACTIVITIES/$uid/$activityId.jpg")
+        ref.putFile(Uri.parse(localUri)).await()
+        RepoResult.Success(ref.downloadUrl.await().toString())
+    } catch (e: Exception) {
+        RepoResult.Error(mapError(e))
+    }
+
+    override suspend fun getUserPhotos(uids: List<String>): RepoResult<Map<String, String>> =
+        try {
+            val pedidos = uids.filter { it.isNotBlank() }.distinct().take(FOTOS_POR_LOTE)
+            if (pedidos.isEmpty()) {
+                RepoResult.Success(emptyMap())
+            } else {
+                // La foto de perfil vive en el documento del usuario:
+                // `users/{uid}.profilePictureUrl` (mismo dato que usan Home y Perfil).
+                val snapshot = firestore.collection(USERS)
+                    .whereIn(FieldPath.documentId(), pedidos)
+                    .get()
+                    .await()
+                RepoResult.Success(
+                    snapshot.documents.mapNotNull { doc ->
+                        doc.getString(CAMPO_FOTO_PERFIL)
+                            ?.takeIf { it.isNotBlank() }
+                            ?.let { doc.id to it }
+                    }.toMap(),
+                )
+            }
+        } catch (e: Exception) {
+            RepoResult.Error(mapError(e))
+        }
 
     /** Nombre visible del usuario autenticado (para attendeeNames). */
     private fun nombreDe(uid: String): String =
@@ -171,6 +214,10 @@ class FirebaseActivityRepository(
 
     companion object {
         private const val ACTIVITIES = "activities"
+        private const val USERS = "users"
+        private const val CAMPO_FOTO_PERFIL = "profilePictureUrl"
+        /** Límite del whereIn de Firestore al pedir varias fotos de perfil. */
+        private const val FOTOS_POR_LOTE = 10
         private const val CAMPO_DUE_NO_ID = "ownerId"
         private const val CAMPO_DUE_NO_NOMBRE = "ownerName"
         private const val CAMPO_ASISTENTES_UIDS = "attendeeIds"

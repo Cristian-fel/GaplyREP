@@ -27,4 +27,18 @@ interface ActivityRepository {
      * en `attendees` (solo la primera vez).
      */
     suspend fun join(activityId: String, attendeeName: String): RepoResult<String>
+
+    /**
+     * Sube la foto del lugar a Storage (ruta `activities/{uid}/{activityId}.jpg`)
+     * y devuelve su downloadUrl, que queda guardada en el documento y se ve
+     * desde cualquier perfil.
+     */
+    suspend fun uploadPlacePhoto(activityId: String, localUri: String): RepoResult<String>
+
+    /**
+     * Fotos de perfil (`profilePictureUrl`) de los usuarios [uids], para
+     * mostrar los avatares reales del organizador y los asistentes en el
+     * detalle (la inicial es solo respaldo).
+     */
+    suspend fun getUserPhotos(uids: List<String>): RepoResult<Map<String, String>>
 }

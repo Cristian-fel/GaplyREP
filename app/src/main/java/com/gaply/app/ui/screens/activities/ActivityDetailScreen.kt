@@ -90,7 +90,8 @@ fun ActivityDetailScreen(
     Column(modifier = Modifier.fillMaxSize()) {
         ActivitiesTopSection(
             title = s.activitiesDetailTitle,
-            huecoTexto = s.huecoBannerDemo,
+            // Banner dinámico: el mismo hueco libre real que muestra el Home.
+            huecoTexto = huecoBannerDeHoy(),
             onBack = onBack,
         )
 
@@ -207,7 +208,8 @@ fun ActivityDetailScreen(
                     Spacer(modifier = Modifier.height(8.dp))
                     InitialAvatar(
                         initial = activity.organizerInitial,
-                        photoUrl = null,
+                        // Foto real de perfil (users/{uid}); la inicial es respaldo.
+                        photoUrl = state.fotos[activity.ownerId],
                         sizeDp = 40,
                     )
                 }
@@ -228,7 +230,11 @@ fun ActivityDetailScreen(
                         color = Color.Black,
                     )
                     Spacer(modifier = Modifier.height(8.dp))
-                    AttendeeStack(attendees = activity.attendees)
+                    AttendeeStack(
+                        attendees = activity.attendees,
+                        attendeeIds = activity.attendeeIds,
+                        fotos = state.fotos,
+                    )
                 }
             }
 
@@ -420,9 +426,16 @@ private fun ComingSoonCard(onClick: () -> Unit) {
     }
 }
 
-/** Círculos superpuestos de los asistentes con sus iniciales. */
+/**
+ * Círculos superpuestos de los asistentes: foto de perfil real de cada uno
+ * (misma fuente que Home y Perfil) y la inicial como respaldo si no hay foto.
+ */
 @Composable
-private fun AttendeeStack(attendees: List<String>) {
+private fun AttendeeStack(
+    attendees: List<String>,
+    attendeeIds: List<String>,
+    fotos: Map<String, String>,
+) {
     if (attendees.isEmpty()) {
         val s = LocalStrings.current
         Text(
@@ -436,9 +449,10 @@ private fun AttendeeStack(attendees: List<String>) {
     val palette = listOf(BrandGreen, Mint, Sage)
     Row {
         attendees.take(5).forEachIndexed { index, attendee ->
+            val photoUrl = fotos[attendeeIds.getOrNull(index)]
             InitialAvatar(
                 initial = attendee.firstOrNull()?.uppercaseChar()?.toString() ?: "?",
-                photoUrl = null,
+                photoUrl = photoUrl,
                 sizeDp = 34,
                 backgroundColor = palette[index % palette.size],
                 textColor = if (palette[index % palette.size] == Mint) BrandGreen else SurfaceWhite,

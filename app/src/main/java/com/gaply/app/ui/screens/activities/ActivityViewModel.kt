@@ -22,12 +22,15 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 
 data class ActivitiesUiState(
     /** Lista pública de actividades publicadas (cargada desde el repositorio). */
     val activities: List<ActivityItem> = emptyList(),
     /** Usuario actual: foto de perfil e inicial del organizador. */
     val user: User? = null,
+    /** Fotos de perfil (uid -> URL) del dueño y los asistentes, para el detalle. */
+    val fotos: Map<String, String> = emptyMap(),
     /** true mientras se carga o se guarda en el repositorio. */
     val cargando: Boolean = true,
     /** Último error de guardado/borrado a mostrar en pantalla; null = sin error. */
@@ -51,6 +54,7 @@ class ActivityViewModel(
 ) : ViewModel() {
 
     private val _activities = MutableStateFlow<List<ActivityItem>>(emptyList())
+    private val _fotos = MutableStateFlow<Map<String, String>>(emptyMap())
     private val _cargando = MutableStateFlow(true)
     private val _error = MutableStateFlow<String?>(null)
 
@@ -59,10 +63,12 @@ class ActivityViewModel(
         authRepository.currentUser,
         _cargando,
         _error,
-    ) { activities, user, cargando, error ->
+        _fotos,
+    ) { activities, user, cargando, error, fotos ->
         ActivitiesUiState(
             activities = activities,
             user = user,
+            fotos = fotos,
             cargando = cargando,
             error = error,
         )
@@ -84,6 +90,7 @@ class ActivityViewModel(
                 is RepoResult.Success -> {
                     _activities.value = result.data
                     _error.value = null
+                    cargarFotos(result.data)
                 }
 
                 is RepoResult.Error -> {
@@ -103,15 +110,17 @@ class ActivityViewModel(
     fun publish(activity: ActivityItem) {
         viewModelScope.launch {
             _cargando.value = true
-            val dueno = finalize(activity).copy(
-                ownerId = userId().orEmpty(),
-                ownerName = userName(),
-                organizerInitial = organizerInitial(),
-                attendeeIds = emptyList(),
-                attendees = emptyList(),
-                isJoined = false,
-                isCreatedByMe = true,
-                createdAt = System.currentTimeMillis(),
+            val dueno = subirFoto(
+                finalize(activity).copy(
+                    ownerId = userId().orEmpty(),
+                    ownerName = userName(),
+                    organizerInitial = organizerInitial(),
+                    attendeeIds = emptyList(),
+                    attendees = emptyList(),
+                    isJoined = false,
+                    isCreatedByMe = true,
+                    createdAt = System.currentTimeMillis(),
+                ),
             )
             when (val result = activityRepository.save(dueno)) {
                 is RepoResult.Success -> {
@@ -132,15 +141,17 @@ class ActivityViewModel(
             val previa = _activities.value.find { it.id == activity.id }
             // Se conservan dueño, asistentes y fecha de creación originales:
             // el formulario solo toca los datos del evento.
-            val editada = finalize(activity).copy(
-                ownerId = previa?.ownerId ?: activity.ownerId,
-                ownerName = previa?.ownerName ?: activity.ownerName,
-                organizerInitial = previa?.organizerInitial ?: activity.organizerInitial,
-                attendeeIds = previa?.attendeeIds ?: activity.attendeeIds,
-                attendees = previa?.attendees ?: activity.attendees,
-                createdAt = previa?.createdAt ?: activity.createdAt,
-                isJoined = previa?.isJoined ?: activity.isJoined,
-                isCreatedByMe = previa?.isCreatedByMe ?: activity.isCreatedByMe,
+            val editada = subirFoto(
+                finalize(activity).copy(
+                    ownerId = previa?.ownerId ?: activity.ownerId,
+                    ownerName = previa?.ownerName ?: activity.ownerName,
+                    organizerInitial = previa?.organizerInitial ?: activity.organizerInitial,
+                    attendeeIds = previa?.attendeeIds ?: activity.attendeeIds,
+                    attendees = previa?.attendees ?: activity.attendees,
+                    createdAt = previa?.createdAt ?: activity.createdAt,
+                    isJoined = previa?.isJoined ?: activity.isJoined,
+                    isCreatedByMe = previa?.isCreatedByMe ?: activity.isCreatedByMe,
+                ),
             )
             when (val result = activityRepository.save(editada)) {
                 is RepoResult.Success -> {
@@ -181,6 +192,40 @@ class ActivityViewModel(
         defaultColorHex = activity.defaultColorHex.ifBlank { ActivityItem.DEFAULT_COLOR_HEX },
         attendees = activity.attendees.distinct(),
     )
+
+    /**
+     * Si la foto viene de la galería (content:// o file://) se sube a Storage
+     * en `activities/{uid}/{activityId}.jpg` y aquí queda su downloadUrl, para
+     * que se muestre desde cualquier perfil. Si no hay foto o la subida falla,
+     * se guarda sin foto y la UI pinta el color sólido por defecto.
+     */
+    private suspend fun subirFoto(activity: ActivityItem): ActivityItem {
+        val uri = activity.imageUri ?: return activity
+        val esLocal = uri.startsWith("content://") || uri.startsWith("file://")
+        if (!esLocal) return activity
+        val subida = withTimeoutOrNull(SUBIDA_FOTO_TIMEOUT_MS) {
+            activityRepository.uploadPlacePhoto(activity.id, uri)
+        }
+        return when (subida) {
+            is RepoResult.Success -> activity.copy(imageUri = subida.data)
+            else -> activity.copy(imageUri = null)
+        }
+    }
+
+    /** Fotos de perfil (uid -> URL) del dueño y los asistentes de la lista. */
+    private fun cargarFotos(actividades: List<ActivityItem>) {
+        val uids = actividades
+            .flatMap { listOf(it.ownerId) + it.attendeeIds }
+            .filter { it.isNotBlank() }
+            .distinct()
+        if (uids.isEmpty()) return
+        viewModelScope.launch {
+            when (val result = activityRepository.getUserPhotos(uids)) {
+                is RepoResult.Success -> _fotos.value = result.data
+                is RepoResult.Error -> Unit
+            }
+        }
+    }
 
     fun findById(id: String): ActivityItem? = _activities.value.find { it.id == id }
 
@@ -228,6 +273,9 @@ class ActivityViewModel(
     }
 
     companion object {
+        /** Tope para subir la foto del lugar: sin red no frena el guardado. */
+        private const val SUBIDA_FOTO_TIMEOUT_MS = 20_000L
+
         fun factory(container: AppContainer): ViewModelProvider.Factory =
             object : ViewModelProvider.Factory {
                 @Suppress("UNCHECKED_CAST")
