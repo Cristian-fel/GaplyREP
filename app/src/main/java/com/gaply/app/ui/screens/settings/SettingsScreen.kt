@@ -94,7 +94,7 @@ fun SettingsScreen(
         ) {
             SettingsItemRow(
                 icon = Icons.Filled.Key,
-                title = "Cambiar contraseñas",
+                title = "Cambiar contraseña",
                 subtitle = "Actualiza tu acceso",
                 onClick = onOpenChangePassword,
             )
@@ -102,7 +102,7 @@ fun SettingsScreen(
             SettingsItemRow(
                 icon = Icons.Filled.Shield,
                 title = "Desactivar y Eliminar Cuenta",
-                subtitle = "Doble factor de autenticación",
+                subtitle = "Pausa temporal o borrado permanente",
                 onClick = onOpenDeactivateOptions,
             )
         }
