@@ -31,6 +31,8 @@ import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ChatBubble
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Event
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.Notifications
@@ -40,6 +42,7 @@ import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SportsSoccer
 import androidx.compose.material.icons.filled.TheaterComedy
+import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -140,6 +143,9 @@ fun HomeScreen(
     onEditProfile: () -> Unit = {},
     onOpenSettings: () -> Unit = {},
     onOpenSchedule: () -> Unit = {},
+    onOpenActivities: () -> Unit = {},
+    onCreateActivity: () -> Unit = {},
+    onOpenMyActivities: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val viewModel: HomeViewModel = androidx.lifecycle.viewmodel.compose.viewModel(
@@ -164,7 +170,13 @@ fun HomeScreen(
     ) { padding ->
         Box(modifier = Modifier.padding(padding)) {
             when (state.selectedTab) {
-                0 -> DiscoverTab(state = state, viewModel = viewModel)
+                0 -> DiscoverTab(
+                    state = state,
+                    viewModel = viewModel,
+                    onOpenActivities = onOpenActivities,
+                    onCreateActivity = onCreateActivity,
+                    onOpenMyActivities = onOpenMyActivities,
+                )
                 1 -> PlaceholderTab(
                     emoji = "👥",
                     title = "Matches",
@@ -262,6 +274,9 @@ private fun GaplyBottomBar(
 private fun DiscoverTab(
     state: HomeUiState,
     viewModel: HomeViewModel,
+    onOpenActivities: () -> Unit = {},
+    onCreateActivity: () -> Unit = {},
+    onOpenMyActivities: () -> Unit = {},
 ) {
     val uriHandler = LocalUriHandler.current
 
@@ -373,6 +388,33 @@ private fun DiscoverTab(
             }
         }
 
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Módulo Actividades: atajo al listado "Actividades para tu hueco".
+        Button(
+            onClick = onOpenActivities,
+            shape = RoundedCornerShape(50),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = BrandGreen,
+                contentColor = Color.White,
+            ),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(52.dp),
+        ) {
+            Icon(
+                imageVector = Icons.Filled.Event,
+                contentDescription = null,
+                modifier = Modifier.size(20.dp),
+            )
+            Spacer(modifier = Modifier.width(10.dp))
+            Text(
+                text = "Ver actividades para tu hueco",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+            )
+        }
+
         Spacer(modifier = Modifier.height(24.dp))
 
         SectionTitle(text = "Crear la actividad")
@@ -385,7 +427,7 @@ private fun DiscoverTab(
             modifier = Modifier
                 .fillMaxWidth()
                 .border(1.dp, BrandGreen, RoundedCornerShape(16.dp))
-                .clickable(onClick = viewModel::onShowCreateActivityInfo)
+                .clickable(onClick = onCreateActivity)
         ) {
             Row(
                 modifier = Modifier
@@ -417,6 +459,51 @@ private fun DiscoverTab(
                         text = "Invita a otros a unirse en tu hueco",
                         fontSize = 12.sp,
                         color = Color.Gray
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Módulo Actividades: acceso a las actividades publicadas por el usuario.
+        Card(
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = BrandGreen),
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onOpenMyActivities)
+        ) {
+            Row(
+                modifier = Modifier
+                    .padding(16.dp)
+                    .fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .background(Color.White, CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Favorite,
+                        contentDescription = "Tus actividades",
+                        tint = BrandGreen
+                    )
+                }
+                Spacer(modifier = Modifier.width(16.dp))
+                Column {
+                    Text(
+                        text = "Tus actividades",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp,
+                        color = Color.White
+                    )
+                    Text(
+                        text = "Edita o cancela las que ya publicaste",
+                        fontSize = 12.sp,
+                        color = Color.White.copy(alpha = 0.8f)
                     )
                 }
             }

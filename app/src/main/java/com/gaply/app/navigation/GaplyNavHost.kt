@@ -7,6 +7,11 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.gaply.app.ui.screens.home.HomeScreen
+import com.gaply.app.ui.screens.activities.ActivitiesListScreen
+import com.gaply.app.ui.screens.activities.ActivityDetailScreen
+import com.gaply.app.ui.screens.activities.MyActivitiesScreen
+import com.gaply.app.ui.screens.activities.NewActivityScreen
+import com.gaply.app.ui.screens.activities.ProfileHostScreen
 import com.gaply.app.ui.screens.login.LoginScreen
 import com.gaply.app.ui.screens.profile.edit.EditProfileScreen
 import com.gaply.app.ui.screens.register.RegisterScreen
@@ -107,8 +112,101 @@ fun GaplyNavHost() {
                 onEditProfile = { navController.navigate(Routes.EDIT_PROFILE) },
                 onOpenSchedule = { navController.navigate(Routes.SCHEDULE) },
                 onOpenSettings = { navController.navigate(Routes.SETTINGS) },
+                onOpenActivities = { navController.navigate(Routes.ACTIVITIES_LIST) },
+                onCreateActivity = { navController.navigate(Routes.NEW_ACTIVITY) },
+                onOpenMyActivities = { navController.navigate(Routes.MY_ACTIVITIES) },
             )
         }
+
+        // ==================== Módulo Actividades (rutas nuevas) ====================
+
+        composable(Routes.NEW_ACTIVITY) {
+            NewActivityScreen(
+                onBack = { navController.popBackStack() },
+                onOpenProfile = { navController.navigate(Routes.PROFILE) },
+                onPublished = {
+                    navController.navigate(Routes.ACTIVITIES_LIST) {
+                        popUpTo(Routes.NEW_ACTIVITY) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                },
+            )
+        }
+
+        composable(Routes.ACTIVITIES_LIST) {
+            ActivitiesListScreen(
+                onBack = { navController.popBackStack() },
+                onOpenActivity = { activityId ->
+                    navController.navigate(Routes.activityDetail(activityId))
+                },
+            )
+        }
+
+        composable(
+            route = "${Routes.ACTIVITY_DETAIL}?${Routes.ARG_ACTIVITY_ID}={${Routes.ARG_ACTIVITY_ID}}",
+            arguments = listOf(
+                navArgument(Routes.ARG_ACTIVITY_ID) {
+                    type = NavType.StringType
+                    defaultValue = ""
+                },
+            ),
+        ) { entry ->
+            ActivityDetailScreen(
+                activityId = entry.arguments?.getString(Routes.ARG_ACTIVITY_ID).orEmpty(),
+                onBack = { navController.popBackStack() },
+                onEditActivity = { activityId ->
+                    navController.navigate(Routes.editActivity(activityId))
+                },
+                onDeleted = { navController.popBackStack() },
+            )
+        }
+
+        // "Tus actividades": listado de las publicadas por el usuario actual.
+        composable(Routes.MY_ACTIVITIES) {
+            MyActivitiesScreen(
+                onBack = { navController.popBackStack() },
+                onOpenActivity = { activityId ->
+                    navController.navigate(Routes.activityDetail(activityId))
+                },
+                onEditActivity = { activityId ->
+                    navController.navigate(Routes.editActivity(activityId))
+                },
+            )
+        }
+
+        // Formulario en modo edición de una actividad propia (precarga datos).
+        composable(
+            route = "${Routes.EDIT_ACTIVITY}?${Routes.ARG_ACTIVITY_ID}={${Routes.ARG_ACTIVITY_ID}}",
+            arguments = listOf(
+                navArgument(Routes.ARG_ACTIVITY_ID) {
+                    type = NavType.StringType
+                    defaultValue = ""
+                },
+            ),
+        ) { entry ->
+            NewActivityScreen(
+                onBack = { navController.popBackStack() },
+                onOpenProfile = { navController.navigate(Routes.PROFILE) },
+                onPublished = { navController.popBackStack() },
+                activityId = entry.arguments?.getString(Routes.ARG_ACTIVITY_ID).orEmpty(),
+            )
+        }
+
+        composable(Routes.PROFILE) {
+            ProfileHostScreen(
+                onBack = { navController.popBackStack() },
+                onEditProfile = { navController.navigate(Routes.EDIT_PROFILE) },
+                onOpenSettings = { navController.navigate(Routes.SETTINGS) },
+                onOpenSchedule = { navController.navigate(Routes.SCHEDULE) },
+                onLogout = {
+                    navController.navigate(Routes.WELCOME) {
+                        popUpTo(0) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                },
+            )
+        }
+        // ===========================================================================
 
         composable(Routes.EDIT_PROFILE) {
             EditProfileScreen(
