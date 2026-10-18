@@ -21,20 +21,18 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.gaply.app.core.i18n.LocalStrings
+import com.gaply.app.di.appContainer
 import com.gaply.app.ui.components.AppDialog
 import com.gaply.app.ui.components.DialogStyle
 import com.gaply.app.ui.components.GaplyPrimaryButton
@@ -49,16 +47,21 @@ import com.gaply.app.ui.theme.TextSecondary
 /**
  * Módulo 2 · Calificar la app.
  * Cinco estrellas, campo opcional de motivos y botón "Enviar";
+ * la calificación se guarda en Firestore ([RateAppViewModel]) y
  * al enviar se muestra el modal de agradecimiento.
  */
 @Composable
 fun RateAppScreen(
     onBack: () -> Unit,
 ) {
-    var rating by remember { mutableIntStateOf(0) }
-    var comment by remember { mutableStateOf("") }
-    var sent by remember { mutableStateOf(false) }
+    val context = LocalContext.current
     val s = LocalStrings.current
+    val viewModel: RateAppViewModel = viewModel(
+        factory = RateAppViewModel.factory(context.appContainer()),
+    )
+
+    val rating = viewModel.rating
+    val comment = viewModel.comment
 
     Column(
         modifier = Modifier
@@ -101,7 +104,7 @@ fun RateAppScreen(
         // ---------------------------------------------------------- Estrellas
         Row(verticalAlignment = Alignment.CenterVertically) {
             for (star in 1..5) {
-                IconButton(onClick = { rating = star }) {
+                IconButton(onClick = { viewModel.onRatingChange(star) }) {
                     Icon(
                         imageVector = if (star <= rating) {
                             Icons.Filled.Star
@@ -134,7 +137,7 @@ fun RateAppScreen(
 
         OutlinedTextField(
             value = comment,
-            onValueChange = { comment = it },
+            onValueChange = viewModel::onCommentChange,
             placeholder = {
                 Text(
                     text = s.rateCommentPlaceholder,
@@ -158,7 +161,9 @@ fun RateAppScreen(
 
         GaplyPrimaryButton(
             text = s.rateSendButton,
-            onClick = { sent = true },
+            onClick = viewModel::submit,
+            enabled = viewModel.canSubmit,
+            loading = viewModel.loading,
             containerColor = BrandGreenDark,
             contentColor = Color.White,
             shape = RoundedCornerShape(50),
@@ -172,7 +177,16 @@ fun RateAppScreen(
         Spacer(modifier = Modifier.height(24.dp))
     }
 
-    if (sent) {
+    viewModel.errorMessage?.let { message ->
+        AppDialog(
+            style = DialogStyle.ERROR,
+            title = s.saveErrorTitle,
+            message = message,
+            onDismiss = viewModel::consumeError,
+        )
+    }
+
+    if (viewModel.sent) {
         AppDialog(
             style = DialogStyle.SUCCESS,
             title = s.thanksTitle,
@@ -182,7 +196,7 @@ fun RateAppScreen(
                 s.thanksMsg
             },
             onDismiss = {
-                sent = false
+                viewModel.consumeSent()
                 onBack()
             },
             showConfirmButton = false,
