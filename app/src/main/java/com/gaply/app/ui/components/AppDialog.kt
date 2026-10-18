@@ -34,6 +34,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.gaply.app.R
+import com.gaply.app.core.i18n.LocalStrings
 import com.gaply.app.ui.theme.ErrorRed
 import com.gaply.app.ui.theme.SuccessGreen
 
@@ -54,13 +55,14 @@ fun AppDialog(
     title: String,
     message: String,
     onDismiss: () -> Unit,
-    confirmText: String = "Aceptar",
+    confirmText: String = LocalStrings.current.accept,
     showConfirmButton: Boolean = true,
     icon: ImageVector? = null,
     iconTint: Color? = null,
     iconBackgroundColor: Color? = null,
     borderColor: Color = Color.Black,
 ) {
+    val s = LocalStrings.current
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             shape = RoundedCornerShape(24.dp),
@@ -84,7 +86,7 @@ fun AppDialog(
                 ) {
                     Icon(
                         imageVector = Icons.Filled.Close,
-                        contentDescription = "Cerrar",
+                        contentDescription = s.closeCd,
                         tint = Color.Black,
                         modifier = Modifier.size(20.dp)
                     )
@@ -128,7 +130,7 @@ fun AppDialog(
                         style == DialogStyle.SUCCESS -> {
                             Icon(
                                 imageVector = Icons.Filled.CheckCircle,
-                                contentDescription = "Éxito",
+                                contentDescription = s.successCd,
                                 tint = SuccessGreen,
                                 modifier = Modifier.size(56.dp)
                             )
@@ -136,7 +138,7 @@ fun AppDialog(
                         style == DialogStyle.INFO -> {
                             Icon(
                                 imageVector = Icons.Filled.Info,
-                                contentDescription = "Información",
+                                contentDescription = s.infoCd,
                                 tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(56.dp)
                             )
@@ -144,7 +146,7 @@ fun AppDialog(
                         style == DialogStyle.WARNING -> {
                             Icon(
                                 imageVector = Icons.Filled.Warning,
-                                contentDescription = "Advertencia",
+                                contentDescription = s.warningCd,
                                 tint = ErrorRed,
                                 modifier = Modifier.size(56.dp)
                             )
@@ -152,7 +154,7 @@ fun AppDialog(
                         else -> {
                             Icon(
                                 painter = painterResource(id = R.drawable.wifi),
-                                contentDescription = "Error / Sin conexión",
+                                contentDescription = s.errorCd,
                                 tint = Color.Unspecified,
                                 modifier = Modifier.size(56.dp)
                             )

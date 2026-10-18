@@ -27,6 +27,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.gaply.app.R
+import com.gaply.app.core.i18n.LocalStrings
 import com.gaply.app.ui.theme.BackgroundApp
 import com.gaply.app.ui.theme.GaplyTheme
 import com.gaply.app.ui.theme.OutlineGray
@@ -42,6 +43,8 @@ import com.gaply.app.ui.theme.TextSecondary
 fun AboutScreen(
     onBack: () -> Unit,
 ) {
+    val s = LocalStrings.current
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -53,7 +56,7 @@ fun AboutScreen(
         Spacer(modifier = Modifier.height(4.dp))
 
         SettingsTopBar(
-            title = "Acerca de Gaply",
+            title = s.aboutGaply,
             onBack = onBack,
         )
 
@@ -61,7 +64,7 @@ fun AboutScreen(
 
         Image(
             painter = painterResource(id = R.drawable.logo_gaply),
-            contentDescription = "Logo de Gaply",
+            contentDescription = s.aboutLogoCd,
             modifier = Modifier
                 .fillMaxWidth(0.85f)
                 .height(120.dp),
@@ -77,9 +80,7 @@ fun AboutScreen(
             border = BorderStroke(1.dp, OutlineGray),
         ) {
             Text(
-                text = "Gaply transforma la experiencia universitaria " +
-                    "al eliminar las barreras de comunicación " +
-                    "dentro del campus.",
+                text = s.aboutBody,
                 style = MaterialTheme.typography.headlineSmall.copy(
                     fontFamily = PlayfairDisplay,
                     fontWeight = FontWeight.Normal,
@@ -94,7 +95,7 @@ fun AboutScreen(
         Spacer(modifier = Modifier.height(24.dp))
 
         Text(
-            text = "© Gaply 2026 - Version 1.0",
+            text = s.copyrightText,
             style = MaterialTheme.typography.titleMedium.copy(
                 fontFamily = PlayfairDisplay,
                 fontWeight = FontWeight.Bold,

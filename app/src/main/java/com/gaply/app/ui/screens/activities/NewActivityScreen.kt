@@ -62,6 +62,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import com.gaply.app.core.i18n.LocalStrings
 import com.gaply.app.domain.model.ActivityItem
 import com.gaply.app.ui.components.GaplyTextField
 import com.gaply.app.ui.screens.register.RegisterData
@@ -95,6 +96,7 @@ fun NewActivityScreen(
 ) {
     val viewModel = rememberActivityViewModel()
     val state by viewModel.uiState.collectAsState()
+    val s = LocalStrings.current
 
     // En modo edición se precarga la actividad existente (una sola vez).
     val existing = remember(activityId) {
@@ -107,7 +109,7 @@ fun NewActivityScreen(
         mutableStateOf(existing?.category ?: RegisterData.interests.first())
     }
     var location by remember { mutableStateOf(existing?.location ?: "") }
-    var duration by remember { mutableStateOf(existing?.duration ?: "1 hora") }
+    var duration by remember { mutableStateOf(existing?.duration ?: ActivityFormat.DUR_1H) }
     var description by remember { mutableStateOf(existing?.description ?: "") }
     var imageUri by remember { mutableStateOf<Uri?>(existing?.imageUri?.let(Uri::parse)) }
 
@@ -149,13 +151,13 @@ fun NewActivityScreen(
             IconButton(onClick = onBack) {
                 Icon(
                     imageVector = Icons.Filled.Close,
-                    contentDescription = "Cerrar",
+                    contentDescription = s.closeCd,
                     tint = Color.Black,
                     modifier = Modifier.size(26.dp),
                 )
             }
             Text(
-                text = if (isEditing) "Editar actividad" else "Nueva actividad",
+                text = if (isEditing) s.editActivityTitle else s.newActivityTitle,
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = Color.Black,
@@ -173,17 +175,17 @@ fun NewActivityScreen(
         Column(modifier = Modifier.padding(horizontal = 20.dp)) {
             Spacer(modifier = Modifier.height(8.dp))
 
-            FormLabel(text = "Título del evento")
+            FormLabel(text = s.eventTitleLabel)
             GaplyTextField(
                 value = title,
                 onValueChange = { title = it },
-                label = "Título del evento",
+                label = s.eventTitleLabel,
                 singleLine = true,
             )
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            FormLabel(text = "Categoría")
+            FormLabel(text = s.categoryLabel)
             CategoryDropdown(
                 selected = category,
                 onSelect = { category = it },
@@ -191,7 +193,7 @@ fun NewActivityScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            FormLabel(text = "Foto del lugar de la actividad")
+            FormLabel(text = s.activityPhotoLabel)
             PhotoPickerField(
                 imageUri = imageUri,
                 onPick = {
@@ -204,16 +206,16 @@ fun NewActivityScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            FormLabel(text = "Ubicación / Lugar")
+            FormLabel(text = s.locationPlaceLabel)
             GaplyTextField(
                 value = location,
                 onValueChange = { location = it },
-                label = "Ej. Cancha M7A, Salón 204, Biblioteca…",
+                label = s.locationPlacePlaceholder,
             )
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            FormLabel(text = "Duración estimada")
+            FormLabel(text = s.durationLabel)
             DurationSegmented(
                 selected = duration,
                 onSelect = { duration = it },
@@ -224,14 +226,14 @@ fun NewActivityScreen(
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 DateTimeCard(
                     icon = Icons.Filled.CalendarMonth,
-                    title = "Fecha",
-                    value = ActivityFormat.fechaCorta(dateMillis),
+                    title = s.dateLabel,
+                    value = ActivityFormat.fechaCorta(dateMillis, s.javaLocale),
                     onClick = { showDatePicker = true },
                     modifier = Modifier.weight(1f),
                 )
                 DateTimeCard(
                     icon = Icons.Filled.Schedule,
-                    title = "Hora",
+                    title = s.timeSectionLabel,
                     value = timeRange,
                     onClick = { showTimePicker = true },
                     modifier = Modifier.weight(1f),
@@ -240,11 +242,11 @@ fun NewActivityScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            FormLabel(text = "Descripción (opcional)")
+            FormLabel(text = s.descriptionOptionalLabel)
             GaplyTextField(
                 value = description,
                 onValueChange = { description = it },
-                label = "Agrega más detalles sobre tu actividad...",
+                label = s.activityDescriptionPlaceholder,
                 singleLine = false,
                 minLines = 4,
                 maxLines = 6,
@@ -294,7 +296,7 @@ fun NewActivityScreen(
                     .height(52.dp),
             ) {
                 Text(
-                    text = if (isEditing) "Guardar cambios" else "Publicar actividad",
+                    text = if (isEditing) s.saveChanges else s.publishActivity,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                 )
@@ -324,11 +326,11 @@ fun NewActivityScreen(
                         }
                         showDatePicker = false
                     },
-                ) { Text("Aceptar", color = BrandGreen) }
+                ) { Text(s.accept, color = BrandGreen) }
             },
             dismissButton = {
                 TextButton(onClick = { showDatePicker = false }) {
-                    Text("Cancelar", color = BrandGreen)
+                    Text(s.cancel, color = BrandGreen)
                 }
             },
         ) {
@@ -356,7 +358,7 @@ fun NewActivityScreen(
             shape = RoundedCornerShape(24.dp),
             title = {
                 Text(
-                    text = "Seleccione una hora",
+                    text = s.selectTimeTitle,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center,
@@ -382,12 +384,12 @@ fun NewActivityScreen(
                         showTimePicker = false
                     },
                 ) {
-                    Text("OK", color = BrandGreen)
+                    Text(s.ok, color = BrandGreen)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showTimePicker = false }) {
-                    Text("Cancelar", color = BrandGreen)
+                    Text(s.cancel, color = BrandGreen)
                 }
             },
         )
@@ -416,6 +418,7 @@ private fun ProfileAvatar(
     fallbackLetter: String,
     onClick: () -> Unit,
 ) {
+    val s = LocalStrings.current
     Box(
         modifier = Modifier
             .size(42.dp)
@@ -428,14 +431,14 @@ private fun ProfileAvatar(
         if (photoUrl.isNotBlank()) {
             AsyncImage(
                 model = photoUrl,
-                contentDescription = "Foto de perfil",
+                contentDescription = s.profilePhotoCd,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize(),
             )
         } else {
             Icon(
                 imageVector = Icons.Filled.Person,
-                contentDescription = "Perfil",
+                contentDescription = s.tabProfile,
                 tint = BrandGreen,
                 modifier = Modifier.size(24.dp),
             )
@@ -450,6 +453,7 @@ private fun CategoryDropdown(
     selected: String,
     onSelect: (String) -> Unit,
 ) {
+    val s = LocalStrings.current
     var expanded by remember { mutableStateOf(false) }
 
     Box(modifier = Modifier.fillMaxWidth()) {
@@ -474,7 +478,8 @@ private fun CategoryDropdown(
                         .padding(horizontal = 14.dp, vertical = 6.dp),
                 ) {
                     Text(
-                        text = selected,
+                        // Se muestra la etiqueta localizada; se guarda el valor canónico.
+                        text = s.interestLabel(selected),
                         color = Color.White,
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 14.sp,
@@ -483,7 +488,7 @@ private fun CategoryDropdown(
                 Spacer(modifier = Modifier.weight(1f))
                 Icon(
                     imageVector = Icons.Filled.ArrowDropDown,
-                    contentDescription = "Desplegar categorías",
+                    contentDescription = s.expandCategoriesCd,
                     tint = TextSecondary,
                 )
             }
@@ -498,7 +503,7 @@ private fun CategoryDropdown(
                 DropdownMenuItem(
                     text = {
                         Text(
-                            text = interest,
+                            text = s.interestLabel(interest),
                             fontWeight = if (interest == selected) FontWeight.Bold else FontWeight.Normal,
                         )
                     },
@@ -519,6 +524,7 @@ private fun PhotoPickerField(
     onPick: () -> Unit,
     onClear: () -> Unit,
 ) {
+    val s = LocalStrings.current
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -531,7 +537,7 @@ private fun PhotoPickerField(
         if (imageUri != null) {
             AsyncImage(
                 model = imageUri,
-                contentDescription = "Foto del lugar",
+                contentDescription = s.placePhotoCd,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize(),
             )
@@ -547,7 +553,7 @@ private fun PhotoPickerField(
             ) {
                 Icon(
                     imageVector = Icons.Filled.Close,
-                    contentDescription = "Quitar foto",
+                    contentDescription = s.removePhotoCd,
                     tint = BrandGreen,
                     modifier = Modifier.size(18.dp),
                 )
@@ -569,13 +575,13 @@ private fun PhotoPickerField(
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "Toca para agregar una foto del lugar",
+                    text = s.tapToAddPlacePhoto,
                     style = MaterialTheme.typography.bodyMedium,
                     color = TextSecondary,
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
-                    text = "Si no eliges ninguna, se usa un color verde por defecto",
+                    text = s.defaultColorPhotoHint,
                     style = MaterialTheme.typography.bodySmall,
                     color = TextSecondary,
                 )
@@ -584,13 +590,19 @@ private fun PhotoPickerField(
     }
 }
 
-/** Selector segmentado de duración: 30 min · 1 hora · 2 horas. */
+/** Selector segmentado de duración: 30 min · 1 hora · 2 horas.
+ *  El valor guardado es el canónico (en ES); la etiqueta se localiza. */
 @Composable
 private fun DurationSegmented(
     selected: String,
     onSelect: (String) -> Unit,
 ) {
-    val options = listOf("30 min", "1 hora", "2 horas")
+    val s = LocalStrings.current
+    val options = listOf(
+        ActivityFormat.DUR_30 to s.duration30,
+        ActivityFormat.DUR_1H to s.duration1h,
+        ActivityFormat.DUR_2H to s.duration2h,
+    )
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -600,7 +612,7 @@ private fun DurationSegmented(
             .padding(4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        options.forEachIndexed { index, option ->
+        options.forEachIndexed { index, (canonical, label) ->
             if (index > 0) {
                 Box(
                     modifier = Modifier
@@ -609,18 +621,18 @@ private fun DurationSegmented(
                         .background(Sage),
                 )
             }
-            val isSelected = option == selected
+            val isSelected = canonical == selected
             Box(
                 modifier = Modifier
                     .weight(1f)
                     .clip(RoundedCornerShape(10.dp))
                     .background(if (isSelected) Mint else Color.Transparent)
-                    .clickable { onSelect(option) }
+                    .clickable { onSelect(canonical) }
                     .padding(vertical = 12.dp),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    text = option,
+                    text = label,
                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                     color = if (isSelected) BrandGreen else Color.Black,
                     fontSize = 15.sp,

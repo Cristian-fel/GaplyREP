@@ -39,8 +39,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.gaply.app.core.i18n.LocalStrings
 import com.gaply.app.di.appContainer
 import com.gaply.app.domain.agent.DiaSemana
+import com.gaply.app.domain.agent.FranjaHoraria
 import com.gaply.app.domain.agent.Recomendacion
 import com.gaply.app.domain.agent.ResultadoAgente
 import com.gaply.app.ui.components.GaplySelectField
@@ -78,6 +80,8 @@ fun HuecosScreen(
             finInicial = finInicial,
         ),
     )
+    val s = LocalStrings.current
+    viewModel.strings = s
     val state by viewModel.uiState.collectAsState()
 
     Column(
@@ -92,10 +96,10 @@ fun HuecosScreen(
             IconButton(onClick = onBack) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Volver",
+                    contentDescription = s.back,
                 )
             }
-            Text(text = "Mis huecos", style = MaterialTheme.typography.titleLarge)
+            Text(text = s.myFreeSlots, style = MaterialTheme.typography.titleLarge)
         }
 
         Column(
@@ -105,8 +109,7 @@ fun HuecosScreen(
                 .padding(horizontal = 24.dp),
         ) {
             Text(
-                text = "Dinos qué te gusta y en qué horario estás libre. " +
-                    "Las sugerencias se ordenan solas.",
+                text = s.tellUsLikesFreeTime,
                 style = MaterialTheme.typography.bodyLarge,
                 color = TextSecondary,
             )
@@ -130,8 +133,7 @@ fun HuecosScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = "Utilidad = 65% intereses + 35% encaje horario. " +
-                    "Lo que no cabe en tu hueco se descarta con su motivo.",
+                text = s.utilityExplanation,
                 style = MaterialTheme.typography.bodySmall,
                 color = TextSecondary,
             )
@@ -149,17 +151,19 @@ fun HuecosScreen(
 @Composable
 private fun InteresesCard(
     seleccionados: List<String>,
-    aviso: String?,
+    aviso: HuecosAviso?,
     onToggle: (String) -> Unit,
 ) {
-    SectionCard(title = "Tus intereses") {
+    val s = LocalStrings.current
+
+    SectionCard(title = s.yourInterests) {
         FlowRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             RegisterData.interests.forEach { interes ->
                 InterestPill(
-                    label = interes,
+                    label = s.interestLabel(interes),
                     selected = interes in seleccionados,
                     onClick = { onToggle(interes) },
                 )
@@ -169,7 +173,11 @@ private fun InteresesCard(
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = aviso ?: "${seleccionados.size} de ${HuecosViewModel.MAX_INTERESES} seleccionados",
+            text = when (aviso) {
+                HuecosAviso.MAX_INTERESTS -> s.minInterestsWarning(HuecosViewModel.MAX_INTERESES)
+                HuecosAviso.END_BEFORE_START -> s.endMustBeAfterStart
+                null -> s.selectedCount(seleccionados.size, HuecosViewModel.MAX_INTERESES)
+            },
             style = MaterialTheme.typography.bodySmall,
             color = if (aviso != null) MaterialTheme.colorScheme.error else TextSecondary,
         )
@@ -182,9 +190,11 @@ private fun HuecoCard(
     state: HuecosUiState,
     viewModel: HuecosViewModel,
 ) {
-    SectionCard(title = "Tu hueco libre") {
+    val s = LocalStrings.current
+
+    SectionCard(title = s.yourFreeSlotTitle) {
         Text(
-            text = "Día",
+            text = s.dayLabel,
             style = MaterialTheme.typography.labelLarge,
             color = BrandGreen,
             modifier = Modifier.padding(bottom = 6.dp),
@@ -192,7 +202,7 @@ private fun HuecoCard(
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             DiaSemana.values().forEach { dia ->
                 DayChip(
-                    label = dia.titulo,
+                    label = s.dayName(dia.titulo),
                     selected = state.dia == dia,
                     onClick = { viewModel.seleccionarDia(dia) },
                 )
@@ -204,28 +214,28 @@ private fun HuecoCard(
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "De",
+                    text = s.fromLabel,
                     style = MaterialTheme.typography.labelLarge,
                     color = BrandGreen,
                     modifier = Modifier.padding(bottom = 6.dp),
                 )
                 GaplySelectField(
                     selected = state.horaInicio,
-                    placeholder = "Inicio",
+                    placeholder = s.startShort,
                     options = horasDisponibles,
                     onSelect = viewModel::seleccionarInicio,
                 )
             }
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "A",
+                    text = s.toLabel,
                     style = MaterialTheme.typography.labelLarge,
                     color = BrandGreen,
                     modifier = Modifier.padding(bottom = 6.dp),
                 )
                 GaplySelectField(
                     selected = state.horaFin,
-                    placeholder = "Fin",
+                    placeholder = s.endShort,
                     options = horasDisponibles,
                     onSelect = viewModel::seleccionarFin,
                 )
@@ -240,17 +250,18 @@ private fun HuecoCard(
 
 @Composable
 private fun ResultadosCard(resultado: ResultadoAgente?) {
-    SectionCard(title = "Sugerencias") {
+    val s = LocalStrings.current
+
+    SectionCard(title = s.suggestionsTitle) {
         when {
             resultado == null -> Text(
-                text = "Corrige el horario para ver las sugerencias.",
+                text = s.fixTimeToSeeSuggestions,
                 style = MaterialTheme.typography.bodyMedium,
                 color = TextSecondary,
             )
 
             resultado.recomendaciones.isEmpty() -> Text(
-                text = "Ninguna actividad encaja en ese hueco. " +
-                    "Prueba con otro día u horario.",
+                text = s.noneFitsSlot,
                 style = MaterialTheme.typography.bodyMedium,
                 color = TextSecondary,
             )
@@ -264,7 +275,7 @@ private fun ResultadosCard(resultado: ResultadoAgente?) {
         if (resultado != null && resultado.descartadas.isNotEmpty()) {
             Spacer(modifier = Modifier.height(18.dp))
             Text(
-                text = "No encaja (${resultado.descartadas.size})",
+                text = s.doesNotFit(resultado.descartadas.size),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = BrandGreen,
@@ -273,7 +284,7 @@ private fun ResultadosCard(resultado: ResultadoAgente?) {
             resultado.descartadas.forEach { descarte ->
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = descarte.actividad.nombre,
+                    text = s.activityName(descarte.actividad.id, descarte.actividad.nombre),
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold,
                 )
@@ -289,6 +300,9 @@ private fun ResultadosCard(resultado: ResultadoAgente?) {
 
 @Composable
 private fun RecomendacionItem(recomendacion: Recomendacion) {
+    val s = LocalStrings.current
+    val hueco = recomendacion.huecoAprovechado
+
     Row(verticalAlignment = Alignment.Top) {
         Box(
             modifier = Modifier
@@ -308,7 +322,7 @@ private fun RecomendacionItem(recomendacion: Recomendacion) {
 
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = recomendacion.actividad.nombre,
+                text = s.activityName(recomendacion.actividad.id, recomendacion.actividad.nombre),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
             )
@@ -322,7 +336,10 @@ private fun RecomendacionItem(recomendacion: Recomendacion) {
             }
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "Tu hueco: ${recomendacion.huecoAprovechado}",
+                text = s.yourSlotIs(
+                    "${s.dayName(hueco.dia.titulo)} " +
+                        "${FranjaHoraria.aHora(hueco.inicioMinutos)}-${FranjaHoraria.aHora(hueco.finMinutos)}",
+                ),
                 style = MaterialTheme.typography.bodySmall,
                 color = BrandGreen,
             )

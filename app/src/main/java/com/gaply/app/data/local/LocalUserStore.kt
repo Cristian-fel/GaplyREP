@@ -1,6 +1,7 @@
 package com.gaply.app.data.local
 
 import android.content.Context
+import com.gaply.app.core.i18n.AppLanguage
 import com.gaply.app.domain.model.User
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -43,12 +44,12 @@ class LocalUserStore(context: Context) {
 
     /** Idioma seleccionado en Configuración (persistente entre sesiones). */
     private val _language = MutableStateFlow(
-        prefs.getString(KEY_LANGUAGE, DEFAULT_LANGUAGE) ?: DEFAULT_LANGUAGE,
+        AppLanguage.fromStored(prefs.getString(KEY_LANGUAGE, null)),
     )
-    val language: StateFlow<String> = _language
+    val language: StateFlow<AppLanguage> = _language
 
-    fun setLanguage(value: String) {
-        prefs.edit().putString(KEY_LANGUAGE, value).apply()
+    fun setLanguage(value: AppLanguage) {
+        prefs.edit().putString(KEY_LANGUAGE, value.id).apply()
         _language.value = value
     }
 
@@ -100,6 +101,5 @@ class LocalUserStore(context: Context) {
         private const val KEY_USERS = "users"
         private const val KEY_SESSION = "session_user_id"
         private const val KEY_LANGUAGE = "app_language"
-        private const val DEFAULT_LANGUAGE = "Español (ES)"
     }
 }

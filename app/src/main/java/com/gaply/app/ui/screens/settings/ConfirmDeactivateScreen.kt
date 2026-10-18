@@ -26,6 +26,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.gaply.app.core.i18n.LocalStrings
 import com.gaply.app.di.appContainer
 import com.gaply.app.ui.components.AppDialog
 import com.gaply.app.ui.components.DialogStyle
@@ -48,15 +49,13 @@ fun ConfirmDeactivateScreen(
     val viewModel: DeactivateViewModel = viewModel(
         factory = DeactivateViewModel.factory(context.appContainer()),
     )
+    val s = LocalStrings.current
 
     val bullets = listOf(
-        "Nadie podrá ver tu cuenta ni su contenido.",
-        "Los datos que no se almacenan en tu cuenta (como los mensajes " +
-            "directos) aún podrían ser visibles para otros usuarios.",
-        "Gaply conservará tus datos para que puedas recuperarlos cuando " +
-            "reactives tu cuenta.",
-        "Podrás reactivar tu cuenta y recuperar todo el contenido en " +
-            "cualquier momento usando los mismos detalles de inicio de sesión.",
+        s.confirmDeactivateBulletPrivacy,
+        s.confirmDeactivateBulletOutsideData,
+        s.confirmDeactivateBulletDataKept,
+        s.confirmDeactivateBulletRecovery,
     )
 
     Column(
@@ -77,7 +76,7 @@ fun ConfirmDeactivateScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         Text(
-            text = "¿Desactivar esta cuenta?",
+            text = s.confirmDeactivateTitle,
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center,
@@ -87,7 +86,7 @@ fun ConfirmDeactivateScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         Text(
-            text = "Si desactivas la cuenta:",
+            text = s.confirmDeactivateListTitle,
             style = MaterialTheme.typography.bodyLarge,
             fontWeight = FontWeight.SemiBold,
             modifier = Modifier.fillMaxWidth(),
@@ -103,7 +102,7 @@ fun ConfirmDeactivateScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         GaplyPrimaryButton(
-            text = "Desactivar",
+            text = s.confirmDeactivateButton,
             onClick = {
                 viewModel.deactivate(onDeactivated = onDeactivated)
             },
@@ -114,11 +113,20 @@ fun ConfirmDeactivateScreen(
         Spacer(modifier = Modifier.height(24.dp))
     }
 
-    viewModel.errorMessage?.let { message ->
+    viewModel.errorMessage?.let { error ->
         AppDialog(
             style = DialogStyle.ERROR,
-            title = "No se pudo desactivar",
-            message = message,
+            title = if (error == DeactivateError.CONNECTION) {
+                s.connectionErrorTitle
+            } else {
+                s.deactivateErrorTitle
+            },
+            message = when (error) {
+                DeactivateError.CONNECTION -> s.connectionErrorMessage
+                DeactivateError.PERMISSION -> s.deactivateReloginMsg
+                DeactivateError.USER_NOT_FOUND -> s.noActiveSessionMsg
+                DeactivateError.GENERIC -> s.deactivateErrorMsg
+            },
             onDismiss = viewModel::consumeError,
         )
     }

@@ -23,8 +23,8 @@ data class HomeUiState(
     val user: User? = null,
     val selectedTab: Int = 0,
     val dialog: HomeDialog? = null,
-    /** "2 horas libres 12:00 p.m. - 2:00 p.m." — el mayor hueco de hoy, o null. */
-    val huecoDeHoy: String? = null,
+    /** El mayor hueco de hoy, o null. La pantalla lo formatea con el idioma activo. */
+    val huecoDeHoy: HuecoLibre? = null,
     /** true si el usuario ya tiene al menos una clase en el horario. */
     val tieneHorario: Boolean = false,
 )
@@ -38,7 +38,7 @@ class HomeViewModel(
 
     private val selectedTab = MutableStateFlow(0)
     private val dialog = MutableStateFlow<HomeDialog?>(null)
-    private val huecoDeHoy = MutableStateFlow<String?>(null)
+    private val huecoDeHoy = MutableStateFlow<HuecoLibre?>(null)
     private val tieneHorario = MutableStateFlow(false)
 
     val uiState: StateFlow<HomeUiState> = combine(
@@ -69,17 +69,12 @@ class HomeViewModel(
         viewModelScope.launch {
             when (val resultado = scheduleRepository.getClasses()) {
                 is RepoResult.Success -> {
+                    // Las clases se guardan con el día en español (clave canónica).
                     val hoy = ScheduleViewModel.tituloDia(LocalDate.now())
                     val clasesDeHoy = resultado.data.filter { it.day == hoy }
-                    val mayorHueco = HuecoLibre
+                    huecoDeHoy.value = HuecoLibre
                         .deClases(clasesDeHoy, ScheduleViewModel.HUECO_MINIMO_MINUTOS)
                         .maxByOrNull { it.duracionMinutos }
-
-                    huecoDeHoy.value = mayorHueco?.let {
-                        "${it.textoDuracion} " +
-                            "${ScheduleClass.formatearHora(it.inicioHora)} - " +
-                            ScheduleClass.formatearHora(it.finHora)
-                    }
                     tieneHorario.value = resultado.data.isNotEmpty()
                 }
 

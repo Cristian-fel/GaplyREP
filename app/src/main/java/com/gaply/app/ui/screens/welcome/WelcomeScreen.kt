@@ -35,6 +35,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.gaply.app.R
+import com.gaply.app.core.i18n.LocalStrings
 import com.gaply.app.ui.components.AppDialog
 import com.gaply.app.ui.components.DialogStyle
 import com.gaply.app.ui.components.GaplyOutlineButton
@@ -52,6 +53,7 @@ fun WelcomeScreen(
 ) {
     var showAccountDialog by remember { mutableStateOf(!accountMessage.isNullOrBlank()) }
     val deleted = accountMessage == ACCOUNT_DELETED
+    val s = LocalStrings.current
     // Matriz de color para convertir la imagen negra original en líneas gris claro muy suave
     val invertToLightGrayMatrix = ColorMatrix(
         floatArrayOf(
@@ -91,7 +93,7 @@ fun WelcomeScreen(
             // Logo horizontal de Gaply
             Image(
                 painter = painterResource(id = R.drawable.logo_gaply),
-                contentDescription = "Logo de Gaply",
+                contentDescription = s.logoCd,
                 modifier = Modifier
                     .fillMaxWidth(0.75f)
                     .height(80.dp),
@@ -102,7 +104,7 @@ fun WelcomeScreen(
 
             // Texto descriptivo
             Text(
-                text = "Encuentra algo que hacer entre tus clases",
+                text = s.welcomeTagline,
                 style = MaterialTheme.typography.titleMedium.copy(
                     fontWeight = FontWeight.Bold,
                     fontSize = 15.sp
@@ -116,7 +118,7 @@ fun WelcomeScreen(
             // Ilustración principal
             Image(
                 painter = painterResource(id = R.drawable.ilustration_main),
-                contentDescription = "Ilustración principal",
+                contentDescription = s.welcomeIllustrationCd,
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f),
@@ -127,7 +129,7 @@ fun WelcomeScreen(
 
             // Botón Inicia Sesión
             GaplyPrimaryButton(
-                text = "Inicia Sesión",
+                text = s.signIn,
                 onClick = onLogin,
                 containerColor = BrandGreen,
                 contentColor = Color.White,
@@ -137,7 +139,7 @@ fun WelcomeScreen(
 
             // Botón Crear Cuenta
             GaplyOutlineButton(
-                text = "Crear Cuenta",
+                text = s.createAccount,
                 onClick = onRegister,
                 borderColor = BrandGreen,
                 contentColor = BrandGreen,
@@ -151,11 +153,11 @@ fun WelcomeScreen(
         val isDeleted = accountMessage == ACCOUNT_DELETED
         AppDialog(
             style = if (isDeleted) DialogStyle.ERROR else DialogStyle.SUCCESS,
-            title = if (isDeleted) "¡Cuenta eliminada!" else "¡Cuenta desactivada!",
+            title = if (isDeleted) s.accountDeletedTitle else s.accountDeactivatedTitle,
             message = if (isDeleted) {
-                "Tu cuenta y datos se han eliminado correctamente."
+                s.accountDeletedMsg
             } else {
-                "Puedes reactivarla cuando quieras con tus mismos datos de acceso."
+                s.accountDeactivatedMsg
             },
             onDismiss = { showAccountDialog = false },
             showConfirmButton = false,

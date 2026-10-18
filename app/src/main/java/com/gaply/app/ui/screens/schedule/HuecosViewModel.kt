@@ -2,6 +2,8 @@ package com.gaply.app.ui.screens.schedule
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import com.gaply.app.core.i18n.AppStrings
+import com.gaply.app.core.i18n.StringsEs
 import com.gaply.app.di.AppContainer
 import com.gaply.app.domain.agent.Actividad
 import com.gaply.app.domain.agent.AgenteRecomendacion
@@ -20,8 +22,10 @@ data class HuecosUiState(
     val horaInicio: String = "10:00",
     val horaFin: String = "12:00",
     val resultado: ResultadoAgente? = null,
-    val aviso: String? = null,
+    val aviso: HuecosAviso? = null,
 )
+
+enum class HuecosAviso { MAX_INTERESTS, END_BEFORE_START }
 
 /**
  * Módulo 2 · "Mis huecos".
@@ -40,8 +44,6 @@ class HuecosViewModel(
     finInicial: String = "",
 ) : ViewModel() {
 
-    private val agente = AgenteRecomendacion()
-
     private val _uiState = MutableStateFlow(
         HuecosUiState(
             // Prefiltra con los intereses que el usuario ya eligió en el registro.
@@ -55,6 +57,13 @@ class HuecosViewModel(
     )
     val uiState: StateFlow<HuecosUiState> = _uiState.asStateFlow()
 
+    var strings: AppStrings = StringsEs
+        set(value) {
+            val cambio = field != value
+            field = value
+            if (cambio) recalcular()
+        }
+
     init {
         recalcular()
     }
@@ -65,7 +74,7 @@ class HuecosViewModel(
             etiqueta in actual -> actual - etiqueta
             actual.size >= MAX_INTERESES -> {
                 _uiState.value = _uiState.value.copy(
-                    aviso = "Puedes elegir hasta $MAX_INTERESES intereses.",
+                    aviso = HuecosAviso.MAX_INTERESTS,
                 )
                 return
             }
@@ -104,7 +113,7 @@ class HuecosViewModel(
         if (inicio >= fin) {
             _uiState.value = estado.copy(
                 resultado = null,
-                aviso = "La hora final debe ser posterior a la inicial.",
+                aviso = HuecosAviso.END_BEFORE_START,
             )
             return
         }
@@ -116,7 +125,10 @@ class HuecosViewModel(
         )
 
         _uiState.value = estado.copy(
-            resultado = agente.recomendar(perfil = perfil, candidatas = CATALOGO_DEMO),
+            resultado = AgenteRecomendacion(strings).recomendar(
+                perfil = perfil,
+                candidatas = CATALOGO_DEMO,
+            ),
             aviso = null,
         )
     }

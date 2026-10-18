@@ -39,6 +39,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.gaply.app.R
+import com.gaply.app.core.i18n.LocalStrings
+import com.gaply.app.core.i18n.fieldError
 import com.gaply.app.di.appContainer
 import com.gaply.app.ui.components.AppDialog
 import com.gaply.app.ui.components.DialogStyle
@@ -59,6 +61,7 @@ fun LoginScreen(
         factory = LoginViewModel.factory(context.appContainer()),
     )
     val state by viewModel.uiState.collectAsState()
+    val s = LocalStrings.current
 
     LaunchedEffect(state.isLoggedIn) {
         if (state.isLoggedIn) {
@@ -92,14 +95,14 @@ fun LoginScreen(
             IconButton(onClick = onBack) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Volver",
+                    contentDescription = s.back,
                 )
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = "Inicia Sesión Con Cuenta de Gaply",
+                text = s.loginTitle,
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
             )
@@ -109,8 +112,8 @@ fun LoginScreen(
             GaplyTextField(
                 value = state.identifier,
                 onValueChange = viewModel::onIdentifierChange,
-                label = "Usuario",
-                errorText = state.identifierError,
+                label = s.usernameLabel,
+                errorText = state.identifierError?.let { s.fieldError(it) },
                 keyboardType = KeyboardType.Email,
             )
 
@@ -119,9 +122,9 @@ fun LoginScreen(
             GaplyTextField(
                 value = state.password,
                 onValueChange = viewModel::onPasswordChange,
-                label = "Contraseña",
+                label = s.passwordLabel,
                 isPassword = true,
-                errorText = state.passwordError,
+                errorText = state.passwordError?.let { s.fieldError(it) },
                 imeAction = ImeAction.Done,
                 onImeAction = viewModel::onLogin,
             )
@@ -129,7 +132,12 @@ fun LoginScreen(
             if (state.credentialsError != null) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = state.credentialsError.orEmpty(),
+                    text = when (state.credentialsError) {
+                        CredentialsError.EMAIL_NOT_FOUND -> s.noAccountWithEmailMsg
+                        CredentialsError.WRONG_PASSWORD -> s.wrongPasswordMsg
+                        CredentialsError.GENERIC -> s.loginFailedMsg
+                        null -> ""
+                    },
                     color = ErrorRed,
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.fillMaxWidth(),
@@ -139,7 +147,7 @@ fun LoginScreen(
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "¿Olvidaste tu contraseña?",
+                text = s.forgotPassword,
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary,
                 textAlign = TextAlign.End,
@@ -151,7 +159,7 @@ fun LoginScreen(
             Spacer(modifier = Modifier.height(32.dp))
 
             GaplyPrimaryButton(
-                text = "Ingresar",
+                text = s.loginButton,
                 onClick = viewModel::onLogin,
                 loading = state.isLoading,
             )
@@ -163,12 +171,12 @@ fun LoginScreen(
                 horizontalArrangement = Arrangement.Center,
             ) {
                 Text(
-                    text = "¿Aún no tienes cuenta? ",
+                    text = s.noAccountYet,
                     style = MaterialTheme.typography.bodyMedium,
                     color = TextSecondary,
                 )
                 Text(
-                    text = "Regístrate",
+                    text = s.registerLink,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary,
@@ -190,7 +198,7 @@ fun LoginScreen(
                     colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.colorScheme.primary),
                 )
                 Text(
-                    text = "Si no deseas recibir comunicaciones de marketing sobre nuestros productos y servicios, marca esta casilla.",
+                    text = s.marketingOptOut,
                     style = MaterialTheme.typography.bodySmall,
                     color = TextSecondary,
                     modifier = Modifier.padding(top = 10.dp),
@@ -202,15 +210,15 @@ fun LoginScreen(
     when (state.dialog) {
         LoginDialog.CONNECTION -> AppDialog(
             style = DialogStyle.ERROR,
-            title = "¡Error de conexión!",
-            message = "Comprueba tu conexión, inténtalo más tarde.",
+            title = s.connectionErrorTitle,
+            message = s.connectionErrorMessage,
             onDismiss = viewModel::consumeDialog,
         )
 
         LoginDialog.USER_NOT_FOUND -> AppDialog(
             style = DialogStyle.WARNING,
-            title = "¡Cuenta no encontrada!",
-            message = "No existe una cuenta con ese usuario. Revísalo o regístrate.",
+            title = s.userNotFoundTitle,
+            message = s.userNotFoundMsg,
             onDismiss = viewModel::consumeDialog,
         )
 

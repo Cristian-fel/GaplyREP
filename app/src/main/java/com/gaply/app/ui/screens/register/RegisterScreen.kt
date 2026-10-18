@@ -26,6 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.gaply.app.core.i18n.LocalStrings
 import com.gaply.app.di.appContainer
 import com.gaply.app.ui.components.AppDialog
 import com.gaply.app.ui.components.DialogStyle
@@ -41,6 +42,7 @@ fun RegisterScreen(
         factory = RegisterViewModel.factory(context.appContainer()),
     )
     val state by viewModel.uiState.collectAsState()
+    val s = LocalStrings.current
 
     LaunchedEffect(state.finishAndGoHome) {
         if (state.finishAndGoHome) {
@@ -66,14 +68,14 @@ fun RegisterScreen(
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Volver",
+                    contentDescription = s.back,
                 )
             }
-            Text(text = "Crear Cuenta", style = MaterialTheme.typography.titleLarge)
+            Text(text = s.createAccount, style = MaterialTheme.typography.titleLarge)
             Spacer(modifier = Modifier.weight(1f))
             if (state.step == 3 || state.step == 4) {
                 TextButton(onClick = viewModel::onSkipStep) {
-                    Text(text = "Omitir", color = MaterialTheme.colorScheme.primary)
+                    Text(text = s.skip, color = MaterialTheme.colorScheme.primary)
                 }
             }
         }
@@ -81,18 +83,18 @@ fun RegisterScreen(
         Column(modifier = Modifier.padding(horizontal = 24.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = "Paso ${state.step} de 5",
+                    text = s.stepOfTotal(state.step, 5),
                     style = MaterialTheme.typography.labelMedium,
                     color = TextSecondary,
                 )
                 Spacer(modifier = Modifier.weight(1f))
                 Text(
                     text = when (state.step) {
-                        1 -> "Datos de la cuenta"
-                        2 -> "Informaci\u00f3n personal"
-                        3 -> "Prop\u00f3sito"
-                        4 -> "Intereses"
-                        else -> "Foto y biograf\u00eda"
+                        1 -> s.stepAccountData
+                        2 -> s.stepPersonalInfo
+                        3 -> s.stepPurpose
+                        4 -> s.stepInterests
+                        else -> s.stepPhotoBio
                     },
                     style = MaterialTheme.typography.labelMedium,
                     color = TextSecondary,
@@ -123,36 +125,36 @@ fun RegisterScreen(
     when (state.dialog) {
         RegisterDialog.SAVED_PROFILE -> AppDialog(
             style = DialogStyle.SUCCESS,
-            title = "\u00a1Tu perfil se ha guardado!",
-            message = "\u00a1Tu perfil se ha guardado! La informaci\u00f3n de tu perfil se ha guardado correctamente.",
+            title = s.profileSavedTitle,
+            message = s.profileSavedMsg,
             onDismiss = viewModel::consumeDialog,
         )
 
         RegisterDialog.GALLERY_INFO -> AppDialog(
             style = DialogStyle.INFO,
-            title = "Galer\u00eda de fotos",
-            message = "En la versi\u00f3n final, este bot\u00f3n abrir\u00e1 tu galer\u00eda de fotos.",
+            title = s.galleryInfoTitle,
+            message = s.galleryInfoMsg,
             onDismiss = viewModel::consumeDialog,
         )
 
         RegisterDialog.CAMERA_INFO -> AppDialog(
             style = DialogStyle.INFO,
-            title = "C\u00e1mara",
-            message = "En la versi\u00f3n final, este bot\u00f3n abrir\u00e1 la c\u00e1mara de tu celular.",
+            title = s.cameraInfoTitle,
+            message = s.cameraInfoMsg,
             onDismiss = viewModel::consumeDialog,
         )
 
         RegisterDialog.ERROR_SAVE -> AppDialog(
             style = DialogStyle.ERROR,
-            title = "\u00a1Error al guardar!",
-            message = "\u00a1Error al guardar el perfil! Disculpa, int\u00e9ntalo m\u00e1s tarde.",
+            title = s.saveErrorTitle,
+            message = s.saveErrorMsg,
             onDismiss = viewModel::consumeDialog,
         )
 
         RegisterDialog.ERROR_CONNECTION -> AppDialog(
             style = DialogStyle.ERROR,
-            title = "\u00a1Error de conexi\u00f3n!",
-            message = "\u00a1Error de conexi\u00f3n! Comprueba tu conexi\u00f3n, int\u00e9ntalo m\u00e1s tarde.",
+            title = s.connectionErrorTitle,
+            message = s.connectionErrorMessage,
             onDismiss = viewModel::consumeDialog,
         )
 

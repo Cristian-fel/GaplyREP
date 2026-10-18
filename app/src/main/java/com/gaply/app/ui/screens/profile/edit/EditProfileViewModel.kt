@@ -4,6 +4,7 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.gaply.app.core.i18n.FieldError
 import com.gaply.app.di.AppContainer
 import com.gaply.app.domain.model.RepoError
 import com.gaply.app.domain.model.RepoResult
@@ -31,9 +32,9 @@ data class EditProfileUiState(
     val bio: String = "",
     val currentPhotoUrl: String = "",
     val localPhotoUri: Uri? = null,
-    val firstNameError: String? = null,
-    val birthDateError: String? = null,
-    val universityError: String? = null,
+    val firstNameError: FieldError? = null,
+    val birthDateError: FieldError? = null,
+    val universityError: FieldError? = null,
     val isLoading: Boolean = false,
     val dialog: EditProfileDialog? = null,
     val showPreview: Boolean = false,
@@ -106,7 +107,7 @@ class EditProfileViewModel(
         val state = _uiState.value
         return when (step) {
             1 -> {
-                val error = if (state.firstName.isBlank()) "Este campo es obligatorio" else null
+                val error = if (state.firstName.isBlank()) FieldError.REQUIRED else null
                 _uiState.update { it.copy(firstNameError = error) }
                 error == null
             }
@@ -115,12 +116,12 @@ class EditProfileViewModel(
                 val birthError = when {
                     state.birthDay.isBlank() ||
                         state.birthMonth.isBlank() ||
-                        state.birthYear.isBlank() -> "Selecciona tu fecha de nacimiento"
+                        state.birthYear.isBlank() -> FieldError.SELECT_BIRTHDATE
 
                     else -> null
                 }
                 val universityError =
-                    if (state.university.isBlank()) "Selecciona tu universidad" else null
+                    if (state.university.isBlank()) FieldError.SELECT_UNIVERSITY else null
                 _uiState.update {
                     it.copy(birthDateError = birthError, universityError = universityError)
                 }

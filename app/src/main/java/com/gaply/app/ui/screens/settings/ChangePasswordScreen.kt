@@ -42,6 +42,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.gaply.app.core.i18n.LocalStrings
+import com.gaply.app.core.i18n.fieldError
 import com.gaply.app.di.appContainer
 import com.gaply.app.ui.components.AppDialog
 import com.gaply.app.ui.components.DialogStyle
@@ -68,6 +70,7 @@ fun ChangePasswordScreen(
     val viewModel: ChangePasswordViewModel = viewModel(
         factory = ChangePasswordViewModel.factory(context.appContainer()),
     )
+    val s = LocalStrings.current
 
     Column(
         modifier = Modifier
@@ -87,7 +90,7 @@ fun ChangePasswordScreen(
         Spacer(modifier = Modifier.height(12.dp))
 
         Text(
-            text = "Cambiar contraseña",
+            text = s.changePasswordTitle,
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center,
@@ -96,25 +99,25 @@ fun ChangePasswordScreen(
         Spacer(modifier = Modifier.height(32.dp))
 
         UnderlinePasswordField(
-            label = "Nueva Contraseña",
+            label = s.newPasswordLabel,
             value = viewModel.newPassword,
             onValueChange = viewModel::onNewPasswordChange,
-            errorText = viewModel.newPasswordError,
+            errorText = viewModel.newPasswordError?.let { s.fieldError(it) },
         )
 
         Spacer(modifier = Modifier.height(24.dp))
 
         UnderlinePasswordField(
-            label = "Confirmar Contraseña",
+            label = s.confirmPasswordLabel,
             value = viewModel.confirmPassword,
             onValueChange = viewModel::onConfirmPasswordChange,
-            errorText = viewModel.confirmPasswordError,
+            errorText = viewModel.confirmPasswordError?.let { s.fieldError(it) },
         )
 
         Spacer(modifier = Modifier.height(48.dp))
 
         GaplyPrimaryButton(
-            text = "Cambiar Contraseña",
+            text = s.changePasswordButton,
             onClick = viewModel::submit,
             enabled = viewModel.canSubmit,
             loading = viewModel.loading,
@@ -131,11 +134,20 @@ fun ChangePasswordScreen(
         Spacer(modifier = Modifier.height(24.dp))
     }
 
-    viewModel.errorMessage?.let { message ->
+    viewModel.errorMessage?.let { error ->
         AppDialog(
             style = DialogStyle.ERROR,
-            title = "No se pudo cambiar",
-            message = message,
+            title = if (error == ChangePasswordError.CONNECTION) {
+                s.connectionErrorTitle
+            } else {
+                s.changePasswordErrorTitle
+            },
+            message = when (error) {
+                ChangePasswordError.CONNECTION -> s.connectionErrorMessage
+                ChangePasswordError.PERMISSION -> s.changePasswordReloginMsg
+                ChangePasswordError.USER_NOT_FOUND -> s.noActiveSessionMsg
+                ChangePasswordError.GENERIC -> s.changePasswordErrorMsg
+            },
             onDismiss = viewModel::consumeError,
         )
     }
@@ -143,8 +155,8 @@ fun ChangePasswordScreen(
     if (viewModel.success) {
         AppDialog(
             style = DialogStyle.SUCCESS,
-            title = "¡Contraseña actualizada!",
-            message = "Tu contraseña se ha cambiado\ncon éxito.",
+            title = s.passwordUpdatedTitle,
+            message = s.passwordUpdatedMsg,
             onDismiss = {
                 viewModel.consumeSuccess()
                 onBack()
@@ -170,6 +182,7 @@ private fun UnderlinePasswordField(
     errorText: String? = null,
 ) {
     var visible by remember { mutableStateOf(false) }
+    val s = LocalStrings.current
 
     Column(modifier = modifier.fillMaxWidth()) {
         Text(
@@ -206,7 +219,7 @@ private fun UnderlinePasswordField(
             IconButton(onClick = { visible = !visible }) {
                 Icon(
                     imageVector = if (visible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
-                    contentDescription = if (visible) "Ocultar contraseña" else "Mostrar contraseña",
+                    contentDescription = if (visible) s.hidePassword else s.showPassword,
                     tint = TextPrimary,
                 )
             }

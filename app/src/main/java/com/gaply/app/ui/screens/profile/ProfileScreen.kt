@@ -58,9 +58,9 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
 import coil.compose.AsyncImage
+import com.gaply.app.core.i18n.LocalStrings
 import com.gaply.app.di.appContainer
 import com.gaply.app.domain.model.User
 import com.gaply.app.ui.components.AppDialog
@@ -95,6 +95,7 @@ fun ProfileScreen(
     )
     val uploading by viewModel.uploading.collectAsState()
     val photoError by viewModel.error.collectAsState()
+    val s = LocalStrings.current
 
     // ---------------------------------------------------------- foto
     val galleryLauncher = rememberLauncherForActivityResult(
@@ -128,11 +129,11 @@ fun ProfileScreen(
 
     // ------------------------------------------------------- datos
     val displayName = user?.firstName?.trim()?.takeIf { it.isNotEmpty() }
-        ?: user?.username.orEmpty().ifBlank { "Usuario" }
+        ?: user?.username.orEmpty().ifBlank { s.profileFallbackUsername }
     val subtitle = listOfNotNull(
         user?.university?.trim()?.takeIf { it.isNotEmpty() },
         user?.email?.trim()?.takeIf { it.isNotEmpty() },
-    ).joinToString(" - ").ifBlank { "Completa tu perfil" }
+    ).joinToString(" - ").ifBlank { s.completeYourProfile }
 
     Column(
         modifier = Modifier
@@ -169,12 +170,12 @@ fun ProfileScreen(
 
             ProfileSectionCard(
                 icon = Icons.Filled.Description,
-                title = "Descripción",
+                title = s.descriptionTitle,
             ) {
                 Spacer(modifier = Modifier.height(12.dp))
                 val bio = user?.bio.orEmpty()
                 Text(
-                    text = bio.ifBlank { "Aún no has agregado una descripción." },
+                    text = bio.ifBlank { s.noBioYet },
                     style = MaterialTheme.typography.bodyLarge,
                     color = if (bio.isBlank()) TextSecondary else MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.fillMaxWidth(),
@@ -185,7 +186,7 @@ fun ProfileScreen(
 
             ProfileSectionCard(
                 icon = Icons.Filled.Favorite,
-                title = "Intereses",
+                title = s.interestsTitle,
             ) {
                 Spacer(modifier = Modifier.height(12.dp))
                 val selected = user?.interests.orEmpty()
@@ -206,7 +207,7 @@ fun ProfileScreen(
                 if (selected.isEmpty()) {
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "Elige tus intereses desde el botón Editar.",
+                        text = s.chooseInterestsHint,
                         style = MaterialTheme.typography.bodySmall,
                         color = TextSecondary,
                     )
@@ -217,13 +218,13 @@ fun ProfileScreen(
 
             ProfileSectionCard(
                 icon = Icons.Filled.Schedule,
-                title = "Horario",
+                title = s.scheduleSectionTitle,
                 onClick = onOpenSchedule,
-                actionText = "Agregar horario",
+                actionText = s.addScheduleAction,
             ) {
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "Agrega tus clases para descubrir tus huecos libres.",
+                    text = s.addClassesHint,
                     style = MaterialTheme.typography.bodySmall,
                     color = TextSecondary,
                     modifier = Modifier.fillMaxWidth(),
@@ -234,11 +235,14 @@ fun ProfileScreen(
         }
     }
 
-    photoError?.let { message ->
+    photoError?.let { error ->
         AppDialog(
             style = DialogStyle.ERROR,
-            title = "¡Ups!",
-            message = message,
+            title = s.upsTitle,
+            message = when (error) {
+                ProfileError.ACCOUNT_UNKNOWN -> s.accountUnknownError
+                ProfileError.PHOTO_CHANGE -> s.photoChangeError
+            },
             onDismiss = viewModel::consumeError,
         )
     }
@@ -277,6 +281,7 @@ private fun ProfileHeader(
     onOpenSettings: () -> Unit,
     onEditProfile: () -> Unit,
 ) {
+    val s = LocalStrings.current
     Box(modifier = Modifier.fillMaxWidth()) {
         Canvas(modifier = Modifier.matchParentSize()) {
             drawHeaderWave(color = BrandGreen)
@@ -293,7 +298,7 @@ private fun ProfileHeader(
             ) {
                 HeaderCircleButton(
                     icon = Icons.Filled.Settings,
-                    contentDescription = "Configuración",
+                    contentDescription = s.settingsCd,
                     onClick = onOpenSettings,
                 )
             }
@@ -328,7 +333,7 @@ private fun ProfileHeader(
                         modifier = Modifier.size(18.dp),
                     )
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text(text = "Editar", style = MaterialTheme.typography.labelLarge)
+                    Text(text = s.edit, style = MaterialTheme.typography.labelLarge)
                 }
             }
         }
@@ -344,6 +349,7 @@ private fun ProfileAvatarWithBadge(
     onAvatarClick: () -> Unit,
     onBadgeClick: () -> Unit,
 ) {
+    val s = LocalStrings.current
     Box(contentAlignment = Alignment.BottomEnd) {
         Box(
             modifier = Modifier
@@ -357,7 +363,7 @@ private fun ProfileAvatarWithBadge(
             if (photoUrl.isNotBlank()) {
                 AsyncImage(
                     model = photoUrl,
-                    contentDescription = "Foto de perfil",
+                    contentDescription = s.profilePhotoCd,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize(),
                 )
@@ -389,7 +395,7 @@ private fun ProfileAvatarWithBadge(
             } else {
                 Icon(
                     imageVector = Icons.Filled.PhotoCamera,
-                    contentDescription = "Cambiar foto de perfil",
+                    contentDescription = s.changeProfilePhotoCd,
                     tint = BrandGreen,
                     modifier = Modifier.size(16.dp),
                 )

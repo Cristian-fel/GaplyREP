@@ -4,6 +4,7 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.gaply.app.core.i18n.FieldError
 import com.gaply.app.di.AppContainer
 import com.gaply.app.domain.model.RepoError
 import com.gaply.app.domain.model.RepoResult
@@ -21,19 +22,20 @@ data class RegisterUiState(
     val email: String = "",
     val password: String = "",
     val confirmPassword: String = "",
-    val usernameError: String? = null,
-    val emailError: String? = null,
-    val passwordError: String? = null,
-    val confirmPasswordError: String? = null,
+    val usernameError: FieldError? = null,
+    val emailError: FieldError? = null,
+    val passwordError: FieldError? = null,
+    val confirmPasswordError: FieldError? = null,
     val firstName: String = "",
     val lastName: String = "",
-    val firstNameError: String? = null,
+    val firstNameError: FieldError? = null,
     val birthDay: String = "",
     val birthMonth: String = "",
+    val birthMonthNumber: Int = 0,
     val birthYear: String = "",
-    val birthDateError: String? = null,
+    val birthDateError: FieldError? = null,
     val university: String = "",
-    val universityError: String? = null,
+    val universityError: FieldError? = null,
     val gender: String = "",
     val goal: String = "",
     val selectedInterests: List<String> = emptyList(),
@@ -52,30 +54,9 @@ enum class RegisterDialog { SAVED_PROFILE, GALLERY_INFO, CAMERA_INFO, ERROR_SAVE
 object RegisterData {
     const val MAX_INTERESTS = 3
 
-    val months = listOf(
-        "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
-        "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
-    )
-
     val days = (1..31).map { it.toString() }
 
     val years = (2010 downTo 1985).map { it.toString() }
-
-    val universities = listOf(
-        "Universidad Jorge Tadeo Lozano",
-        "Universidad Central",
-        "Universidad de los Andes",
-        "Otra",
-    )
-
-    val genders = listOf("Femenino", "Masculino", "No binario", "Prefiero no decirlo")
-
-    val goals = listOf(
-        "\uD83D\uDCDA Necesito estudiar",
-        "\uD83C\uDFC0 Qu\u00e9 hay para hacer",
-        "\uD83D\uDE09 Tengo tiempo libre",
-        "\uD83E\uDD7A A\u00fan no lo tengo claro",
-    )
 
     val interests = listOf(
         "Deportes", "M\u00fasica", "Videojuegos", "Artes",
@@ -115,8 +96,10 @@ class RegisterViewModel(
     fun onBirthDayChange(value: String) =
         _uiState.update { it.copy(birthDay = value, birthDateError = null) }
 
-    fun onBirthMonthChange(value: String) =
-        _uiState.update { it.copy(birthMonth = value, birthDateError = null) }
+    fun onBirthMonthChange(value: String, monthNumber: Int) =
+        _uiState.update {
+            it.copy(birthMonth = value, birthMonthNumber = monthNumber, birthDateError = null)
+        }
 
     fun onBirthYearChange(value: String) =
         _uiState.update { it.copy(birthYear = value, birthDateError = null) }
@@ -207,25 +190,25 @@ class RegisterViewModel(
     private fun validateStep1() {
         val state = _uiState.value
         val usernameError = when {
-            state.username.isBlank() -> "Este campo es obligatorio"
-            state.username.trim().length < 3 -> "M\u00ednimo 3 caracteres"
+            state.username.isBlank() -> FieldError.REQUIRED
+            state.username.trim().length < 3 -> FieldError.MIN_3
             else -> null
         }
         val emailError = when {
-            state.email.isBlank() -> "Este campo es obligatorio"
+            state.email.isBlank() -> FieldError.REQUIRED
             !android.util.Patterns.EMAIL_ADDRESS.matcher(state.email.trim()).matches() ->
-                "Ingresa un correo v\u00e1lido"
+                FieldError.INVALID_EMAIL
 
             else -> null
         }
         val passwordError = when {
-            state.password.isBlank() -> "Este campo es obligatorio"
-            state.password.length < 6 -> "M\u00ednimo 6 caracteres"
+            state.password.isBlank() -> FieldError.REQUIRED
+            state.password.length < 6 -> FieldError.MIN_6
             else -> null
         }
         val confirmError = when {
-            state.confirmPassword.isBlank() -> "Este campo es obligatorio"
-            state.confirmPassword != state.password -> "Las contrase\u00f1as no coinciden"
+            state.confirmPassword.isBlank() -> FieldError.REQUIRED
+            state.confirmPassword != state.password -> FieldError.PASSWORDS_MISMATCH
             else -> null
         }
 
@@ -258,23 +241,23 @@ class RegisterViewModel(
     }
 
     private fun RegisterUiState.applySignUpError(error: RepoError): RegisterUiState = when (error) {
-        RepoError.USERNAME_TAKEN -> copy(usernameError = "Ese nombre de usuario ya est\u00e1 en uso")
-        RepoError.EMAIL_TAKEN -> copy(emailError = "Ese correo ya est\u00e1 registrado")
+        RepoError.USERNAME_TAKEN -> copy(usernameError = FieldError.USERNAME_TAKEN)
+        RepoError.EMAIL_TAKEN -> copy(emailError = FieldError.EMAIL_TAKEN)
         RepoError.CONNECTION -> copy(dialog = RegisterDialog.ERROR_CONNECTION)
         else -> copy(dialog = RegisterDialog.ERROR_SAVE)
     }
 
     private fun validateStep2() {
         val state = _uiState.value
-        val firstNameError = if (state.firstName.isBlank()) "Este campo es obligatorio" else null
+        val firstNameError = if (state.firstName.isBlank()) FieldError.REQUIRED else null
         val birthError = when {
             state.birthDay.isBlank() || state.birthMonth.isBlank() || state.birthYear.isBlank() ->
-                "Selecciona tu fecha de nacimiento"
+                FieldError.SELECT_BIRTHDATE
 
             else -> null
         }
         val universityError =
-            if (state.university.isBlank()) "Selecciona tu universidad" else null
+            if (state.university.isBlank()) FieldError.SELECT_UNIVERSITY else null
 
         if (firstNameError != null || birthError != null || universityError != null) {
             _uiState.update {
@@ -327,8 +310,7 @@ class RegisterViewModel(
                 return@launch
             }
 
-            val monthNumber = (RegisterData.months.indexOf(state.birthMonth) + 1)
-                .toString().padStart(2, '0')
+            val monthNumber = state.birthMonthNumber.toString().padStart(2, '0')
             val birthDate = if (state.birthDay.isNotBlank() && state.birthYear.isNotBlank()) {
                 "${state.birthDay}/$monthNumber/${state.birthYear}"
             } else {
@@ -376,9 +358,9 @@ class RegisterViewModel(
     private fun RegisterUiState.applySignUpErrorToStep1(result: RepoError): RegisterUiState =
         when (result) {
             RepoError.USERNAME_TAKEN ->
-                copy(step = 1, usernameError = "Ese nombre de usuario ya est\u00e1 en uso")
+                copy(step = 1, usernameError = FieldError.USERNAME_TAKEN)
 
-            RepoError.EMAIL_TAKEN -> copy(step = 1, emailError = "Ese correo ya est\u00e1 registrado")
+            RepoError.EMAIL_TAKEN -> copy(step = 1, emailError = FieldError.EMAIL_TAKEN)
             RepoError.CONNECTION -> copy(dialog = RegisterDialog.ERROR_CONNECTION)
             else -> copy(dialog = RegisterDialog.ERROR_SAVE)
         }

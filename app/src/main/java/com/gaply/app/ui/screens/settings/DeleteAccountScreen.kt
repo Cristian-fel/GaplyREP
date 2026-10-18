@@ -30,6 +30,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.gaply.app.core.i18n.LocalStrings
 import com.gaply.app.di.appContainer
 import com.gaply.app.ui.components.AppDialog
 import com.gaply.app.ui.components.DialogStyle
@@ -55,12 +56,13 @@ fun DeleteAccountScreen(
     val viewModel: DeleteAccountViewModel = viewModel(
         factory = DeleteAccountViewModel.factory(context.appContainer()),
     )
+    val s = LocalStrings.current
 
     val warnings = listOf(
-        "Eliminar tu cuenta es permanente .",
-        "Todos los datos de tu perfil se borrarán.",
-        "Tu historial de actividad y el contenido guardado se perderán.",
-        "No puedes deshacer esta acción.",
+        s.deleteWarningPermanent,
+        s.deleteWarningProfileData,
+        s.deleteWarningActivity,
+        s.deleteWarningIrreversible,
     )
 
     Column(
@@ -81,7 +83,7 @@ fun DeleteAccountScreen(
         Spacer(modifier = Modifier.height(24.dp))
 
         Text(
-            text = "¿Eliminar esta cuenta?",
+            text = s.deleteAccountConfirmTitle,
             style = MaterialTheme.typography.headlineMedium.copy(
                 fontFamily = PlayfairDisplay,
                 fontWeight = FontWeight.Bold,
@@ -103,7 +105,7 @@ fun DeleteAccountScreen(
         Spacer(modifier = Modifier.height(24.dp))
 
         GaplyPrimaryButton(
-            text = "Eliminar cuenta",
+            text = s.deleteAccountButton,
             onClick = {
                 viewModel.deleteAccount(onDeleted = onDeleted)
             },
@@ -122,11 +124,20 @@ fun DeleteAccountScreen(
         Spacer(modifier = Modifier.height(24.dp))
     }
 
-    viewModel.errorMessage?.let { message ->
+    viewModel.errorMessage?.let { error ->
         AppDialog(
             style = DialogStyle.ERROR,
-            title = "No se pudo eliminar",
-            message = message,
+            title = if (error == DeleteAccountError.CONNECTION) {
+                s.connectionErrorTitle
+            } else {
+                s.deleteAccountErrorTitle
+            },
+            message = when (error) {
+                DeleteAccountError.CONNECTION -> s.connectionErrorMessage
+                DeleteAccountError.PERMISSION -> s.deleteAccountReloginMsg
+                DeleteAccountError.USER_NOT_FOUND -> s.noActiveSessionMsg
+                DeleteAccountError.GENERIC -> s.deleteAccountErrorMsg
+            },
             onDismiss = viewModel::consumeError,
         )
     }

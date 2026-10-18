@@ -34,6 +34,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.gaply.app.core.i18n.LocalStrings
 import com.gaply.app.ui.components.AppDialog
 import com.gaply.app.ui.components.DialogStyle
 import com.gaply.app.ui.components.GaplyPrimaryButton
@@ -57,6 +58,7 @@ fun RateAppScreen(
     var rating by remember { mutableIntStateOf(0) }
     var comment by remember { mutableStateOf("") }
     var sent by remember { mutableStateOf(false) }
+    val s = LocalStrings.current
 
     Column(
         modifier = Modifier
@@ -76,7 +78,7 @@ fun RateAppScreen(
         Spacer(modifier = Modifier.height(24.dp))
 
         Text(
-            text = "Califica esta aplicación",
+            text = s.rateAppTitle,
             style = MaterialTheme.typography.headlineMedium.copy(
                 fontFamily = PlayfairDisplay,
                 fontWeight = FontWeight.Bold,
@@ -89,7 +91,7 @@ fun RateAppScreen(
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "Tu opinión nos ayuda a mejorar",
+            text = s.rateAppSubtitle,
             style = MaterialTheme.typography.bodyLarge,
             color = TextSecondary,
         )
@@ -106,7 +108,7 @@ fun RateAppScreen(
                         } else {
                             Icons.Outlined.StarBorder
                         },
-                        contentDescription = "Estrella $star",
+                        contentDescription = s.starLabel(star),
                         tint = StarGold,
                     )
                 }
@@ -117,7 +119,7 @@ fun RateAppScreen(
 
         // --------------------------------------------------------- Motivos
         Text(
-            text = "Motivos (opcional):",
+            text = s.rateCommentLabel,
             style = MaterialTheme.typography.titleMedium.copy(
                 fontFamily = PlayfairDisplay,
                 fontWeight = FontWeight.Bold,
@@ -135,7 +137,7 @@ fun RateAppScreen(
             onValueChange = { comment = it },
             placeholder = {
                 Text(
-                    text = "Cuéntanos qué te gustó o qué\npodemos mejorar...",
+                    text = s.rateCommentPlaceholder,
                     style = MaterialTheme.typography.bodyLarge,
                     color = TextSecondary,
                 )
@@ -155,7 +157,7 @@ fun RateAppScreen(
         Spacer(modifier = Modifier.height(32.dp))
 
         GaplyPrimaryButton(
-            text = "Enviar",
+            text = s.rateSendButton,
             onClick = { sent = true },
             containerColor = BrandGreenDark,
             contentColor = Color.White,
@@ -173,11 +175,11 @@ fun RateAppScreen(
     if (sent) {
         AppDialog(
             style = DialogStyle.SUCCESS,
-            title = "¡Gracias por tu opinión!",
+            title = s.thanksTitle,
             message = if (rating > 0) {
-                "Nos alegra que hayas calificado Gaply con $rating ${if (rating == 1) "estrella" else "estrellas"}."
+                s.thanksRatingMsg(rating)
             } else {
-                "Leeremos tus comentarios para seguir mejorando."
+                s.thanksMsg
             },
             onDismiss = {
                 sent = false

@@ -63,6 +63,8 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
 import coil.compose.AsyncImage
 import com.gaply.app.R
+import com.gaply.app.core.i18n.LocalStrings
+import com.gaply.app.core.i18n.fieldError
 import com.gaply.app.ui.components.GaplyOutlineButton
 import com.gaply.app.ui.components.GaplyPrimaryButton
 import com.gaply.app.ui.components.GaplyTextField
@@ -82,6 +84,8 @@ internal fun StepAccountContent(
     state: RegisterUiState,
     viewModel: RegisterViewModel,
 ) {
+    val s = LocalStrings.current
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -92,12 +96,12 @@ internal fun StepAccountContent(
                 .weight(1f)
                 .verticalScroll(rememberScrollState()),
         ) {
-            Text(text = "Crea tu cuenta", style = MaterialTheme.typography.headlineSmall)
+            Text(text = s.createYourAccountTitle, style = MaterialTheme.typography.headlineSmall)
 
             Spacer(modifier = Modifier.height(4.dp))
 
             Text(
-                text = "Empieza con tus datos de acceso.",
+                text = s.startWithLoginData,
                 style = MaterialTheme.typography.bodyMedium,
                 color = TextSecondary,
             )
@@ -107,8 +111,8 @@ internal fun StepAccountContent(
             GaplyTextField(
                 value = state.username,
                 onValueChange = viewModel::onUsernameChange,
-                label = "Usuario (@username)",
-                errorText = state.usernameError,
+                label = s.usernameAtHint,
+                errorText = state.usernameError?.let { s.fieldError(it) },
             )
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -116,8 +120,8 @@ internal fun StepAccountContent(
             GaplyTextField(
                 value = state.email,
                 onValueChange = viewModel::onEmailChange,
-                label = "Correo",
-                errorText = state.emailError,
+                label = s.emailLabel,
+                errorText = state.emailError?.let { s.fieldError(it) },
                 keyboardType = KeyboardType.Email,
             )
 
@@ -126,9 +130,9 @@ internal fun StepAccountContent(
             GaplyTextField(
                 value = state.password,
                 onValueChange = viewModel::onPasswordChange,
-                label = "Contraseña",
+                label = s.passwordLabel,
                 isPassword = true,
-                errorText = state.passwordError,
+                errorText = state.passwordError?.let { s.fieldError(it) },
             )
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -136,9 +140,9 @@ internal fun StepAccountContent(
             GaplyTextField(
                 value = state.confirmPassword,
                 onValueChange = viewModel::onConfirmPasswordChange,
-                label = "Confirmar Contraseña",
+                label = s.confirmPasswordLabel,
                 isPassword = true,
-                errorText = state.confirmPasswordError,
+                errorText = state.confirmPasswordError?.let { s.fieldError(it) },
                 imeAction = ImeAction.Done,
                 onImeAction = viewModel::onNextStep,
             )
@@ -147,7 +151,7 @@ internal fun StepAccountContent(
         }
 
         GaplyPrimaryButton(
-            text = "Siguiente",
+            text = s.next,
             onClick = viewModel::onNextStep,
             loading = state.isLoading,
         )
@@ -165,6 +169,8 @@ internal fun StepPersonalContent(
     state: RegisterUiState,
     viewModel: RegisterViewModel,
 ) {
+    val s = LocalStrings.current
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -176,14 +182,14 @@ internal fun StepPersonalContent(
                 .verticalScroll(rememberScrollState()),
         ) {
             Text(
-                text = "Información personal",
+                text = s.personalInfoTitle,
                 style = MaterialTheme.typography.headlineSmall
             )
 
             Spacer(modifier = Modifier.height(4.dp))
 
             Text(
-                text = "Cuéntanos un poco sobre ti.",
+                text = s.tellUsAboutYou,
                 style = MaterialTheme.typography.bodyMedium,
                 color = TextSecondary,
             )
@@ -193,8 +199,8 @@ internal fun StepPersonalContent(
             GaplyTextField(
                 value = state.firstName,
                 onValueChange = viewModel::onFirstNameChange,
-                label = "Nombre *",
-                errorText = state.firstNameError,
+                label = s.firstNameLabel,
+                errorText = state.firstNameError?.let { s.fieldError(it) },
             )
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -202,13 +208,13 @@ internal fun StepPersonalContent(
             GaplyTextField(
                 value = state.lastName,
                 onValueChange = viewModel::onLastNameChange,
-                label = "Apellidos",
+                label = s.lastNameLabel,
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = "Fecha de nacimiento *",
+                text = s.birthDateLabel,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface,
             )
@@ -220,22 +226,24 @@ internal fun StepPersonalContent(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 GaplyDropdown(
-                    label = "Día",
+                    label = s.dayLabel,
                     value = state.birthDay,
                     options = RegisterData.days,
                     onSelected = viewModel::onBirthDayChange,
-                    errorText = state.birthDateError,
+                    errorText = state.birthDateError?.let { s.fieldError(it) },
                     modifier = Modifier.weight(1f),
                 )
                 GaplyDropdown(
-                    label = "Mes",
+                    label = s.monthLabel,
                     value = state.birthMonth,
-                    options = RegisterData.months,
-                    onSelected = viewModel::onBirthMonthChange,
+                    options = s.months,
+                    onSelected = { month ->
+                        viewModel.onBirthMonthChange(month, s.months.indexOf(month) + 1)
+                    },
                     modifier = Modifier.weight(1f),
                 )
                 GaplyDropdown(
-                    label = "Año",
+                    label = s.yearLabel,
                     value = state.birthYear,
                     options = RegisterData.years,
                     onSelected = viewModel::onBirthYearChange,
@@ -246,7 +254,7 @@ internal fun StepPersonalContent(
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = "¿Dónde estudias actualmente?",
+                text = s.whereStudyNow,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface,
             )
@@ -254,26 +262,26 @@ internal fun StepPersonalContent(
             Spacer(modifier = Modifier.height(8.dp))
 
             GaplyDropdown(
-                label = "Universidad *",
+                label = s.universityLabel,
                 value = state.university,
-                options = RegisterData.universities,
+                options = s.universities,
                 onSelected = viewModel::onUniversityChange,
-                errorText = state.universityError,
+                errorText = state.universityError?.let { s.fieldError(it) },
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = "Identidad de género",
+                text = s.genderIdentityLabel,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface,
             )
             Spacer(modifier = Modifier.height(12.dp))
 
             GaplyDropdown(
-                label = "Elige tu género",
+                label = s.chooseYourGender,
                 value = state.gender,
-                options = RegisterData.genders,
+                options = s.genders,
                 onSelected = viewModel::onGenderChange,
             )
 
@@ -281,7 +289,7 @@ internal fun StepPersonalContent(
         }
 
         GaplyPrimaryButton(
-            text = "Siguiente",
+            text = s.next,
             onClick = viewModel::onNextStep,
             modifier = Modifier.fillMaxWidth()
         )
@@ -299,6 +307,8 @@ internal fun StepGoalContent(
     state: RegisterUiState,
     viewModel: RegisterViewModel,
 ) {
+    val s = LocalStrings.current
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -309,12 +319,12 @@ internal fun StepGoalContent(
                 .weight(1f)
                 .verticalScroll(rememberScrollState()),
         ) {
-            Text(text = "¿Qué te trae a Gaply?", style = MaterialTheme.typography.headlineSmall)
+            Text(text = s.whatBringsGaply, style = MaterialTheme.typography.headlineSmall)
 
             Spacer(modifier = Modifier.height(4.dp))
 
             Text(
-                text = "Elige el objetivo que mejor te describa. Podrás cambiarlo después.",
+                text = s.chooseGoalHint,
                 style = MaterialTheme.typography.bodyMedium,
                 color = TextSecondary,
             )
@@ -322,7 +332,7 @@ internal fun StepGoalContent(
             Spacer(modifier = Modifier.height(20.dp))
 
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                RegisterData.goals.chunked(2).forEach { rowGoals ->
+                s.goals.chunked(2).forEach { rowGoals ->
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         rowGoals.forEach { goal ->
                             GoalCard(
@@ -343,7 +353,7 @@ internal fun StepGoalContent(
         }
 
         GaplyPrimaryButton(
-            text = "Siguiente",
+            text = s.next,
             onClick = viewModel::onNextStep,
             loading = state.isLoading,
         )
@@ -412,6 +422,7 @@ internal fun StepInterestsContent(
     state: RegisterUiState,
     viewModel: RegisterViewModel,
 ) {
+    val s = LocalStrings.current
     var showExtras by rememberSaveable { mutableStateOf(false) }
 
     Column(
@@ -426,7 +437,7 @@ internal fun StepInterestsContent(
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = "Selecciona algunos de tus intereses",
+                    text = s.selectSomeInterests,
                     style = MaterialTheme.typography.headlineSmall,
                     modifier = Modifier.weight(1f),
                 )
@@ -441,7 +452,7 @@ internal fun StepInterestsContent(
             Spacer(modifier = Modifier.height(4.dp))
 
             Text(
-                text = "Puedes elegir hasta ${RegisterData.MAX_INTERESTS} intereses.",
+                text = s.minInterestsWarning(RegisterData.MAX_INTERESTS),
                 style = MaterialTheme.typography.bodySmall,
                 color = TextSecondary,
             )
@@ -474,14 +485,14 @@ internal fun StepInterestsContent(
         }
 
         GaplyOutlineButton(
-            text = "Agregar intereses",
+            text = s.addInterests,
             onClick = { showExtras = true },
         )
 
         Spacer(modifier = Modifier.height(12.dp))
 
         GaplyPrimaryButton(
-            text = "Siguiente",
+            text = s.next,
             onClick = viewModel::onNextStep,
             loading = state.isLoading,
         )
@@ -508,6 +519,8 @@ private fun InterestCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val s = LocalStrings.current
+    val displayLabel = s.interestLabel(label)
     val imageRes = interestImageFor(label)
 
     Card(
@@ -526,7 +539,7 @@ private fun InterestCard(
             if (imageRes != null) {
                 Image(
                     painter = painterResource(id = imageRes),
-                    contentDescription = label,
+                    contentDescription = displayLabel,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize(),
                 )
@@ -547,13 +560,13 @@ private fun InterestCard(
                     if (icon != null) {
                         Icon(
                             imageVector = icon,
-                            contentDescription = label,
+                            contentDescription = displayLabel,
                             tint = BrandGreen,
                             modifier = Modifier.size(42.dp),
                         )
                     } else {
                         Text(
-                            text = label.take(1).uppercase(),
+                            text = displayLabel.take(1).uppercase(),
                             color = BrandGreen,
                             fontSize = 28.sp,
                             fontWeight = FontWeight.Bold,
@@ -595,7 +608,7 @@ private fun InterestCard(
             }
 
             Text(
-                text = label,
+                text = displayLabel,
                 color = Color.White,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Bold,
@@ -630,14 +643,19 @@ private fun InterestsExtrasDialog(
     viewModel: RegisterViewModel,
     onDismiss: () -> Unit,
 ) {
+    val s = LocalStrings.current
+
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(text = "Agregar intereses") },
+        title = { Text(text = s.addInterests) },
         text = {
             Column {
                 Text(
-                    text = "Máximo ${RegisterData.MAX_INTERESTS} intereses en total " +
-                            "(${state.selectedInterests.size}/${RegisterData.MAX_INTERESTS}).",
+                    text = s.maxInterestsInTotal(
+                        RegisterData.MAX_INTERESTS,
+                        state.selectedInterests.size,
+                        RegisterData.MAX_INTERESTS,
+                    ),
                     style = MaterialTheme.typography.bodySmall,
                     color = TextSecondary,
                 )
@@ -650,7 +668,7 @@ private fun InterestsExtrasDialog(
                         FilterChip(
                             selected = state.selectedInterests.contains(option),
                             onClick = { viewModel.onToggleInterest(option) },
-                            label = { Text(option) },
+                            label = { Text(s.interestLabel(option)) },
                             colors = FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = Mint,
                                 selectedLabelColor = BrandGreen,
@@ -662,7 +680,7 @@ private fun InterestsExtrasDialog(
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text(text = "Listo", color = BrandGreen)
+                Text(text = s.done, color = BrandGreen)
             }
         },
     )
@@ -677,6 +695,7 @@ internal fun StepPhotoContent(
     state: RegisterUiState,
     viewModel: RegisterViewModel,
 ) {
+    val s = LocalStrings.current
     val context = LocalContext.current
     val displayName = state.firstName.trim().ifBlank {
         state.username.trim().ifBlank { "Gaply" }
@@ -781,7 +800,7 @@ internal fun StepPhotoContent(
                             if (state.profileImageUri != null) {
                                 AsyncImage(
                                     model = state.profileImageUri,
-                                    contentDescription = "Vista previa de foto de perfil",
+                                    contentDescription = s.profilePhotoPreviewCd,
                                     contentScale = ContentScale.Crop,
                                     modifier = Modifier.fillMaxSize()
                                 )
@@ -803,12 +822,12 @@ internal fun StepPhotoContent(
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             GaplyOutlineButton(
-                                text = "Cargar foto",
+                                text = s.uploadPhoto,
                                 onClick = { galleryLauncher.launch("image/*") },
                                 modifier = Modifier.weight(1f)
                             )
                             GaplyPrimaryButton(
-                                text = "Tomar Foto",
+                                text = s.takePhoto,
                                 onClick = { launchCamera() },
                                 modifier = Modifier.weight(1f)
                             )
@@ -827,7 +846,7 @@ internal fun StepPhotoContent(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = "Hola $displayName",
+                    text = s.helloName(displayName),
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center
@@ -836,7 +855,7 @@ internal fun StepPhotoContent(
                 Spacer(modifier = Modifier.height(4.dp))
 
                 Text(
-                    text = "Danos una breve descripción:",
+                    text = s.giveShortBio,
                     style = MaterialTheme.typography.bodyMedium,
                     color = TextSecondary,
                     textAlign = TextAlign.Center
@@ -847,7 +866,7 @@ internal fun StepPhotoContent(
                 GaplyTextField(
                     value = state.bio,
                     onValueChange = viewModel::onBioChange,
-                    label = "Biografía",
+                    label = s.bioLabel,
                     singleLine = false,
                     minLines = 4,
                     maxLines = 6,
@@ -865,7 +884,7 @@ internal fun StepPhotoContent(
                 .padding(horizontal = 24.dp)
         ) {
             GaplyPrimaryButton(
-                text = "Guardar perfil",
+                text = s.saveProfile,
                 onClick = viewModel::onSaveProfile,
                 loading = state.isLoading,
             )
@@ -873,7 +892,7 @@ internal fun StepPhotoContent(
             Spacer(modifier = Modifier.height(12.dp))
 
             GaplyOutlineButton(
-                text = "Siguiente",
+                text = s.next,
                 onClick = viewModel::onNextStep
             )
 

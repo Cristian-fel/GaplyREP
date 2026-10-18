@@ -3,6 +3,7 @@ package com.gaply.app.ui.screens.settings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.gaply.app.core.i18n.AppLanguage
 import com.gaply.app.di.AppContainer
 import com.gaply.app.domain.repository.AuthRepository
 import kotlinx.coroutines.flow.StateFlow
@@ -14,7 +15,7 @@ import kotlinx.coroutines.launch
  */
 class SettingsViewModel(
     private val authRepository: AuthRepository,
-    val language: StateFlow<String>,
+    val language: StateFlow<AppLanguage>,
 ) : ViewModel() {
 
     fun signOut() {

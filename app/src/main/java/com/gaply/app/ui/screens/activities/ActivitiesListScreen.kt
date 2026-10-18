@@ -41,6 +41,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.gaply.app.core.i18n.LocalStrings
 import com.gaply.app.domain.model.ActivityItem
 import com.gaply.app.ui.theme.BrandGreen
 import com.gaply.app.ui.theme.ErrorRed
@@ -61,11 +62,12 @@ fun ActivitiesListScreen(
 ) {
     val viewModel = rememberActivityViewModel()
     val state by viewModel.uiState.collectAsState()
+    val s = LocalStrings.current
 
     Column(modifier = Modifier.fillMaxSize()) {
         ActivitiesTopSection(
-            title = "Actividades para tu hueco",
-            huecoTexto = "Tienes 2 horas libres 12:00 - 2:00 p.m.",
+            title = s.activitiesListTitle,
+            huecoTexto = s.huecoBannerDemo,
             onBack = onBack,
         )
 
@@ -73,8 +75,7 @@ fun ActivitiesListScreen(
 
         if (state.activities.isEmpty()) {
             EmptyActivitiesState(
-                message = "Aún no hay actividades publicadas para este hueco. " +
-                    "¡Sé el primero en publicar una!",
+                message = s.activitiesEmptyListMsg,
             )
         } else {
             LazyColumn(
@@ -101,6 +102,7 @@ private fun ActivityCard(
     modifier: Modifier = Modifier,
 ) {
     var liked by remember(activity.id) { mutableStateOf(false) }
+    val s = LocalStrings.current
 
     Card(
         shape = RoundedCornerShape(16.dp),
@@ -140,7 +142,7 @@ private fun ActivityCard(
                 ) {
                     Icon(
                         imageVector = if (liked) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
-                        contentDescription = "Me gusta",
+                        contentDescription = s.likeCd,
                         tint = if (liked) ErrorRed else BrandGreen,
                         modifier = Modifier.size(18.dp),
                     )

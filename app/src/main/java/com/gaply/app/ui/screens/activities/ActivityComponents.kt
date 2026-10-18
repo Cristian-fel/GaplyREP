@@ -35,6 +35,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import com.gaply.app.core.i18n.LocalStrings
 import com.gaply.app.ui.theme.BrandGreen
 import com.gaply.app.ui.theme.Sage
 import com.gaply.app.ui.theme.SurfaceWhite
@@ -51,6 +52,7 @@ internal fun ActivitiesTopSection(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val s = LocalStrings.current
     Column(modifier = modifier.fillMaxWidth().systemBarsPadding()) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -61,7 +63,7 @@ internal fun ActivitiesTopSection(
             IconButton(onClick = onBack) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Volver",
+                    contentDescription = s.back,
                     tint = Color.Black,
                 )
             }
@@ -75,7 +77,7 @@ internal fun ActivitiesTopSection(
             IconButton(onClick = { }) {
                 Icon(
                     imageVector = Icons.Filled.Notifications,
-                    contentDescription = "Notificaciones",
+                    contentDescription = s.notificationsCd,
                     tint = Color.Black,
                 )
             }
@@ -123,6 +125,7 @@ internal fun CategoryPill(
     text: String,
     modifier: Modifier = Modifier,
 ) {
+    val s = LocalStrings.current
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(50))
@@ -130,7 +133,8 @@ internal fun CategoryPill(
             .padding(horizontal = 14.dp, vertical = 6.dp),
     ) {
         Text(
-            text = text,
+            // La categoría se guarda con el valor canónico (interés en ES).
+            text = s.interestLabel(text),
             color = Color.White,
             fontWeight = FontWeight.SemiBold,
             fontSize = 13.sp,
@@ -170,11 +174,12 @@ internal fun ActivityImage(
 /** Subtítulo verde "Según tus intereses" del listado. */
 @Composable
 internal fun InterestsSubtitle(
-    text: String = "Según tus intereses",
+    text: String? = null,
     modifier: Modifier = Modifier,
 ) {
+    val s = LocalStrings.current
     Text(
-        text = text,
+        text = text ?: s.accordingToYourInterests,
         style = MaterialTheme.typography.titleMedium,
         fontWeight = FontWeight.Bold,
         color = BrandGreen,

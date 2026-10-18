@@ -1,6 +1,7 @@
 package com.gaply.app.ui.screens.settings
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -30,11 +31,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.gaply.app.R
+import com.gaply.app.core.i18n.AppLanguage
+import com.gaply.app.core.i18n.LocalStrings
 import com.gaply.app.di.appContainer
 import com.gaply.app.ui.components.GaplyPrimaryButton
 import com.gaply.app.ui.theme.BackgroundApp
@@ -47,10 +52,22 @@ import com.gaply.app.ui.theme.TextPrimary
 
 /**
  * Módulo 2 · Idioma.
- * Lista de idiomas con casilla a la izquierda y radio a la derecha;
+ * Lista de idiomas con la bandera de cada uno a la izquierda y radio a la derecha;
  * el seleccionado muestra la marca verde. Se confirma con
  * "Guardar idioma".
  */
+
+/** Bandera (vectorial) asociada a cada idioma. */
+private fun AppLanguage.flagRes(): Int = when (this) {
+    AppLanguage.ES -> R.drawable.flag_es
+    AppLanguage.EN -> R.drawable.flag_en
+    AppLanguage.FR -> R.drawable.flag_fr
+    AppLanguage.DE -> R.drawable.flag_de
+    AppLanguage.IT -> R.drawable.flag_it
+    AppLanguage.PT -> R.drawable.flag_br
+    AppLanguage.JA -> R.drawable.flag_ja
+    AppLanguage.ZH -> R.drawable.flag_zh
+}
 @Composable
 fun LanguageScreen(
     onBack: () -> Unit,
@@ -59,6 +76,7 @@ fun LanguageScreen(
     val viewModel: LanguageViewModel = viewModel(
         factory = LanguageViewModel.factory(context.appContainer()),
     )
+    val s = LocalStrings.current
 
     Column(
         modifier = Modifier
@@ -71,7 +89,7 @@ fun LanguageScreen(
         Spacer(modifier = Modifier.height(4.dp))
 
         SettingsTopBar(
-            title = "Idioma",
+            title = s.language,
             onBack = onBack,
         )
 
@@ -86,7 +104,8 @@ fun LanguageScreen(
             viewModel.languages.forEachIndexed { index, language ->
                 if (index > 0) HorizontalDivider(color = OutlineGray)
                 LanguageRow(
-                    language = language,
+                    language = language.label,
+                    flagRes = language.flagRes(),
                     selected = language == viewModel.selected,
                     onClick = { viewModel.select(language) },
                 )
@@ -96,7 +115,7 @@ fun LanguageScreen(
         Spacer(modifier = Modifier.weight(1f))
 
         GaplyPrimaryButton(
-            text = "Guardar idioma",
+            text = s.saveLanguage,
             onClick = {
                 viewModel.save()
                 onBack()
@@ -115,10 +134,11 @@ fun LanguageScreen(
     }
 }
 
-/** Fila: casilla cuadrada, nombre del idioma y radio (verde con check si está activo). */
+/** Fila: bandera del idioma, nombre y radio (verde con check si está activo). */
 @Composable
 private fun LanguageRow(
     language: String,
+    flagRes: Int,
     selected: Boolean,
     onClick: () -> Unit,
 ) {
@@ -129,8 +149,9 @@ private fun LanguageRow(
             .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // Casilla decorativa de la izquierda (tal como en el mockup)
-        Box(
+        Image(
+            painter = painterResource(id = flagRes),
+            contentDescription = null,
             modifier = Modifier
                 .size(28.dp)
                 .clip(RoundedCornerShape(8.dp))
@@ -157,7 +178,7 @@ private fun LanguageRow(
             ) {
                 Icon(
                     imageVector = Icons.Filled.Check,
-                    contentDescription = "Seleccionado",
+                    contentDescription = LocalStrings.current.selected,
                     tint = SurfaceWhite,
                     modifier = Modifier.size(18.dp),
                 )

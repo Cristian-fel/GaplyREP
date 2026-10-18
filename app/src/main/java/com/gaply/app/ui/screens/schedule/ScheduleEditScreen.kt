@@ -55,6 +55,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.gaply.app.core.i18n.LocalStrings
 import com.gaply.app.di.appContainer
 import com.gaply.app.domain.model.ScheduleClass
 import com.gaply.app.ui.components.GaplyTextField
@@ -84,6 +85,7 @@ fun ScheduleEditScreen(
     val viewModel: ScheduleEditViewModel = androidx.lifecycle.viewmodel.compose.viewModel(
         factory = ScheduleEditViewModel.factory(context.appContainer()),
     )
+    val s = LocalStrings.current
     val state by viewModel.uiState.collectAsState()
 
     var mostrarDia by remember { mutableStateOf(false) }
@@ -112,7 +114,7 @@ fun ScheduleEditScreen(
             shape = RoundedCornerShape(24.dp),
             title = {
                 Text(
-                    text = "Eliminar clase",
+                    text = s.deleteClassTitle,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center,
@@ -121,8 +123,7 @@ fun ScheduleEditScreen(
             },
             text = {
                 Text(
-                    text = "¿Eliminar \"${state.titulo.ifBlank { "esta clase" }}\" del horario? " +
-                        "Esta acción no se puede deshacer.",
+                    text = s.deleteClassMessage(state.titulo.ifBlank { s.thisClass }),
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -132,12 +133,12 @@ fun ScheduleEditScreen(
                     mostrarEliminar = false
                     viewModel.eliminar()
                 }) {
-                    Text(text = "Eliminar", color = MaterialTheme.colorScheme.error)
+                    Text(text = s.delete, color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { mostrarEliminar = false }) {
-                    Text(text = "Cancelar", color = BrandGreen)
+                    Text(text = s.cancel, color = BrandGreen)
                 }
             },
         )
@@ -157,12 +158,12 @@ fun ScheduleEditScreen(
             IconButton(onClick = onBack) {
                 Icon(
                     imageVector = Icons.Filled.Close,
-                    contentDescription = "Cerrar sin guardar",
+                    contentDescription = s.closeWithoutSaving,
                     tint = MaterialTheme.colorScheme.onSurface,
                 )
             }
             Text(
-                text = "Horario",
+                text = s.scheduleFormTitle,
                 style = MaterialTheme.typography.titleLarge,
                 color = BrandGreen,
                 textAlign = TextAlign.Center,
@@ -175,7 +176,7 @@ fun ScheduleEditScreen(
                 ) {
                     Icon(
                         imageVector = Icons.Outlined.Delete,
-                        contentDescription = "Eliminar clase",
+                        contentDescription = s.deleteClassTitle,
                         tint = MaterialTheme.colorScheme.error,
                     )
                 }
@@ -186,7 +187,7 @@ fun ScheduleEditScreen(
             ) {
                 Icon(
                     imageVector = Icons.Filled.Check,
-                    contentDescription = "Guardar",
+                    contentDescription = s.save,
                     tint = MaterialTheme.colorScheme.onSurface,
                 )
             }
@@ -208,9 +209,21 @@ fun ScheduleEditScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp),
         ) {
-            state.error?.let { mensaje ->
+            state.error?.let { error ->
                 Text(
-                    text = mensaje,
+                    text = when (error) {
+                        ScheduleEditError.CONNECTION -> s.noConnectionSchedule
+                        ScheduleEditError.READ_PERMISSION -> s.firestoreReadSchedule
+                        ScheduleEditError.WRITE_PERMISSION -> s.firestoreWriteRules
+                        ScheduleEditError.DELETE_PERMISSION -> s.firestoreDeleteRules
+                        ScheduleEditError.LOAD_FAILED -> s.loadScheduleFailed
+                        ScheduleEditError.LOAD_GENERIC -> s.loadGenericFailed
+                        ScheduleEditError.SAVE_GENERIC -> s.saveGenericFailed
+                        ScheduleEditError.DELETE_GENERIC -> s.deleteGenericFailed
+                        ScheduleEditError.TITLE_REQUIRED -> s.writeTitleError
+                        ScheduleEditError.END_BEFORE_START -> s.endMustBeAfterStart
+                        ScheduleEditError.CLASS_MISSING -> s.classNoLongerExists
+                    },
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.error,
                     modifier = Modifier.padding(bottom = 12.dp),
@@ -218,7 +231,7 @@ fun ScheduleEditScreen(
             }
 
             Text(
-                text = "Título",
+                text = s.titleLabel,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(bottom = 8.dp),
@@ -227,26 +240,26 @@ fun ScheduleEditScreen(
                 value = state.titulo,
                 onValueChange = viewModel::onTitulo,
                 label = "",
-                placeholder = "Título de la asignatura",
+                placeholder = s.titlePlaceholder,
             )
 
             Spacer(modifier = Modifier.height(24.dp))
 
             TarjetaDeSeleccion {
                 FilaDeSeleccion(
-                    etiqueta = "Día",
-                    valor = state.dia,
+                    etiqueta = s.dayLabel,
+                    valor = s.dayName(state.dia),
                     onClick = { mostrarDia = true },
                 )
                 HorizontalDivider(modifier = Modifier.padding(horizontal = 4.dp))
                 FilaDeSeleccion(
-                    etiqueta = "Inicio",
+                    etiqueta = s.startLabel,
                     valor = state.fechaInicio,
                     onClick = { mostrarFechaInicio = true },
                 )
                 HorizontalDivider(modifier = Modifier.padding(horizontal = 4.dp))
                 FilaDeSeleccion(
-                    etiqueta = "Fin",
+                    etiqueta = s.endLabel,
                     valor = state.fechaFin,
                     onClick = { mostrarFechaFin = true },
                 )
@@ -255,21 +268,21 @@ fun ScheduleEditScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             Text(
-                text = "Hora",
+                text = s.timeSectionLabel,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(bottom = 8.dp),
             )
             TarjetaDeSeleccion {
                 FilaDeSeleccion(
-                    etiqueta = "Comienza",
-                    valor = ScheduleClass.formatearHora(state.horaInicio),
+                    etiqueta = s.startsLabel,
+                    valor = s.formatTime(state.horaInicio),
                     onClick = { mostrarHoraInicio = true },
                 )
                 HorizontalDivider(modifier = Modifier.padding(horizontal = 4.dp))
                 FilaDeSeleccion(
-                    etiqueta = "Finaliza",
-                    valor = ScheduleClass.formatearHora(state.horaFin),
+                    etiqueta = s.endsLabel,
+                    valor = s.formatTime(state.horaFin),
                     onClick = { mostrarHoraFin = true },
                 )
             }
@@ -277,7 +290,7 @@ fun ScheduleEditScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             Text(
-                text = "Añadir Notas",
+                text = s.addNotesTitle,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(bottom = 8.dp),
@@ -286,7 +299,7 @@ fun ScheduleEditScreen(
                 value = state.nota,
                 onValueChange = viewModel::onNota,
                 label = "",
-                placeholder = "Escribe una nota (opcional).",
+                placeholder = s.notesPlaceholder,
                 singleLine = false,
                 maxLines = 3,
             )
@@ -424,6 +437,8 @@ private fun BotonColor(
     color: String,
     onClick: () -> Unit,
 ) {
+    val s = LocalStrings.current
+
     Surface(
         shape = RoundedCornerShape(24.dp),
         color = Mint,
@@ -436,7 +451,7 @@ private fun BotonColor(
             modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp),
         ) {
             Text(
-                text = "Color",
+                text = s.colorLabel,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,
@@ -469,12 +484,14 @@ private fun DialogoDeDia(
     onSeleccionar: (String) -> Unit,
     onCerrar: () -> Unit,
 ) {
+    val s = LocalStrings.current
+
     AlertDialog(
         onDismissRequest = onCerrar,
         shape = RoundedCornerShape(24.dp),
         title = {
             Text(
-                text = "Seleccione un día",
+                text = s.selectDay,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center,
@@ -504,7 +521,7 @@ private fun DialogoDeDia(
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(
-                            text = dia,
+                            text = s.dayName(dia),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = if (elegido) FontWeight.Bold else FontWeight.Normal,
                             color = if (elegido) {
@@ -519,7 +536,7 @@ private fun DialogoDeDia(
         },
         confirmButton = {
             TextButton(onClick = onCerrar) {
-                Text(text = "Cancelar", color = BrandGreen)
+                Text(text = s.cancel, color = BrandGreen)
             }
         },
     )
@@ -533,6 +550,7 @@ private fun DialogoDeFecha(
     onAceptar: (String) -> Unit,
     onCerrar: () -> Unit,
 ) {
+    val s = LocalStrings.current
     val fechaActual = remember(fecha) {
         ScheduleEditViewModel.parsearFecha(fecha) ?: LocalDate.now()
     }
@@ -554,12 +572,12 @@ private fun DialogoDeFecha(
                     }
                 },
             ) {
-                Text(text = "OK", color = BrandGreen)
+                Text(text = s.ok, color = BrandGreen)
             }
         },
         dismissButton = {
             TextButton(onClick = onCerrar) {
-                Text(text = "Cancelar", color = BrandGreen)
+                Text(text = s.cancel, color = BrandGreen)
             }
         },
     ) {
@@ -575,6 +593,7 @@ private fun DialogoDeHora(
     onAceptar: (String) -> Unit,
     onCerrar: () -> Unit,
 ) {
+    val s = LocalStrings.current
     val partes = hora.split(":")
     val estado = rememberTimePickerState(
         initialHour = partes.getOrNull(0)?.toIntOrNull() ?: 8,
@@ -586,7 +605,7 @@ private fun DialogoDeHora(
         shape = RoundedCornerShape(24.dp),
         title = {
             Text(
-                text = "Seleccione una hora",
+                text = s.selectTime,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center,
@@ -602,12 +621,12 @@ private fun DialogoDeHora(
             TextButton(
                 onClick = { onAceptar("%02d:%02d".format(estado.hour, estado.minute)) },
             ) {
-                Text(text = "OK", color = BrandGreen)
+                Text(text = s.ok, color = BrandGreen)
             }
         },
         dismissButton = {
             TextButton(onClick = onCerrar) {
-                Text(text = "Cancelar", color = BrandGreen)
+                Text(text = s.cancel, color = BrandGreen)
             }
         },
     )
@@ -620,12 +639,14 @@ private fun DialogoDeColor(
     onSeleccionar: (String) -> Unit,
     onCerrar: () -> Unit,
 ) {
+    val s = LocalStrings.current
+
     AlertDialog(
         onDismissRequest = onCerrar,
         shape = RoundedCornerShape(24.dp),
         title = {
             Text(
-                text = "Seleccione un color",
+                text = s.selectColor,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center,
@@ -652,7 +673,7 @@ private fun DialogoDeColor(
                                 if (elegido) {
                                     Icon(
                                         imageVector = Icons.Filled.Check,
-                                        contentDescription = "Seleccionado",
+                                        contentDescription = s.selected,
                                         tint = SurfaceWhite,
                                     )
                                 }
@@ -669,7 +690,7 @@ private fun DialogoDeColor(
                     containerColor = BrandGreen,
                 ),
             ) {
-                Text(text = "Cerrar", color = SurfaceWhite)
+                Text(text = s.close, color = SurfaceWhite)
             }
         },
     )

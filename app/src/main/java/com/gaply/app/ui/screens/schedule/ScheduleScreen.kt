@@ -51,6 +51,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.gaply.app.core.i18n.LocalStrings
 import com.gaply.app.di.appContainer
 import com.gaply.app.domain.model.HuecoLibre
 import com.gaply.app.domain.model.ScheduleClass
@@ -77,6 +78,8 @@ fun ScheduleScreen(
     val viewModel: ScheduleViewModel = androidx.lifecycle.viewmodel.compose.viewModel(
         factory = ScheduleViewModel.factory(context.appContainer()),
     )
+    val s = LocalStrings.current
+    viewModel.strings = s
     val state by viewModel.uiState.collectAsState()
 
     // Recarga cada vez que la pantalla vuelve a mostrarse: al regresar del
@@ -106,7 +109,7 @@ fun ScheduleScreen(
                 BotonVolver(onBack = onBack)
                 Spacer(modifier = Modifier.width(12.dp))
                 Text(
-                    text = "Mi horario",
+                    text = s.mySchedule,
                     style = MaterialTheme.typography.titleLarge,
                     color = BrandGreen,
                 )
@@ -121,7 +124,12 @@ fun ScheduleScreen(
                 }
 
                 state.error != null -> EstadoError(
-                    mensaje = state.error.orEmpty(),
+                    mensaje = when (state.error) {
+                        ScheduleError.CONNECTION -> s.noConnectionSchedule
+                        ScheduleError.PERMISSION -> s.firestoreReadSchedule
+                        ScheduleError.LOAD_FAILED -> s.loadScheduleFailed
+                        null -> ""
+                    },
                     onReintentar = viewModel::cargar,
                 )
 
@@ -145,16 +153,15 @@ fun ScheduleScreen(
                 .align(Alignment.BottomEnd)
                 .padding(24.dp),
         ) {
-            Icon(imageVector = Icons.Filled.Add, contentDescription = "Agregar horario")
+            Icon(imageVector = Icons.Filled.Add, contentDescription = s.addScheduleCd)
         }
     }
 
     if (mostrarAvisoImport) {
         AppDialog(
             style = DialogStyle.INFO,
-            title = "Importar desde galería",
-            message = "Elige una foto de tu horario. En la versión final, Gaply leerá " +
-                "las clases automáticamente desde la imagen.",
+            title = s.importFromGallery,
+            message = s.importGalleryMsg,
             onDismiss = { mostrarAvisoImport = false },
         )
     }
@@ -174,6 +181,8 @@ private fun ContenidoHorario(
     onOpenHuecos: (String, String, String) -> Unit,
     onImportar: () -> Unit,
 ) {
+    val s = LocalStrings.current
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -198,12 +207,12 @@ private fun ContenidoHorario(
             IconButton(onClick = onDiaAnterior) {
                 Icon(
                     imageVector = Icons.Filled.KeyboardArrowLeft,
-                    contentDescription = "Día anterior",
+                    contentDescription = s.prevDay,
                     tint = BrandGreen,
                 )
             }
             Text(
-                text = state.dia,
+                text = s.dayName(state.dia),
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
                 color = BrandGreen,
@@ -211,7 +220,7 @@ private fun ContenidoHorario(
             IconButton(onClick = onDiaSiguiente) {
                 Icon(
                     imageVector = Icons.Filled.KeyboardArrowRight,
-                    contentDescription = "Día siguiente",
+                    contentDescription = s.nextDay,
                     tint = BrandGreen,
                 )
             }
@@ -258,6 +267,7 @@ private fun ClaseBand(
     clase: ScheduleClass,
     onEdit: () -> Unit,
 ) {
+    val s = LocalStrings.current
     val color = remember(clase.color) { Color(AndroidColor.parseColor(clase.color)) }
 
     Box(
@@ -276,7 +286,7 @@ private fun ClaseBand(
                 )
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
-                    text = clase.rangoHorario,
+                    text = s.formatTimeRange(clase.startHour, clase.endHour),
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Bold,
                     color = Color.Black,
@@ -284,7 +294,7 @@ private fun ClaseBand(
                 if (clase.note.isNotBlank()) {
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
-                        text = "Nota: ${clase.note}",
+                        text = s.notePrefix(clase.note),
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Medium,
                         color = Color.Black.copy(alpha = 0.75f),
@@ -309,7 +319,7 @@ private fun ClaseBand(
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "Editar",
+                        text = s.edit,
                         style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.Bold,
                         color = Color.Black,
@@ -327,6 +337,8 @@ private fun HuecoBand(
     dia: String,
     onVerActividades: (String, String, String) -> Unit,
 ) {
+    val s = LocalStrings.current
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -336,14 +348,14 @@ private fun HuecoBand(
     ) {
         Column {
             Text(
-                text = hueco.textoDuracion,
+                text = s.freeDuration(hueco.duracionMinutos),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = SurfaceWhite,
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "Ver actividades para este hueco",
+                text = s.viewActivitiesForSlot,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = SurfaceWhite,
@@ -358,6 +370,8 @@ private fun EstadoVacio(
     hayClasesEnOtrosDias: Boolean,
     onImportar: () -> Unit,
 ) {
+    val s = LocalStrings.current
+
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
@@ -376,7 +390,7 @@ private fun EstadoVacio(
         Spacer(modifier = Modifier.height(24.dp))
 
         Text(
-            text = "Agregar Horario",
+            text = s.addScheduleTitle,
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface,
@@ -385,7 +399,7 @@ private fun EstadoVacio(
         Spacer(modifier = Modifier.height(16.dp))
 
         Text(
-            text = "Toca \"+\" para añadir el horario",
+            text = s.tapPlusToAdd,
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center,
@@ -395,7 +409,7 @@ private fun EstadoVacio(
         if (hayClasesEnOtrosDias) {
             Spacer(modifier = Modifier.height(12.dp))
             Text(
-                text = "Este día está libre. Usa ‹ › para ver los demás días.",
+                text = s.dayFreeUseArrows,
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium,
                 textAlign = TextAlign.Center,
@@ -415,7 +429,7 @@ private fun EstadoVacio(
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = "Importar desde galería",
+                    text = s.importFromGallery,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = BrandGreen,
@@ -438,6 +452,8 @@ private fun EstadoError(
     mensaje: String,
     onReintentar: () -> Unit,
 ) {
+    val s = LocalStrings.current
+
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
@@ -453,7 +469,7 @@ private fun EstadoError(
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
-            text = "Toca para reintentar",
+            text = s.tapToRetry,
             style = MaterialTheme.typography.labelLarge,
             fontWeight = FontWeight.Bold,
             color = BrandGreen,
@@ -465,6 +481,8 @@ private fun EstadoError(
 /** Botón de volver en círculo blanco con sombra (estilo del Figma). */
 @Composable
 private fun BotonVolver(onBack: () -> Unit) {
+    val s = LocalStrings.current
+
     Box(
         modifier = Modifier
             .size(56.dp)
@@ -475,7 +493,7 @@ private fun BotonVolver(onBack: () -> Unit) {
         IconButton(onClick = onBack) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = "Volver",
+                contentDescription = s.back,
                 tint = BrandGreen,
             )
         }

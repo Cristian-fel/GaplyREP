@@ -28,6 +28,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.gaply.app.core.i18n.LocalStrings
 import com.gaply.app.di.appContainer
 import com.gaply.app.ui.components.AppDialog
 import com.gaply.app.ui.components.DialogStyle
@@ -45,6 +46,7 @@ fun EditProfileScreen(
         factory = EditProfileViewModel.factory(context.appContainer()),
     )
     val state by viewModel.uiState.collectAsState()
+    val s = LocalStrings.current
 
     LaunchedEffect(state.saved) {
         if (state.saved) {
@@ -70,15 +72,15 @@ fun EditProfileScreen(
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Volver",
+                    contentDescription = s.back,
                 )
             }
-            Text(text = "Editar Perfil", style = MaterialTheme.typography.titleLarge)
+            Text(text = s.editProfileTitle, style = MaterialTheme.typography.titleLarge)
         }
 
         Column(modifier = Modifier.padding(horizontal = 24.dp)) {
             Text(
-                text = "Paso ${state.step} de ${EditProfileViewModel.TOTAL_STEPS}",
+                text = s.stepOfTotal(state.step, EditProfileViewModel.TOTAL_STEPS),
                 style = MaterialTheme.typography.labelMedium,
                 color = TextSecondary,
             )
@@ -123,22 +125,22 @@ fun EditProfileScreen(
     when (state.dialog) {
         EditProfileDialog.SAVED -> AppDialog(
             style = DialogStyle.SUCCESS,
-            title = "¡Cambios guardados!",
-            message = "Tu perfil se actualizó correctamente.",
+            title = s.changesSavedTitle,
+            message = s.changesSavedMsg,
             onDismiss = viewModel::consumeDialog,
         )
 
         EditProfileDialog.ERROR_SAVE -> AppDialog(
             style = DialogStyle.ERROR,
-            title = "¡Error al guardar!",
-            message = "No pudimos guardar los cambios. Inténtalo más tarde.",
+            title = s.saveErrorTitle,
+            message = s.editSaveErrorMsg,
             onDismiss = viewModel::consumeDialog,
         )
 
         EditProfileDialog.ERROR_CONNECTION -> AppDialog(
             style = DialogStyle.ERROR,
-            title = "¡Error de conexión!",
-            message = "Comprueba tu conexión e inténtalo más tarde.",
+            title = s.connectionErrorTitle,
+            message = s.connectionErrorMessage,
             onDismiss = viewModel::consumeDialog,
         )
 

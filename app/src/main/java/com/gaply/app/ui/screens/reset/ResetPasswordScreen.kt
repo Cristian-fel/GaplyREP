@@ -35,6 +35,8 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.gaply.app.R
+import com.gaply.app.core.i18n.LocalStrings
+import com.gaply.app.core.i18n.fieldError
 import com.gaply.app.di.appContainer
 import com.gaply.app.ui.components.AppDialog
 import com.gaply.app.ui.components.DialogStyle
@@ -53,6 +55,7 @@ fun ResetPasswordScreen(
         factory = ResetPasswordViewModel.factory(context.appContainer(), identifier),
     )
     val state by viewModel.uiState.collectAsState()
+    val s = LocalStrings.current
 
     LaunchedEffect(state.successHandled) {
         if (state.successHandled) {
@@ -94,11 +97,11 @@ fun ResetPasswordScreen(
                     IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Volver",
+                            contentDescription = s.back,
                         )
                     }
                     Text(
-                        text = "Recuperar contraseña",
+                        text = s.resetPasswordHeader,
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                     )
@@ -107,7 +110,7 @@ fun ResetPasswordScreen(
                 Spacer(modifier = Modifier.height(24.dp))
 
                 Text(
-                    text = "Recupera tu contraseña",
+                    text = s.resetPasswordTitle,
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
                 )
@@ -115,7 +118,7 @@ fun ResetPasswordScreen(
                 Spacer(modifier = Modifier.height(4.dp))
 
                 Text(
-                    text = "Ingresa tu correo electrónico y te enviaremos un enlace para crear una nueva contraseña.",
+                    text = s.resetPasswordSubtitle,
                     style = MaterialTheme.typography.bodyMedium,
                     color = TextSecondary,
                 )
@@ -125,11 +128,11 @@ fun ResetPasswordScreen(
                 GaplyTextField(
                     value = state.email,
                     onValueChange = viewModel::onEmailChange,
-                    label = "Correo electrónico",
+                    label = s.emailLabel,
                     keyboardType = KeyboardType.Email,
                     imeAction = ImeAction.Done,
                     onImeAction = viewModel::onSendEmail,
-                    errorText = state.emailError,
+                    errorText = state.emailError?.let { s.fieldError(it) },
                 )
 
                 Spacer(modifier = Modifier.height(24.dp))
@@ -141,7 +144,7 @@ fun ResetPasswordScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 GaplyPrimaryButton(
-                    text = "Enviar Correo",
+                    text = s.sendResetLink,
                     onClick = viewModel::onSendEmail,
                     loading = state.isLoading,
                 )
@@ -154,15 +157,22 @@ fun ResetPasswordScreen(
     when (state.dialog) {
         ResetDialog.SUCCESS -> AppDialog(
             style = DialogStyle.SUCCESS,
-            title = "¡Correo enviado!",
-            message = "Hemos enviado un enlace a tu correo para que crees una nueva contraseña. Revisa tu bandeja de entrada.",
+            title = s.resetLinkSentTitle,
+            message = s.resetLinkSentMsg,
             onDismiss = viewModel::consumeDialog,
         )
 
         ResetDialog.ERROR -> AppDialog(
             style = DialogStyle.ERROR,
-            title = "No pudimos enviar el correo",
-            message = "Verifica tu correo o tu conexión e inténtalo más tarde.",
+            title = s.resetPasswordErrorTitle,
+            message = s.resetPasswordErrorMsg,
+            onDismiss = viewModel::consumeDialog,
+        )
+
+        ResetDialog.ERROR_CONNECTION -> AppDialog(
+            style = DialogStyle.ERROR,
+            title = s.connectionErrorTitle,
+            message = s.connectionErrorMessage,
             onDismiss = viewModel::consumeDialog,
         )
 

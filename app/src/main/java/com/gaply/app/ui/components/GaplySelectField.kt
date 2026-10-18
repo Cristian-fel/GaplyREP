@@ -22,6 +22,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.gaply.app.core.i18n.LocalStrings
 import com.gaply.app.ui.theme.BrandGreen
 import com.gaply.app.ui.theme.Sage
 import com.gaply.app.ui.theme.TextSecondary
@@ -40,6 +41,7 @@ fun GaplySelectField(
     isError: Boolean = false,
 ) {
     var expanded by remember { mutableStateOf(false) }
+    val s = LocalStrings.current
     val borderColor = if (isError) {
         MaterialTheme.colorScheme.error
     } else {
@@ -65,7 +67,7 @@ fun GaplySelectField(
             )
             Icon(
                 imageVector = Icons.Filled.ArrowDropDown,
-                contentDescription = "Desplegar opciones",
+                contentDescription = s.expandOptionsCd,
                 tint = TextSecondary,
             )
         }

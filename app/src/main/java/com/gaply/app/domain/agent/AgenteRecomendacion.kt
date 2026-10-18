@@ -1,5 +1,7 @@
 package com.gaply.app.domain.agent
 
+import com.gaply.app.core.i18n.AppStrings
+import com.gaply.app.core.i18n.StringsEs
 import java.text.Normalizer
 import kotlin.math.abs
 import kotlin.math.roundToInt
@@ -42,6 +44,7 @@ internal data class Percibidas(
  * eso puede probarse con datos controlados (ver `AgenteRecomendacionTest`).
  */
 class AgenteRecomendacion(
+    private val strings: AppStrings = StringsEs,
     val pesos: PesosUtilidad = PesosUtilidad(),
     val maximoRecomendaciones: Int = 5,
 ) {
@@ -67,7 +70,7 @@ class AgenteRecomendacion(
             } else {
                 descartadas += Descarte(
                     actividad = actividad,
-                    motivo = "No encaja en ningún hueco libre (${actividad.franja})",
+                    motivo = strings.reasonNoFreeSlot(mostrarFranja(actividad.franja)),
                 )
             }
         }
@@ -161,23 +164,29 @@ class AgenteRecomendacion(
 
         when {
             compartidos.isNotEmpty() ->
-                razones += "Coincide con tus intereses: ${compartidos.joinToString(", ")}"
+                razones += strings.reasonInterestsMatch(
+                    compartidos.joinToString(", ") { strings.interestLabel(it) },
+                )
 
             perfil.intereses.isNotEmpty() ->
-                razones += "No coincide con tus intereses actuales"
+                razones += strings.reasonNoInterestsMatch
 
             else ->
-                razones += "Aún no tienes intereses registrados"
+                razones += strings.reasonNoInterestsRegistered
         }
 
         if (actividad.franja.estaContenidaEn(hueco)) {
-            razones += "Cabe completo en tu hueco del $hueco"
+            razones += strings.reasonFitsCompletely(mostrarFranja(hueco))
         } else {
             val solape = hueco.minutosDeSolapeCon(actividad.franja)
-            razones += "Aprovecha $solape min de tu hueco del $hueco"
+            razones += strings.reasonPartiallyUses(solape, mostrarFranja(hueco))
         }
         return razones
     }
+
+    private fun mostrarFranja(franja: FranjaHoraria): String =
+        "${strings.dayName(franja.dia.titulo)} " +
+            "${FranjaHoraria.aHora(franja.inicioMinutos)}-${FranjaHoraria.aHora(franja.finMinutos)}"
 
     private fun FranjaHoraria.enAlgunHueco(huecos: List<FranjaHoraria>): Boolean =
         huecos.any { solapaCon(it) }

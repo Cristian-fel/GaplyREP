@@ -12,6 +12,8 @@ import com.gaply.app.domain.model.RepoResult
 import com.gaply.app.domain.repository.AuthRepository
 import kotlinx.coroutines.launch
 
+enum class DeleteAccountError { CONNECTION, PERMISSION, USER_NOT_FOUND, GENERIC }
+
 /**
  * Módulo 2 · Eliminar cuenta (permanente).
  * Ejecuta la eliminación real de la cuenta y de sus datos en Firestore.
@@ -23,7 +25,7 @@ class DeleteAccountViewModel(
     var loading by mutableStateOf(false)
         private set
 
-    var errorMessage by mutableStateOf<String?>(null)
+    var errorMessage by mutableStateOf<DeleteAccountError?>(null)
         private set
 
     fun deleteAccount(onDeleted: () -> Unit) {
@@ -32,7 +34,7 @@ class DeleteAccountViewModel(
         viewModelScope.launch {
             when (val result = authRepository.deleteAccount()) {
                 is RepoResult.Success -> onDeleted()
-                is RepoResult.Error -> errorMessage = result.type.toMessage()
+                is RepoResult.Error -> errorMessage = result.type.toDialog()
             }
             loading = false
         }
@@ -42,12 +44,11 @@ class DeleteAccountViewModel(
         errorMessage = null
     }
 
-    private fun RepoError.toMessage(): String = when (this) {
-        RepoError.PERMISSION ->
-            "Por seguridad, cierra sesión y vuelve a entrar para eliminar tu cuenta"
-        RepoError.CONNECTION -> "Sin conexión. Revisa tu internet e intenta de nuevo."
-        RepoError.USER_NOT_FOUND -> "No hay una sesión activa"
-        else -> "No se pudo eliminar la cuenta. Inténtalo de nuevo."
+    private fun RepoError.toDialog(): DeleteAccountError = when (this) {
+        RepoError.CONNECTION -> DeleteAccountError.CONNECTION
+        RepoError.PERMISSION -> DeleteAccountError.PERMISSION
+        RepoError.USER_NOT_FOUND -> DeleteAccountError.USER_NOT_FOUND
+        else -> DeleteAccountError.GENERIC
     }
 
     companion object {

@@ -4,6 +4,7 @@ import android.util.Patterns
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.gaply.app.core.i18n.FieldError
 import com.gaply.app.di.AppContainer
 import com.gaply.app.domain.model.RepoError
 import com.gaply.app.domain.model.RepoResult
@@ -18,9 +19,9 @@ import kotlinx.coroutines.launch
 data class LoginUiState(
     val identifier: String = "",
     val password: String = "",
-    val identifierError: String? = null,
-    val passwordError: String? = null,
-    val credentialsError: String? = null,
+    val identifierError: FieldError? = null,
+    val passwordError: FieldError? = null,
+    val credentialsError: CredentialsError? = null,
     val isLoading: Boolean = false,
     val dialog: LoginDialog? = null,
     val isLoggedIn: Boolean = false,
@@ -28,6 +29,9 @@ data class LoginUiState(
 )
 
 enum class LoginDialog { CONNECTION, USER_NOT_FOUND }
+
+/** Error diferenciado de credenciales; la pantalla lo traduce con LocalStrings. */
+enum class CredentialsError { EMAIL_NOT_FOUND, WRONG_PASSWORD, GENERIC }
 
 class LoginViewModel(
     private val authRepository: AuthRepository,
@@ -60,15 +64,15 @@ class LoginViewModel(
         // Validación en el cliente: si escribe "@" pero no es un correo válido,
         // se avisa ANTES de consultar Firestore o Firebase Auth.
         val identifierError = when {
-            current.identifier.isBlank() -> "Este campo es obligatorio"
+            current.identifier.isBlank() -> FieldError.REQUIRED
 
             current.identifier.contains("@") &&
                 !Patterns.EMAIL_ADDRESS.matcher(current.identifier.trim()).matches() ->
-                "El formato del correo no es válido"
+                FieldError.INVALID_EMAIL
 
             else -> null
         }
-        val passwordError = if (current.password.isBlank()) "Este campo es obligatorio" else null
+        val passwordError = if (current.password.isBlank()) FieldError.REQUIRED else null
         if (identifierError != null || passwordError != null) {
             _uiState.update {
                 it.copy(identifierError = identifierError, passwordError = passwordError)
@@ -113,23 +117,23 @@ class LoginViewModel(
      */
     private fun LoginUiState.applyError(error: RepoError): LoginUiState = when (error) {
         RepoError.EMPTY_FIELDS -> copy(
-            identifierError = if (identifier.isBlank()) "Este campo es obligatorio" else null,
-            passwordError = if (password.isBlank()) "Este campo es obligatorio" else null,
+            identifierError = if (identifier.isBlank()) FieldError.REQUIRED else null,
+            passwordError = if (password.isBlank()) FieldError.REQUIRED else null,
         )
 
         RepoError.EMAIL_NOT_FOUND -> copy(
-            identifierError = " ",
-            credentialsError = "No existe una cuenta con ese correo",
+            identifierError = FieldError.HIGHLIGHT,
+            credentialsError = CredentialsError.EMAIL_NOT_FOUND,
         )
 
         RepoError.WRONG_CREDENTIALS -> copy(
-            passwordError = " ",
-            credentialsError = "La contraseña es incorrecta",
+            passwordError = FieldError.HIGHLIGHT,
+            credentialsError = CredentialsError.WRONG_PASSWORD,
         )
 
         RepoError.USER_NOT_FOUND -> copy(dialog = LoginDialog.USER_NOT_FOUND)
         RepoError.CONNECTION -> copy(dialog = LoginDialog.CONNECTION)
-        else -> copy(credentialsError = "No se pudo iniciar sesión. Intenta de nuevo.")
+        else -> copy(credentialsError = CredentialsError.GENERIC)
     }
 
     companion object {

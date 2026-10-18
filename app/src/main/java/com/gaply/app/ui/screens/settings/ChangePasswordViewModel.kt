@@ -6,11 +6,14 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.gaply.app.core.i18n.FieldError
 import com.gaply.app.di.AppContainer
 import com.gaply.app.domain.model.RepoError
 import com.gaply.app.domain.model.RepoResult
 import com.gaply.app.domain.repository.AuthRepository
 import kotlinx.coroutines.launch
+
+enum class ChangePasswordError { CONNECTION, PERMISSION, USER_NOT_FOUND, GENERIC }
 
 /**
  * Módulo 2 · Cambiar contraseña (autenticado).
@@ -27,10 +30,10 @@ class ChangePasswordViewModel(
     var confirmPassword by mutableStateOf("")
         private set
 
-    var newPasswordError by mutableStateOf<String?>(null)
+    var newPasswordError by mutableStateOf<FieldError?>(null)
         private set
 
-    var confirmPasswordError by mutableStateOf<String?>(null)
+    var confirmPasswordError by mutableStateOf<FieldError?>(null)
         private set
 
     var loading by mutableStateOf(false)
@@ -40,7 +43,7 @@ class ChangePasswordViewModel(
     var success by mutableStateOf(false)
         private set
 
-    var errorMessage by mutableStateOf<String?>(null)
+    var errorMessage by mutableStateOf<ChangePasswordError?>(null)
         private set
 
     val canSubmit: Boolean
@@ -63,16 +66,19 @@ class ChangePasswordViewModel(
         confirmPasswordError = null
         errorMessage = null
 
-        if (newPassword.isBlank() || confirmPassword.isBlank()) {
-            newPasswordError = "Completa los dos campos"
+        val blankNew = newPassword.isBlank()
+        val blankConfirm = confirmPassword.isBlank()
+        if (blankNew || blankConfirm) {
+            newPasswordError = if (blankNew) FieldError.REQUIRED else null
+            confirmPasswordError = if (blankConfirm) FieldError.REQUIRED else null
             return
         }
         if (newPassword.length < MIN_PASSWORD_LENGTH) {
-            newPasswordError = "La contraseña debe tener al menos $MIN_PASSWORD_LENGTH caracteres"
+            newPasswordError = FieldError.MIN_6
             return
         }
         if (newPassword != confirmPassword) {
-            confirmPasswordError = "Las contraseñas no coinciden"
+            confirmPasswordError = FieldError.PASSWORDS_MISMATCH
             return
         }
 
@@ -84,7 +90,14 @@ class ChangePasswordViewModel(
                     newPassword = ""
                     confirmPassword = ""
                 }
-                is RepoResult.Error -> errorMessage = result.type.toMessage()
+                is RepoResult.Error -> when (result.type) {
+                    RepoError.EMPTY_FIELDS -> {
+                        newPasswordError = FieldError.REQUIRED
+                        confirmPasswordError = FieldError.REQUIRED
+                    }
+                    RepoError.WEAK_PASSWORD -> newPasswordError = FieldError.MIN_6
+                    else -> errorMessage = result.type.toDialog()
+                }
             }
             loading = false
         }
@@ -98,14 +111,11 @@ class ChangePasswordViewModel(
         errorMessage = null
     }
 
-    private fun RepoError.toMessage(): String = when (this) {
-        RepoError.EMPTY_FIELDS -> "Completa los dos campos"
-        RepoError.WEAK_PASSWORD -> "La contraseña debe tener al menos $MIN_PASSWORD_LENGTH caracteres"
-        RepoError.PERMISSION ->
-            "Por seguridad, cierra sesión y vuelve a entrar para cambiar tu contraseña"
-        RepoError.CONNECTION -> "Sin conexión. Revisa tu internet e intenta de nuevo."
-        RepoError.USER_NOT_FOUND -> "No hay una sesión activa"
-        else -> "No se pudo cambiar la contraseña. Inténtalo de nuevo."
+    private fun RepoError.toDialog(): ChangePasswordError = when (this) {
+        RepoError.CONNECTION -> ChangePasswordError.CONNECTION
+        RepoError.PERMISSION -> ChangePasswordError.PERMISSION
+        RepoError.USER_NOT_FOUND -> ChangePasswordError.USER_NOT_FOUND
+        else -> ChangePasswordError.GENERIC
     }
 
     companion object {

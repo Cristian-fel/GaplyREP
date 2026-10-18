@@ -35,6 +35,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.gaply.app.core.i18n.LocalStrings
 import com.gaply.app.ui.theme.BrandGreen
 import com.gaply.app.ui.theme.OutlineGray
 import com.gaply.app.ui.theme.Sage
@@ -91,7 +92,7 @@ internal fun SettingsBackButton(
         Box(contentAlignment = Alignment.Center) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = "Volver",
+                contentDescription = LocalStrings.current.back,
             )
         }
     }

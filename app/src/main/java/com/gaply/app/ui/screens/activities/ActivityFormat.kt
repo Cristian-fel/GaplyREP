@@ -9,6 +9,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 import java.util.Locale
 
 /**
@@ -17,25 +18,28 @@ import java.util.Locale
  */
 internal object ActivityFormat {
 
-    private val locale = Locale("es", "CO")
+    /** Valores canónicos (guardados tal cual) del selector de duración. */
+    const val DUR_30 = "30 min"
+    const val DUR_1H = "1 hora"
+    const val DUR_2H = "2 horas"
 
     private val longDate: DateTimeFormatter =
-        DateTimeFormatter.ofPattern("EEEE, d 'de' MMMM 'de' yyyy", locale)
+        DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL)
 
     private val shortDateSlash: DateTimeFormatter =
-        DateTimeFormatter.ofPattern("dd/MM/yyyy", locale)
+        DateTimeFormatter.ofLocalizedDate(FormatStyle.SHORT)
 
-    /** "lunes, 22 de septiembre de 2026" -> "Lunes, 22 de septiembre de 2026". */
-    fun fechaLarga(millis: Long): String {
+    /** "lunes, 22 de septiembre de 2026" (en el idioma de la app). */
+    fun fechaLarga(millis: Long, locale: Locale): String {
         val date = Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault()).toLocalDate()
-        val text = longDate.format(date)
+        val text = longDate.withLocale(locale).format(date)
         return text.replaceFirstChar { it.uppercase(locale) }
     }
 
-    /** "22/09/2026" (tarjetas del formulario). */
-    fun fechaCorta(millis: Long): String {
+    /** "22/09/2026" (tarjetas del formulario, en el idioma de la app). */
+    fun fechaCorta(millis: Long, locale: Locale): String {
         val date = Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault()).toLocalDate()
-        return shortDateSlash.format(date)
+        return shortDateSlash.withLocale(locale).format(date)
     }
 
     /** "14:00" -> "2:00 p.m." reutilizando el formateador del proyecto. */
@@ -56,8 +60,8 @@ internal object ActivityFormat {
 
     /** Minutos que representa cada duración del selector segmentado. */
     fun duracionMinutos(duracion: String): Int = when (duracion) {
-        "30 min" -> 30
-        "2 horas" -> 120
+        DUR_30 -> 30
+        DUR_2H -> 120
         else -> 60
     }
 

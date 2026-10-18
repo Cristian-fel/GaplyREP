@@ -3,6 +3,8 @@ package com.gaply.app.ui.screens.schedule
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.gaply.app.core.i18n.AppStrings
+import com.gaply.app.core.i18n.StringsEs
 import com.gaply.app.di.AppContainer
 import com.gaply.app.domain.model.HuecoLibre
 import com.gaply.app.domain.model.RepoError
@@ -32,8 +34,10 @@ data class ScheduleUiState(
     val huecos: List<HuecoLibre> = emptyList(),
     /** true si hay clases en otros días (para orientar en el estado vacío). */
     val hayClasesOtrosDias: Boolean = false,
-    val error: String? = null,
+    val error: ScheduleError? = null,
 )
+
+enum class ScheduleError { CONNECTION, PERMISSION, LOAD_FAILED }
 
 /**
  * Módulo 2B · "Mi horario".
@@ -45,6 +49,8 @@ data class ScheduleUiState(
 class ScheduleViewModel(
     private val scheduleRepository: ScheduleRepository,
 ) : ViewModel() {
+
+    var strings: AppStrings = StringsEs
 
     private val _uiState = MutableStateFlow(ScheduleUiState(cargando = true))
     val uiState: StateFlow<ScheduleUiState> = _uiState.asStateFlow()
@@ -119,15 +125,12 @@ class ScheduleViewModel(
         }
         val fechaDelDia = inicioSemana.plusDays(DIAS_ORDEN.indexOf(diaVisible).toLong())
 
-        val formatoLargo = DateTimeFormatter.ofPattern("d 'de' MMMM", LOCALE)
-        val formatoCorto = DateTimeFormatter.ofPattern("MMM", LOCALE)
-
         return ScheduleUiState(
             cargando = false,
             clases = clasesDelDia,
             dia = diaVisible,
-            fecha = formatoLargo.format(fechaDelDia),
-            mesCorto = formatoCorto.format(fechaDelDia),
+            fecha = strings.formatMonthDay(fechaDelDia),
+            mesCorto = strings.formatMonthAbbrev(fechaDelDia),
             huecos = calcularHuecos(clasesDelDia),
             hayClasesOtrosDias = clasesSemana.any { it.day != diaVisible },
         )
@@ -137,10 +140,10 @@ class ScheduleViewModel(
     private fun calcularHuecos(clasesDelDia: List<ScheduleClass>): List<HuecoLibre> =
         HuecoLibre.deClases(clasesDelDia, HUECO_MINIMO_MINUTOS)
 
-    private fun mensajeDe(error: RepoError): String = when (error) {
-        RepoError.CONNECTION -> "Sin conexión. Revisa tu internet e intenta de nuevo."
-        RepoError.PERMISSION -> "Firestore no permitió leer tu horario (sesión o reglas)."
-        else -> "No se pudo cargar el horario. Intenta de nuevo."
+    private fun mensajeDe(error: RepoError): ScheduleError = when (error) {
+        RepoError.CONNECTION -> ScheduleError.CONNECTION
+        RepoError.PERMISSION -> ScheduleError.PERMISSION
+        else -> ScheduleError.LOAD_FAILED
     }
 
     companion object {

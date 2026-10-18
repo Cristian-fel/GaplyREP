@@ -25,17 +25,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.CameraAlt
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
@@ -60,6 +55,8 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import coil.compose.AsyncImage
+import com.gaply.app.core.i18n.LocalStrings
+import com.gaply.app.core.i18n.fieldError
 import com.gaply.app.ui.components.GaplyOutlineButton
 import com.gaply.app.ui.components.GaplyPrimaryButton
 import com.gaply.app.ui.components.GaplySelectField
@@ -85,6 +82,7 @@ internal fun EditStepBasicsContent(
     viewModel: EditProfileViewModel,
 ) {
     val context = LocalContext.current
+    val s = LocalStrings.current
 
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent(),
@@ -117,8 +115,8 @@ internal fun EditStepBasicsContent(
 
     EditStepScaffold(onNext = viewModel::onNextStep) {
         EditStepCard(
-            title = "Foto de Perfil y Básicos",
-            subtitle = "Esta es la foto que verán otros usuarios en el swipe.",
+            title = s.photoAndBasicsTitle,
+            subtitle = s.photoBasicsSubtitle,
         ) {
             Box(
                 modifier = Modifier
@@ -133,14 +131,14 @@ internal fun EditStepBasicsContent(
                 when {
                     localUri != null -> AsyncImage(
                         model = localUri,
-                        contentDescription = "Vista previa de foto de perfil",
+                        contentDescription = s.profilePhotoPreviewCd,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize(),
                     )
 
                     state.currentPhotoUrl.isNotBlank() -> AsyncImage(
                         model = state.currentPhotoUrl,
-                        contentDescription = "Foto de perfil actual",
+                        contentDescription = s.currentPhotoCd,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize(),
                     )
@@ -158,13 +156,13 @@ internal fun EditStepBasicsContent(
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 IconOutlineButton(
-                    text = "Galería",
+                    text = s.gallery,
                     icon = Icons.Filled.Image,
                     onClick = { galleryLauncher.launch("image/*") },
                     modifier = Modifier.weight(1f),
                 )
                 IconOutlineButton(
-                    text = "Cámara",
+                    text = s.camera,
                     icon = Icons.Filled.PhotoCamera,
                     onClick = launchCamera,
                     modifier = Modifier.weight(1f),
@@ -176,8 +174,8 @@ internal fun EditStepBasicsContent(
             GaplyTextField(
                 value = state.firstName,
                 onValueChange = viewModel::onFirstNameChange,
-                label = "Nombres",
-                errorText = state.firstNameError,
+                label = s.namesLabel,
+                errorText = state.firstNameError?.let { s.fieldError(it) },
             )
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -185,7 +183,7 @@ internal fun EditStepBasicsContent(
             GaplyTextField(
                 value = state.lastName,
                 onValueChange = viewModel::onLastNameChange,
-                label = "Apellidos",
+                label = s.surnamesLabel,
             )
         }
     }
@@ -201,26 +199,25 @@ internal fun EditStepDetailsContent(
     state: EditProfileUiState,
     viewModel: EditProfileViewModel,
 ) {
+    val s = LocalStrings.current
     EditStepScaffold(
         onNext = viewModel::onNextStep,
         onBack = viewModel::onPreviousStep,
     ) {
-        EditStepCard(title = "Detalles Personales") {
-            StepLabel(text = "Universidad")
+        EditStepCard(title = s.personalDetailsTitle) {
+            StepLabel(text = s.universityLabel.removeSuffix(" *"))
             GaplySelectField(
                 selected = state.university,
-                placeholder = "Seleccione una opción",
-                options = RegisterData.universities,
+                placeholder = s.selectAnOption,
+                options = s.universities,
                 onSelect = viewModel::onUniversityChange,
                 isError = state.universityError != null,
             )
-            if (state.universityError != null) {
-                StepError(text = state.universityError)
-            }
+            state.universityError?.let { StepError(text = s.fieldError(it)) }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            StepLabel(text = "Fecha de nacimiento *")
+            StepLabel(text = s.birthDateLabel)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 GaplySelectField(
                     selected = state.birthDay,
@@ -247,15 +244,13 @@ internal fun EditStepDetailsContent(
                     modifier = Modifier.weight(1.2f),
                 )
             }
-            if (state.birthDateError != null) {
-                StepError(text = state.birthDateError)
-            }
+            state.birthDateError?.let { StepError(text = s.fieldError(it)) }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            StepLabel(text = "Género")
+            StepLabel(text = s.genderLabel)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                RegisterData.genders.forEach { option ->
+                s.genders.forEach { option ->
                     FilterChip(
                         selected = state.gender == option,
                         onClick = { viewModel.onGenderChange(option) },
@@ -285,10 +280,11 @@ internal fun EditStepInterestsContent(
     state: EditProfileUiState,
     viewModel: EditProfileViewModel,
 ) {
+    val s = LocalStrings.current
     EditStepScaffold {
         EditStepCard(
-            title = "Intereses y descripción",
-            subtitle = "Selecciona hasta 3 intereses (aparecen en tu perfil)",
+            title = s.interestsAndBioTitle,
+            subtitle = s.interestsBioSubtitle,
         ) {
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -307,7 +303,7 @@ internal fun EditStepInterestsContent(
             }
 
             Text(
-                text = "Puedes elegir hasta ${EditProfileViewModel.MAX_INTERESTS} intereses.",
+                text = s.minInterestsWarning(EditProfileViewModel.MAX_INTERESTS),
                 style = MaterialTheme.typography.bodySmall,
                 color = TextSecondary,
                 modifier = Modifier.padding(top = 8.dp),
@@ -315,13 +311,13 @@ internal fun EditStepInterestsContent(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            StepLabel(text = "Descripción")
+            StepLabel(text = s.descriptionFieldLabel)
 
             GaplyTextField(
                 value = state.bio,
                 onValueChange = viewModel::onBioChange,
-                label = "Descripción",
-                placeholder = "Cuéntanos un poco sobre ti...",
+                label = s.descriptionFieldLabel,
+                placeholder = s.bioPlaceholder,
                 minLines = 4,
                 maxLines = 4,
                 singleLine = false,
@@ -339,7 +335,7 @@ internal fun EditStepInterestsContent(
             Spacer(modifier = Modifier.height(16.dp))
 
             GaplyPrimaryButton(
-                text = "Guardar cambios",
+                text = s.saveChanges,
                 onClick = viewModel::onSave,
                 loading = state.isLoading,
             )
@@ -347,14 +343,14 @@ internal fun EditStepInterestsContent(
             Spacer(modifier = Modifier.height(12.dp))
 
             GaplyOutlineButton(
-                text = "Atrás",
+                text = s.back,
                 onClick = viewModel::onPreviousStep,
             )
 
             Spacer(modifier = Modifier.height(12.dp))
 
             GaplyOutlineButton(
-                text = "Vista previa del perfil",
+                text = s.profilePreviewTitle,
                 onClick = viewModel::onTogglePreview,
             )
         }
@@ -371,11 +367,12 @@ internal fun EditProfilePreview(
     state: EditProfileUiState,
     onDismiss: () -> Unit,
 ) {
+    val s = LocalStrings.current
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = SurfaceWhite,
         title = {
-            Text(text = "Vista previa del perfil", style = MaterialTheme.typography.titleLarge)
+            Text(text = s.profilePreviewTitle, style = MaterialTheme.typography.titleLarge)
         },
         text = {
             Column(
@@ -394,14 +391,14 @@ internal fun EditProfilePreview(
                     when {
                         localUri != null -> AsyncImage(
                             model = localUri,
-                            contentDescription = "Foto de perfil",
+                            contentDescription = s.profilePhotoCd,
                             contentScale = ContentScale.Crop,
                             modifier = Modifier.fillMaxSize(),
                         )
 
                         state.currentPhotoUrl.isNotBlank() -> AsyncImage(
                             model = state.currentPhotoUrl,
-                            contentDescription = "Foto de perfil",
+                            contentDescription = s.profilePhotoCd,
                             contentScale = ContentScale.Crop,
                             modifier = Modifier.fillMaxSize(),
                         )
@@ -421,7 +418,7 @@ internal fun EditProfilePreview(
                     style = MaterialTheme.typography.titleLarge,
                 )
                 Text(
-                    text = state.university.ifBlank { "Sin universidad" },
+                    text = state.university.ifBlank { s.noUniversity },
                     style = MaterialTheme.typography.bodySmall,
                     color = TextSecondary,
                 )
@@ -439,7 +436,7 @@ internal fun EditProfilePreview(
 
                 if (state.interests.isEmpty()) {
                     Text(
-                        text = "Aún no has seleccionado intereses.",
+                        text = s.noInterestsSelected,
                         style = MaterialTheme.typography.bodySmall,
                         color = TextSecondary,
                     )
@@ -453,7 +450,7 @@ internal fun EditProfilePreview(
                             FilterChip(
                                 selected = true,
                                 onClick = { },
-                                label = { Text(interest) },
+                                label = { Text(s.interestLabel(interest)) },
                                 colors = FilterChipDefaults.filterChipColors(
                                     selectedContainerColor = Mint,
                                     selectedLabelColor = BrandGreen,
@@ -466,7 +463,7 @@ internal fun EditProfilePreview(
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text(text = "Cerrar", color = BrandGreen)
+                Text(text = s.close, color = BrandGreen)
             }
         },
     )
@@ -481,9 +478,9 @@ internal fun EditProfilePreview(
 private fun EditStepScaffold(
     modifier: Modifier = Modifier,
     onNext: (() -> Unit)? = null,
-    nextText: String = "Siguiente",
+    nextText: String = LocalStrings.current.next,
     onBack: (() -> Unit)? = null,
-    backText: String = "Atrás",
+    backText: String = LocalStrings.current.back,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Column(modifier = modifier.fillMaxSize()) {

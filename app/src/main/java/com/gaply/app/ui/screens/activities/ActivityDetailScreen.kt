@@ -49,6 +49,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.gaply.app.core.i18n.LocalStrings
 import com.gaply.app.ui.components.AppDialog
 import com.gaply.app.ui.components.DialogStyle
 import com.gaply.app.ui.theme.BrandGreen
@@ -58,8 +59,6 @@ import com.gaply.app.ui.theme.Sage
 import com.gaply.app.ui.theme.SurfaceWhite
 import com.gaply.app.ui.theme.TextSecondary
 import java.time.ZoneId
-
-private const val PRONTO_MENSAJE = "Estamos trabajando en ello y se agregará próximamente"
 
 /**
  * Módulo de Actividades · Detalle de la actividad ("Actividades").
@@ -81,6 +80,7 @@ fun ActivityDetailScreen(
 ) {
     val viewModel = rememberActivityViewModel()
     val state by viewModel.uiState.collectAsState()
+    val s = LocalStrings.current
 
     val activity = state.activities.find { it.id == activityId }
 
@@ -89,13 +89,13 @@ fun ActivityDetailScreen(
 
     Column(modifier = Modifier.fillMaxSize()) {
         ActivitiesTopSection(
-            title = "Actividades",
-            huecoTexto = "Tienes 2 horas libres 12:00 - 2:00 p.m.",
+            title = s.activitiesDetailTitle,
+            huecoTexto = s.huecoBannerDemo,
             onBack = onBack,
         )
 
         if (activity == null) {
-            EmptyActivitiesState(message = "Esta actividad ya no está disponible.")
+            EmptyActivitiesState(message = s.activityUnavailableMsg)
             return@Column
         }
 
@@ -140,7 +140,7 @@ fun ActivityDetailScreen(
                 Spacer(modifier = Modifier.width(10.dp))
                 Column {
                     Text(
-                        text = fechaLarga(activity.date),
+                        text = fechaLarga(activity.date, s.javaLocale),
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.Bold,
                         color = Color.Black,
@@ -199,7 +199,7 @@ fun ActivityDetailScreen(
             ) {
                 Column {
                     Text(
-                        text = "Organizador",
+                        text = s.organizerLabel,
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                         color = Color.Black,
@@ -222,7 +222,7 @@ fun ActivityDetailScreen(
 
                 Column {
                     Text(
-                        text = "Asistentes: ${activity.attendees.size}",
+                        text = s.attendeesCount(activity.attendees.size),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                         color = Color.Black,
@@ -266,13 +266,13 @@ fun ActivityDetailScreen(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Ya está dentro",
+                        text = s.alreadyJoined,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                     )
                 } else {
                     Text(
-                        text = "Unirme",
+                        text = s.joinActivity,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                     )
@@ -286,9 +286,9 @@ fun ActivityDetailScreen(
     if (showComingSoon) {
         AppDialog(
             style = DialogStyle.INFO,
-            title = "¡Próximamente!",
-            message = PRONTO_MENSAJE,
-            confirmText = "Cerrar",
+            title = s.comingSoonTitle,
+            message = s.comingSoonMsg,
+            confirmText = s.close,
             onDismiss = { showComingSoon = false },
         )
     }
@@ -301,7 +301,7 @@ fun ActivityDetailScreen(
             containerColor = SurfaceWhite,
             title = {
                 Text(
-                    text = "Cancelar actividad",
+                    text = s.cancelActivityTitle,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = Color.Black,
@@ -309,7 +309,7 @@ fun ActivityDetailScreen(
             },
             text = {
                 Text(
-                    text = "¿Estás seguro de que deseas cancelar esta actividad?",
+                    text = s.cancelActivityConfirmMsg,
                     style = MaterialTheme.typography.bodyLarge,
                     color = TextSecondary,
                 )
@@ -322,34 +322,34 @@ fun ActivityDetailScreen(
                         onDeleted()
                     },
                 ) {
-                    Text("Sí, cancelar actividad", color = ErrorRed, fontWeight = FontWeight.Bold)
+                    Text(s.confirmCancelActivity, color = ErrorRed, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteConfirm = false }) {
-                    Text("Volver", color = BrandGreen)
+                    Text(s.back, color = BrandGreen)
                 }
             },
         )
     }
 }
 
-/** Fecha ISO "yyyy-MM-dd" -> "Lunes, 22 de septiembre de 2026". */
-private fun fechaLarga(iso: String): String {
-    return try {
-        val millis = java.time.LocalDate.parse(iso)
-            .atStartOfDay(ZoneId.systemDefault())
-            .toInstant()
-            .toEpochMilli()
-        ActivityFormat.fechaLarga(millis)
-    } catch (e: Exception) {
-        iso
-    }
+/** Fecha en milisegundos (texto) u "yyyy-MM-dd" -> "Sábado, 18 de octubre de 2026" (según idioma). */
+private fun fechaLarga(date: String, locale: java.util.Locale): String {
+    val millis = date.toLongOrNull()
+        ?: runCatching {
+            java.time.LocalDate.parse(date)
+                .atStartOfDay(ZoneId.systemDefault())
+                .toInstant()
+                .toEpochMilli()
+        }.getOrNull()
+    return millis?.let { ActivityFormat.fechaLarga(it, locale) } ?: date
 }
 
 /** Recuadro verde claro con "Chat del evento" y "Cómo llegar" (próximamente). */
 @Composable
 private fun ComingSoonCard(onClick: () -> Unit) {
+    val s = LocalStrings.current
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -364,7 +364,7 @@ private fun ComingSoonCard(onClick: () -> Unit) {
                 .clickable(onClick = onClick),
         ) {
             Text(
-                text = "Chat del evento",
+                text = s.eventChat,
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
                 color = Color.Black,
@@ -372,7 +372,7 @@ private fun ComingSoonCard(onClick: () -> Unit) {
             )
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                contentDescription = "Chat del evento",
+                contentDescription = s.eventChat,
                 tint = Color.Black,
             )
         }
@@ -386,7 +386,7 @@ private fun ComingSoonCard(onClick: () -> Unit) {
             modifier = Modifier.fillMaxWidth(),
         ) {
             Text(
-                text = "Ubicación",
+                text = s.locationLabel,
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
                 color = Color.Black,
@@ -411,7 +411,7 @@ private fun ComingSoonCard(onClick: () -> Unit) {
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    text = "Cómo llegar",
+                    text = s.howToGetThere,
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 13.sp,
                 )
@@ -424,8 +424,9 @@ private fun ComingSoonCard(onClick: () -> Unit) {
 @Composable
 private fun AttendeeStack(attendees: List<String>) {
     if (attendees.isEmpty()) {
+        val s = LocalStrings.current
         Text(
-            text = "Sé el primero en unirte",
+            text = s.beFirstToJoin,
             style = MaterialTheme.typography.bodySmall,
             color = TextSecondary,
         )
@@ -453,6 +454,7 @@ private fun OwnerActionsCard(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
 ) {
+    val s = LocalStrings.current
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -461,7 +463,7 @@ private fun OwnerActionsCard(
             .padding(12.dp),
     ) {
         Text(
-            text = "Gestiona tu actividad",
+            text = s.manageYourActivity,
             style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.Bold,
             color = BrandGreen,
@@ -481,7 +483,7 @@ private fun OwnerActionsCard(
                     modifier = Modifier.size(18.dp),
                 )
                 Spacer(modifier = Modifier.width(6.dp))
-                Text("Editar", fontWeight = FontWeight.Bold)
+                Text(s.edit, fontWeight = FontWeight.Bold)
             }
             OutlinedButton(
                 onClick = onDelete,
@@ -496,7 +498,7 @@ private fun OwnerActionsCard(
                     modifier = Modifier.size(18.dp),
                 )
                 Spacer(modifier = Modifier.width(6.dp))
-                Text("Cancelar", fontWeight = FontWeight.Bold)
+                Text(s.cancel, fontWeight = FontWeight.Bold)
             }
         }
     }

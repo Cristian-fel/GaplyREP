@@ -3,7 +3,9 @@ package com.gaply.app.ui.screens.reset
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.gaply.app.core.i18n.FieldError
 import com.gaply.app.di.AppContainer
+import com.gaply.app.domain.model.RepoError
 import com.gaply.app.domain.model.RepoResult
 import com.gaply.app.domain.repository.AuthRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,13 +16,13 @@ import kotlinx.coroutines.launch
 
 data class ResetPasswordUiState(
     val email: String = "",
-    val emailError: String? = null,
+    val emailError: FieldError? = null,
     val isLoading: Boolean = false,
     val dialog: ResetDialog? = null,
     val successHandled: Boolean = false,
 )
 
-enum class ResetDialog { SUCCESS, ERROR }
+enum class ResetDialog { SUCCESS, ERROR, ERROR_CONNECTION }
 
 class ResetPasswordViewModel(
     private val authRepository: AuthRepository,
@@ -45,8 +47,8 @@ class ResetPasswordViewModel(
 
         val email = current.email.trim()
         val error = when {
-            email.isEmpty() -> "Este campo es obligatorio"
-            !email.contains("@") -> "Ingresa un correo válido"
+            email.isEmpty() -> FieldError.REQUIRED
+            !email.contains("@") -> FieldError.INVALID_EMAIL
             else -> null
         }
         if (error != null) {
@@ -57,13 +59,20 @@ class ResetPasswordViewModel(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
 
-            when (authRepository.sendResetEmail(email)) {
+            when (val result = authRepository.sendResetEmail(email)) {
                 is RepoResult.Success -> _uiState.update {
                     it.copy(isLoading = false, dialog = ResetDialog.SUCCESS)
                 }
 
                 is RepoResult.Error -> _uiState.update {
-                    it.copy(isLoading = false, dialog = ResetDialog.ERROR)
+                    it.copy(
+                        isLoading = false,
+                        dialog = if (result.type == RepoError.CONNECTION) {
+                            ResetDialog.ERROR_CONNECTION
+                        } else {
+                            ResetDialog.ERROR
+                        },
+                    )
                 }
             }
         }

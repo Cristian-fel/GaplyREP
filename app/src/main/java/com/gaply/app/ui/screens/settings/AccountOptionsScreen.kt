@@ -27,6 +27,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.gaply.app.core.i18n.LocalStrings
 import com.gaply.app.ui.theme.BackgroundApp
 import com.gaply.app.ui.theme.ErrorRed
 import com.gaply.app.ui.theme.GaplyTheme
@@ -45,6 +46,8 @@ fun AccountOptionsScreen(
     onDeactivate: () -> Unit = {},
     onDeleteAccount: () -> Unit = {},
 ) {
+    val s = LocalStrings.current
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -63,7 +66,7 @@ fun AccountOptionsScreen(
         Spacer(modifier = Modifier.height(24.dp))
 
         Text(
-            text = "¿Eliminar o desactivar?",
+            text = s.deleteOrDeactivateTitle,
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Start,
@@ -73,8 +76,7 @@ fun AccountOptionsScreen(
         Spacer(modifier = Modifier.height(12.dp))
 
         Text(
-            text = "Si quieres abandonar Gaply temporalmente, solo desactiva tu cuenta. " +
-                "Si eliges eliminarla, no podrás recuperarla después de trascurridos 30 días.",
+            text = s.deleteOrDeactivateDesc,
             style = MaterialTheme.typography.bodyMedium,
             color = TextSecondary,
             textAlign = TextAlign.Start,
@@ -85,10 +87,8 @@ fun AccountOptionsScreen(
 
         // ------------------------------------------- Opción 1: Desactivar
         AccountOptionCard(
-            title = "Desactivar Cuenta",
-            description = "Nadie puede ver tu cuenta, incluido todo la información " +
-                "almacenada en ella. Reactiva tu cuenta en cualquier momento y " +
-                "recupera todo.",
+            title = s.deactivateOptionTitle,
+            description = s.deactivateOptionDesc,
             containerColor = SurfaceWhite,
             titleColor = MaterialTheme.colorScheme.onSurface,
             descriptionColor = TextSecondary,
@@ -101,10 +101,8 @@ fun AccountOptionsScreen(
 
         // -------------------------------- Opción 2: Eliminar permanentemente
         AccountOptionCard(
-            title = "Elimina la cuenta permanentemente",
-            description = "Tu cuenta y contenido se eliminarán de forma irreversible. " +
-                "Puedes cancelar la solicitud de eliminación si reactivas la cuenta " +
-                "en el plazo de 30 días.",
+            title = s.deleteOptionTitle,
+            description = s.deleteOptionDesc,
             containerColor = ErrorRed.copy(alpha = 0.08f),
             titleColor = ErrorRed,
             descriptionColor = TextSecondary,

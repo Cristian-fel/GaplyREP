@@ -2,6 +2,7 @@ package com.gaply.app.ui.screens.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import com.gaply.app.core.i18n.AppLanguage
 import com.gaply.app.di.AppContainer
 import kotlinx.coroutines.flow.StateFlow
 
@@ -12,17 +13,17 @@ import kotlinx.coroutines.flow.StateFlow
  */
 class LanguageViewModel(
     private val container: AppContainer,
-    private val initialLanguage: String,
+    initialLanguage: AppLanguage,
 ) : ViewModel() {
 
-    val languages: List<String> = DEFAULT_LANGUAGES
+    val languages: List<AppLanguage> = AppLanguage.entries
 
-    var selected: String = initialLanguage
+    var selected: AppLanguage = initialLanguage
         private set
 
-    val savedLanguage: StateFlow<String> = container.appLanguage
+    val savedLanguage: StateFlow<AppLanguage> = container.appLanguage
 
-    fun select(language: String) {
+    fun select(language: AppLanguage) {
         selected = language
     }
 
@@ -31,16 +32,6 @@ class LanguageViewModel(
     }
 
     companion object {
-        val DEFAULT_LANGUAGES = listOf(
-            "Español (ES)",
-            "English (Us)",
-            "Français",
-            "Deutsch (DE)",
-            "Italiano (IT)",
-            "Português (BR)",
-            "日本語(JP)",
-            "中國人(中國)",
-        )
 
         fun factory(container: AppContainer): ViewModelProvider.Factory =
             object : ViewModelProvider.Factory {

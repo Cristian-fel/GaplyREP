@@ -22,6 +22,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import com.gaply.app.core.i18n.LocalStrings
 
 @Composable
 fun GaplyTextField(
@@ -70,7 +71,11 @@ fun GaplyTextField(
                 IconButton(onClick = { passwordVisible = !passwordVisible }) {
                     Icon(
                         imageVector = if (passwordVisible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
-                        contentDescription = if (passwordVisible) "Ocultar contraseña" else "Mostrar contraseña",
+                        contentDescription = if (passwordVisible) {
+                            LocalStrings.current.hidePassword
+                        } else {
+                            LocalStrings.current.showPassword
+                        },
                     )
                 }
             }

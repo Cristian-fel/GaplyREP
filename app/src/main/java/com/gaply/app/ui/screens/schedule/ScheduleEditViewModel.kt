@@ -27,11 +27,25 @@ data class ScheduleEditUiState(
     val horaFin: String = "10:00",
     val nota: String = "",
     val color: String = ScheduleClass.COLOR_POR_DEFECTO,
-    val error: String? = null,
+    val error: ScheduleEditError? = null,
     val guardando: Boolean = false,
     val guardado: Boolean = false,
     val eliminado: Boolean = false,
 )
+
+enum class ScheduleEditError {
+    CONNECTION,
+    READ_PERMISSION,
+    WRITE_PERMISSION,
+    DELETE_PERMISSION,
+    LOAD_FAILED,
+    LOAD_GENERIC,
+    SAVE_GENERIC,
+    DELETE_GENERIC,
+    TITLE_REQUIRED,
+    END_BEFORE_START,
+    CLASS_MISSING,
+}
 
 /**
  * Módulo 2B · formulario "Horario" (crear o editar una clase).
@@ -69,7 +83,7 @@ class ScheduleEditViewModel(
                     _uiState.value = if (clase == null) {
                         _uiState.value.copy(
                             cargando = false,
-                            error = "Esta clase ya no existe o fue eliminada.",
+                            error = ScheduleEditError.CLASS_MISSING,
                         )
                     } else {
                         ScheduleEditUiState(
@@ -143,11 +157,11 @@ class ScheduleEditViewModel(
         if (estado.guardando || estado.guardado || estado.eliminado) return
 
         if (estado.titulo.isBlank()) {
-            _uiState.value = estado.copy(error = "Escribe el título de la asignatura.")
+            _uiState.value = estado.copy(error = ScheduleEditError.TITLE_REQUIRED)
             return
         }
         if (ScheduleClass.minutosDeHora(estado.horaFin) <= ScheduleClass.minutosDeHora(estado.horaInicio)) {
-            _uiState.value = estado.copy(error = "La hora final debe ser posterior a la inicial.")
+            _uiState.value = estado.copy(error = ScheduleEditError.END_BEFORE_START)
             return
         }
 
@@ -196,22 +210,22 @@ class ScheduleEditViewModel(
         }
     }
 
-    private fun mensajeDe(error: RepoError): String = when (error) {
-        RepoError.CONNECTION -> "Sin conexión. Revisa tu internet e intenta de nuevo."
-        RepoError.PERMISSION -> "Firestore no permitió leer tu horario (sesión o reglas)."
-        else -> "No se pudo cargar. Intenta de nuevo."
+    private fun mensajeDe(error: RepoError): ScheduleEditError = when (error) {
+        RepoError.CONNECTION -> ScheduleEditError.CONNECTION
+        RepoError.PERMISSION -> ScheduleEditError.READ_PERMISSION
+        else -> ScheduleEditError.LOAD_GENERIC
     }
 
-    private fun mensajeGuardadoDe(error: RepoError): String = when (error) {
-        RepoError.CONNECTION -> "Sin conexión. Revisa tu internet e intenta de nuevo."
-        RepoError.PERMISSION -> "Firestore no permitió guardar (sesión o reglas)."
-        else -> "No se pudo guardar. Intenta de nuevo."
+    private fun mensajeGuardadoDe(error: RepoError): ScheduleEditError = when (error) {
+        RepoError.CONNECTION -> ScheduleEditError.CONNECTION
+        RepoError.PERMISSION -> ScheduleEditError.WRITE_PERMISSION
+        else -> ScheduleEditError.SAVE_GENERIC
     }
 
-    private fun mensajeEliminadoDe(error: RepoError): String = when (error) {
-        RepoError.CONNECTION -> "Sin conexión. Revisa tu internet e intenta de nuevo."
-        RepoError.PERMISSION -> "Firestore no permitió eliminar (sesión o reglas)."
-        else -> "No se pudo eliminar. Intenta de nuevo."
+    private fun mensajeEliminadoDe(error: RepoError): ScheduleEditError = when (error) {
+        RepoError.CONNECTION -> ScheduleEditError.CONNECTION
+        RepoError.PERMISSION -> ScheduleEditError.DELETE_PERMISSION
+        else -> ScheduleEditError.DELETE_GENERIC
     }
 
     companion object {

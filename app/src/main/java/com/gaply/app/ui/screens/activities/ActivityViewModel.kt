@@ -1,5 +1,6 @@
 package com.gaply.app.ui.screens.activities
 
+import android.content.ContextWrapper
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
@@ -135,7 +136,10 @@ class ActivityViewModel(
 @Composable
 fun rememberActivityViewModel(): ActivityViewModel {
     val context = LocalContext.current
-    val owner = context as ComponentActivity
+    val owner = generateSequence(context) { (it as? ContextWrapper)?.baseContext }
+        .filterIsInstance<ComponentActivity>()
+        .firstOrNull()
+        ?: error("No se encontró ComponentActivity en la cadena de contextos")
     return viewModel(
         viewModelStoreOwner = owner,
         key = "gaply_activities",

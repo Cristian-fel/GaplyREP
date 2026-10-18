@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.gaply.app.core.i18n.LocalStrings
 import com.gaply.app.di.appContainer
 import com.gaply.app.ui.screens.profile.ProfileScreen
 
@@ -38,6 +39,7 @@ fun ProfileHostScreen(
 ) {
     val context = LocalContext.current
     val user by context.appContainer().authRepository.currentUser.collectAsState()
+    val s = LocalStrings.current
 
     Column(modifier = Modifier.fillMaxSize()) {
         Row(
@@ -47,11 +49,11 @@ fun ProfileHostScreen(
             IconButton(onClick = onBack) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Volver",
+                    contentDescription = s.back,
                 )
             }
             Text(
-                text = "Perfil",
+                text = s.tabProfile,
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
             )

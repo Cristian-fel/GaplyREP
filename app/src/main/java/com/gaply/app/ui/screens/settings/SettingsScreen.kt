@@ -37,7 +37,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.gaply.app.core.i18n.LocalStrings
 import com.gaply.app.di.appContainer
+import com.gaply.app.ui.components.AppDialog
+import com.gaply.app.ui.components.DialogStyle
 import com.gaply.app.ui.components.GaplyOutlineButton
 import com.gaply.app.ui.theme.BackgroundApp
 import com.gaply.app.ui.theme.BrandGreenDark
@@ -66,9 +69,10 @@ fun SettingsScreen(
         factory = SettingsViewModel.factory(context.appContainer()),
     )
 
-    var darkMode by remember { mutableStateOf(false) }
+    var showThemeDialog by remember { mutableStateOf(false) }
     var notifications by remember { mutableStateOf(true) }
     val language by viewModel.language.collectAsState()
+    val s = LocalStrings.current
 
     Column(
         modifier = Modifier
@@ -81,7 +85,7 @@ fun SettingsScreen(
         Spacer(modifier = Modifier.height(4.dp))
 
         SettingsTopBar(
-            title = "Configuración",
+            title = s.settingsTitle,
             onBack = onBack,
         )
 
@@ -89,20 +93,20 @@ fun SettingsScreen(
 
         // ------------------------------------------------ Cuenta y Seguridad
         SettingsSectionCard(
-            title = "Cuenta y Seguridad",
+            title = s.accountSecurity,
             headerIcon = Icons.Filled.Shield,
         ) {
             SettingsItemRow(
                 icon = Icons.Filled.Key,
-                title = "Cambiar contraseña",
-                subtitle = "Actualiza tu acceso",
+                title = s.changePasswords,
+                subtitle = s.updateYourAccess,
                 onClick = onOpenChangePassword,
             )
             SettingsItemDivider()
             SettingsItemRow(
                 icon = Icons.Filled.Shield,
-                title = "Desactivar y Eliminar Cuenta",
-                subtitle = "Pausa temporal o borrado permanente",
+                title = s.deactivateDeleteAccount,
+                subtitle = s.deactivateDeleteAccountSubtitle,
                 onClick = onOpenDeactivateOptions,
             )
         }
@@ -111,22 +115,20 @@ fun SettingsScreen(
 
         // ----------------------------------------------------- Preferencias
         SettingsSectionCard(
-            title = "Preferencias",
+            title = s.preferences,
             headerIcon = Icons.Filled.Settings,
         ) {
             SettingsItemRow(
                 icon = Icons.Filled.DarkMode,
-                title = "Tema",
-                subtitle = "Activa el modo oscuro",
-                trailing = {
-                    SettingsSwitch(checked = darkMode, onCheckedChange = { darkMode = it })
-                },
+                title = s.theme,
+                subtitle = s.enableDarkMode,
+                onClick = { showThemeDialog = true },
             )
             SettingsItemDivider()
             SettingsItemRow(
                 icon = Icons.Filled.Notifications,
-                title = "Notificaciones",
-                subtitle = "Configura tus alertas",
+                title = s.notifications,
+                subtitle = s.configureAlerts,
                 trailing = {
                     SettingsSwitch(checked = notifications, onCheckedChange = { notifications = it })
                 },
@@ -134,8 +136,8 @@ fun SettingsScreen(
             SettingsItemDivider()
             SettingsItemRow(
                 icon = Icons.Filled.Translate,
-                title = "Idioma",
-                subtitle = language,
+                title = s.language,
+                subtitle = language.label,
                 onClick = onOpenLanguage,
             )
         }
@@ -144,18 +146,18 @@ fun SettingsScreen(
 
         // ---------------------------------------------------------- Acerca
         SettingsSectionCard(
-            title = "Acerca",
+            title = s.aboutSection,
             headerIcon = Icons.Filled.Visibility,
         ) {
             SettingsItemRow(
                 icon = Icons.Filled.Star,
-                title = "Calificar la app",
+                title = s.rateTheApp,
                 onClick = onOpenRateApp,
             )
             SettingsItemDivider()
             SettingsItemRow(
                 icon = Icons.Filled.Info,
-                title = "Acerca de Gaply",
+                title = s.aboutGaply,
                 onClick = onOpenAbout,
             )
         }
@@ -163,7 +165,7 @@ fun SettingsScreen(
         Spacer(modifier = Modifier.height(32.dp))
 
         Text(
-            text = "© Gaply 2026 - Version 1.0",
+            text = s.copyrightText,
             style = MaterialTheme.typography.bodySmall.copy(
                 fontFamily = PlayfairDisplay,
                 fontWeight = FontWeight.Bold,
@@ -176,7 +178,7 @@ fun SettingsScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         GaplyOutlineButton(
-            text = "Cerrar sesión",
+            text = s.logout,
             onClick = {
                 viewModel.signOut()
                 onLogout()
@@ -193,6 +195,15 @@ fun SettingsScreen(
         )
 
         Spacer(modifier = Modifier.height(24.dp))
+    }
+
+    if (showThemeDialog) {
+        AppDialog(
+            style = DialogStyle.INFO,
+            title = s.theme,
+            message = s.themeSoonMessage,
+            onDismiss = { showThemeDialog = false },
+        )
     }
 }
 

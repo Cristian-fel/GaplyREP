@@ -45,6 +45,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.gaply.app.core.i18n.LocalStrings
 import com.gaply.app.domain.model.ActivityItem
 import com.gaply.app.ui.theme.BrandGreen
 import com.gaply.app.ui.theme.ErrorRed
@@ -67,6 +68,7 @@ fun MyActivitiesScreen(
 ) {
     val viewModel = rememberActivityViewModel()
     val state by viewModel.uiState.collectAsState()
+    val s = LocalStrings.current
 
     val mine = state.activities.filter { it.isCreatedByMe }
 
@@ -84,12 +86,12 @@ fun MyActivitiesScreen(
             IconButton(onClick = onBack) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Volver",
+                    contentDescription = s.back,
                     tint = Color.Black,
                 )
             }
             Text(
-                text = "Tus actividades",
+                text = s.myActivitiesCardTitle,
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = Color.Black,
@@ -99,8 +101,7 @@ fun MyActivitiesScreen(
 
         if (mine.isEmpty()) {
             EmptyActivitiesState(
-                message = "Aún no has publicado actividades. " +
-                    "Crea una con \"Agregar tu propia actividad\" y aparecerá aquí.",
+                message = s.myActivitiesEmptyMsg(s.addYourOwnActivity),
             )
         } else {
             LazyColumn(
@@ -128,7 +129,7 @@ fun MyActivitiesScreen(
             containerColor = SurfaceWhite,
             title = {
                 Text(
-                    text = "Cancelar actividad",
+                    text = s.cancelActivityTitle,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = Color.Black,
@@ -136,7 +137,7 @@ fun MyActivitiesScreen(
             },
             text = {
                 Text(
-                    text = "¿Estás seguro de que deseas cancelar esta actividad?",
+                    text = s.cancelActivityConfirmMsg,
                     style = MaterialTheme.typography.bodyLarge,
                     color = TextSecondary,
                 )
@@ -148,12 +149,12 @@ fun MyActivitiesScreen(
                         pendingDelete = null
                     },
                 ) {
-                    Text("Sí, cancelar actividad", color = ErrorRed, fontWeight = FontWeight.Bold)
+                    Text(s.confirmCancelActivity, color = ErrorRed, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { pendingDelete = null }) {
-                    Text("Volver", color = BrandGreen)
+                    Text(s.back, color = BrandGreen)
                 }
             },
         )
@@ -169,6 +170,7 @@ private fun MyActivityCard(
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val s = LocalStrings.current
     Card(
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = SurfaceWhite),
@@ -245,7 +247,7 @@ private fun MyActivityCard(
                             modifier = Modifier.size(18.dp),
                         )
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("Editar", fontWeight = FontWeight.Bold)
+                        Text(s.edit, fontWeight = FontWeight.Bold)
                     }
                     OutlinedButton(
                         onClick = onDelete,
@@ -260,7 +262,7 @@ private fun MyActivityCard(
                             modifier = Modifier.size(18.dp),
                         )
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("Cancelar", fontWeight = FontWeight.Bold)
+                        Text(s.cancel, fontWeight = FontWeight.Bold)
                     }
                 }
             }

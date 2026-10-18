@@ -13,6 +13,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
+enum class ProfileError { ACCOUNT_UNKNOWN, PHOTO_CHANGE }
+
 /**
  * Módulo 2 · Lógica de la pestaña Perfil.
  * Ahora mismo se encarga de cambiar la foto desde el badge de la cámara
@@ -26,15 +28,15 @@ class ProfileViewModel(
     private val _uploading = MutableStateFlow(false)
     val uploading: StateFlow<Boolean> = _uploading.asStateFlow()
 
-    private val _error = MutableStateFlow<String?>(null)
-    val error: StateFlow<String?> = _error.asStateFlow()
+    private val _error = MutableStateFlow<ProfileError?>(null)
+    val error: StateFlow<ProfileError?> = _error.asStateFlow()
 
     fun onPhotoSelected(uri: Uri) {
         viewModelScope.launch {
             _uploading.value = true
             val user = authRepository.currentUser.value
             if (user == null) {
-                _error.value = "No pudimos identificar tu cuenta. Cierra sesión y vuelve a entrar."
+                _error.value = ProfileError.ACCOUNT_UNKNOWN
                 _uploading.value = false
                 return@launch
             }
@@ -47,7 +49,7 @@ class ProfileViewModel(
                 }
 
                 is RepoResult.Error -> {
-                    _error.value = "No pudimos cambiar tu foto. Inténtalo más tarde."
+                    _error.value = ProfileError.PHOTO_CHANGE
                 }
             }
             _uploading.value = false

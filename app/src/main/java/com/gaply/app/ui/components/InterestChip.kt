@@ -29,6 +29,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.gaply.app.core.i18n.LocalStrings
 import com.gaply.app.ui.theme.BrandGreen
 import com.gaply.app.ui.theme.Mint
 import com.gaply.app.ui.theme.Sage
@@ -45,6 +46,7 @@ fun InterestPill(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val s = LocalStrings.current
     val icon = interestIconFor(label)
 
     FilterChip(
@@ -52,7 +54,7 @@ fun InterestPill(
         onClick = onClick,
         label = {
             Text(
-                text = label,
+                text = s.interestLabel(label),
                 style = MaterialTheme.typography.labelMedium,
                 fontSize = 12.sp,
                 maxLines = 1,

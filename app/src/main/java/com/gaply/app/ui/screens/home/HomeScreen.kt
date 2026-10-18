@@ -78,6 +78,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.gaply.app.R
+import com.gaply.app.core.i18n.AppStrings
+import com.gaply.app.core.i18n.LocalStrings
 import com.gaply.app.di.appContainer
 import com.gaply.app.ui.components.AppDialog
 import com.gaply.app.ui.components.DialogStyle
@@ -91,11 +93,21 @@ import com.gaply.app.ui.theme.Sage
 import com.gaply.app.ui.theme.SurfaceWhite
 import com.gaply.app.ui.theme.TextSecondary
 
+private enum class PlaceKey { BIBLIOTECA, CANCHA, SALON, ZONA_VERDE, AUDITORIO }
+
 private data class PlaceItem(
-    val title: String,
+    val key: PlaceKey,
     val imageRes: Int,
-    val icon: ImageVector
+    val icon: ImageVector,
 )
+
+private fun placeTitle(key: PlaceKey, s: AppStrings): String = when (key) {
+    PlaceKey.BIBLIOTECA -> s.placeLibrary
+    PlaceKey.CANCHA -> s.placeCourt
+    PlaceKey.SALON -> s.placeMultiRoom
+    PlaceKey.ZONA_VERDE -> s.placeGreenZone
+    PlaceKey.AUDITORIO -> s.placeAuditorium
+}
 
 private data class CulturalEventItem(
     val title: String,
@@ -104,11 +116,11 @@ private data class CulturalEventItem(
 )
 
 private val suggestedPlaces = listOf(
-    PlaceItem("Biblioteca", R.drawable.img_biblioteca, Icons.Default.AccountBalance),
-    PlaceItem("Cancha M7A", R.drawable.img_cancha, Icons.Default.SportsSoccer),
-    PlaceItem("Salón Polifuncional", R.drawable.img_gimnasio, Icons.Default.FitnessCenter),
-    PlaceItem("Zona Verde", R.drawable.img_zona_verde, Icons.Default.Park),
-    PlaceItem("Auditorio", R.drawable.img_auditorio, Icons.Default.TheaterComedy)
+    PlaceItem(PlaceKey.BIBLIOTECA, R.drawable.img_biblioteca, Icons.Default.AccountBalance),
+    PlaceItem(PlaceKey.CANCHA, R.drawable.img_cancha, Icons.Default.SportsSoccer),
+    PlaceItem(PlaceKey.SALON, R.drawable.img_gimnasio, Icons.Default.FitnessCenter),
+    PlaceItem(PlaceKey.ZONA_VERDE, R.drawable.img_zona_verde, Icons.Default.Park),
+    PlaceItem(PlaceKey.AUDITORIO, R.drawable.img_auditorio, Icons.Default.TheaterComedy)
 )
 
 private val culturalEvents = listOf(
@@ -152,6 +164,7 @@ fun HomeScreen(
         factory = HomeViewModel.factory(context.appContainer()),
     )
     val state by viewModel.uiState.collectAsState()
+    val s = LocalStrings.current
 
     // Recarga el hueco de hoy cada vez que se entra/vuelve a la pantalla
     // (por ejemplo, después de editar el horario en "Mi horario").
@@ -173,20 +186,21 @@ fun HomeScreen(
                 0 -> DiscoverTab(
                     state = state,
                     viewModel = viewModel,
+                    s = s,
                     onOpenActivities = onOpenActivities,
                     onCreateActivity = onCreateActivity,
                     onOpenMyActivities = onOpenMyActivities,
                 )
                 1 -> PlaceholderTab(
                     emoji = "👥",
-                    title = "Matches",
-                    message = "Tus matches aparecerán aquí.",
+                    title = s.tabMatches,
+                    message = s.matchesEmptyMsg,
                 )
 
                 2 -> PlaceholderTab(
                     emoji = "💬",
-                    title = "Chats",
-                    message = "Tus conversaciones aparecerán aquí.",
+                    title = s.tabChats,
+                    message = s.chatsEmptyMsg,
                 )
 
                 else -> ProfileScreen(
@@ -206,15 +220,15 @@ fun HomeScreen(
     when (state.dialog) {
         HomeDialog.CREATE_ACTIVITY -> AppDialog(
             style = DialogStyle.ERROR,
-            title = "¡Error de conexión!",
-            message = "Comprueba tu conexión, inténtalo más tarde.",
+            title = s.connectionErrorTitle,
+            message = s.connectionErrorMessage,
             onDismiss = viewModel::consumeDialog,
         )
 
         HomeDialog.EVENT_SITE -> AppDialog(
             style = DialogStyle.INFO,
-            title = "Agenda cultural",
-            message = "En la versión final, este enlace abrirá el sitio del evento.",
+            title = s.culturalAgenda,
+            message = s.eventSiteInfoMsg,
             onDismiss = viewModel::consumeDialog,
         )
 
@@ -227,11 +241,12 @@ private fun GaplyBottomBar(
     selected: Int,
     onSelect: (Int) -> Unit,
 ) {
+    val s = LocalStrings.current
     val tabs = listOf(
-        "Descubrir" to Icons.Filled.Search,
-        "Matches" to Icons.Filled.Groups,
-        "Chats" to Icons.Filled.ChatBubble,
-        "Perfil" to Icons.Filled.Person,
+        s.tabDiscover to Icons.Filled.Search,
+        s.tabMatches to Icons.Filled.Groups,
+        s.tabChats to Icons.Filled.ChatBubble,
+        s.tabProfile to Icons.Filled.Person,
     )
 
     NavigationBar(
@@ -274,6 +289,7 @@ private fun GaplyBottomBar(
 private fun DiscoverTab(
     state: HomeUiState,
     viewModel: HomeViewModel,
+    s: AppStrings = LocalStrings.current,
     onOpenActivities: () -> Unit = {},
     onCreateActivity: () -> Unit = {},
     onOpenMyActivities: () -> Unit = {},
@@ -302,14 +318,14 @@ private fun DiscoverTab(
                 if (avatarUrl.isNotBlank()) {
                     AsyncImage(
                         model = avatarUrl,
-                        contentDescription = "Foto de perfil",
+                        contentDescription = s.profilePhotoCd,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize(),
                     )
                 } else {
                     Icon(
                         imageVector = Icons.Filled.Person,
-                        contentDescription = "Perfil",
+                        contentDescription = s.tabProfile,
                         tint = Color.White,
                         modifier = Modifier.size(24.dp),
                     )
@@ -317,7 +333,7 @@ private fun DiscoverTab(
             }
             Spacer(modifier = Modifier.width(12.dp))
             Text(
-                text = state.user?.firstName?.takeIf { it.isNotBlank() } ?: "Bienvenido",
+                text = state.user?.firstName?.takeIf { it.isNotBlank() } ?: s.welcomeUser,
                 style = MaterialTheme.typography.titleLarge.copy(
                     fontWeight = FontWeight.Bold,
                     fontSize = 22.sp
@@ -328,7 +344,7 @@ private fun DiscoverTab(
             IconButton(onClick = { }) {
                 Icon(
                     imageVector = Icons.Filled.Notifications,
-                    contentDescription = "Notificaciones",
+                    contentDescription = s.notificationsCd,
                     tint = Color.Black,
                     modifier = Modifier.size(26.dp)
                 )
@@ -358,12 +374,17 @@ private fun DiscoverTab(
                 Spacer(modifier = Modifier.width(12.dp))
                 Text(
                     text = when {
-                        state.huecoDeHoy != null -> "Tienes ${state.huecoDeHoy}"
+                        state.huecoDeHoy != null -> {
+                            val hueco = state.huecoDeHoy!!
+                            s.youHaveFreeSlot(
+                                "${s.freeDuration(hueco.duracionMinutos)} " +
+                                    s.formatTimeRange(hueco.inicioHora, hueco.finHora),
+                            )
+                        }
 
-                        !state.tieneHorario ->
-                            "Agrega tus clases en Mi horario para ver tus huecos libres"
+                        !state.tieneHorario -> s.addClassesToSeeSlots
 
-                        else -> "Hoy no tienes huecos libres"
+                        else -> s.noFreeSlotsToday
                     },
                     color = Color.White,
                     fontWeight = FontWeight.SemiBold,
@@ -375,7 +396,7 @@ private fun DiscoverTab(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        SectionTitle(text = "Sugerencias para hoy")
+        SectionTitle(text = s.suggestionsToday)
 
         Spacer(modifier = Modifier.height(12.dp))
 
@@ -384,7 +405,7 @@ private fun DiscoverTab(
             contentPadding = PaddingValues(end = 16.dp)
         ) {
             items(suggestedPlaces) { place ->
-                PlaceCard(place = place)
+                PlaceCard(place = place, title = placeTitle(place.key, s))
             }
         }
 
@@ -409,7 +430,7 @@ private fun DiscoverTab(
             )
             Spacer(modifier = Modifier.width(10.dp))
             Text(
-                text = "Ver actividades para tu hueco",
+                text = s.activitiesForYourSlot,
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
             )
@@ -417,7 +438,7 @@ private fun DiscoverTab(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        SectionTitle(text = "Crear la actividad")
+        SectionTitle(text = s.createActivitySection)
 
         Spacer(modifier = Modifier.height(12.dp))
 
@@ -443,20 +464,20 @@ private fun DiscoverTab(
                 ) {
                     Icon(
                         imageVector = Icons.Filled.Add,
-                        contentDescription = "Agregar",
+                        contentDescription = s.addCd,
                         tint = Color.White
                     )
                 }
                 Spacer(modifier = Modifier.width(16.dp))
                 Column {
                     Text(
-                        text = "Agregar tu propia actividad",
+                        text = s.addYourOwnActivity,
                         fontWeight = FontWeight.Bold,
                         fontSize = 16.sp,
                         color = BrandGreen
                     )
                     Text(
-                        text = "Invita a otros a unirse en tu hueco",
+                        text = s.inviteOthers,
                         fontSize = 12.sp,
                         color = Color.Gray
                     )
@@ -488,20 +509,20 @@ private fun DiscoverTab(
                 ) {
                     Icon(
                         imageVector = Icons.Filled.Favorite,
-                        contentDescription = "Tus actividades",
+                        contentDescription = s.myActivitiesCardTitle,
                         tint = BrandGreen
                     )
                 }
                 Spacer(modifier = Modifier.width(16.dp))
                 Column {
                     Text(
-                        text = "Tus actividades",
+                        text = s.myActivitiesCardTitle,
                         fontWeight = FontWeight.Bold,
                         fontSize = 16.sp,
                         color = Color.White
                     )
                     Text(
-                        text = "Edita o cancela las que ya publicaste",
+                        text = s.myActivitiesCardSubtitle,
                         fontSize = 12.sp,
                         color = Color.White.copy(alpha = 0.8f)
                     )
@@ -517,13 +538,13 @@ private fun DiscoverTab(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            SectionTitle(text = "Agenda cultural")
+            SectionTitle(text = s.culturalAgenda)
             Row(
                 modifier = Modifier.clickable { uriHandler.openUri(URL_AGENDA_GENERAL) },
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "ir al sitio",
+                    text = s.visitWebsite,
                     color = BrandGreen,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold
@@ -531,7 +552,7 @@ private fun DiscoverTab(
                 Spacer(modifier = Modifier.width(4.dp))
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.OpenInNew,
-                    contentDescription = "Ir al sitio",
+                    contentDescription = s.visitWebsite,
                     tint = BrandGreen,
                     modifier = Modifier.size(16.dp)
                 )
@@ -585,7 +606,7 @@ private fun SectionTitle(text: String) {
 }
 
 @Composable
-private fun PlaceCard(place: PlaceItem) {
+private fun PlaceCard(place: PlaceItem, title: String) {
     Card(
         shape = RoundedCornerShape(18.dp),
         modifier = Modifier
@@ -595,7 +616,7 @@ private fun PlaceCard(place: PlaceItem) {
         Box(modifier = Modifier.fillMaxSize()) {
             Image(
                 painter = painterResource(id = place.imageRes),
-                contentDescription = place.title,
+                contentDescription = title,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize()
             )
@@ -633,7 +654,7 @@ private fun PlaceCard(place: PlaceItem) {
                 }
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    text = place.title,
+                    text = title,
                     color = Color.White,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Bold
