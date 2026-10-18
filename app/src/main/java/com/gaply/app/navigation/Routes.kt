@@ -19,12 +19,21 @@ object Routes {
     const val LANGUAGE = "language"
     const val ABOUT = "about"
 
+    // ---- Módulo Actividades (solo rutas nuevas) ----
+    const val NEW_ACTIVITY = "new_activity"
+    const val ACTIVITIES_LIST = "activities_list"
+    const val ACTIVITY_DETAIL = "activity_detail"
+    const val PROFILE = "profile"
+    const val MY_ACTIVITIES = "my_activities"
+    const val EDIT_ACTIVITY = "edit_activity"
+
     const val ARG_IDENTIFIER = "identifier"
     const val ARG_CLASS_ID = "classId"
     const val ARG_DIA = "dia"
     const val ARG_INICIO = "inicio"
     const val ARG_FIN = "fin"
     const val ARG_ACCOUNT_MESSAGE = "accountMessage"
+    const val ARG_ACTIVITY_ID = "activityId"
 
     fun reset(identifier: String): String =
         "$RESET?$ARG_IDENTIFIER=${android.net.Uri.encode(identifier)}"
@@ -41,4 +50,12 @@ object Routes {
     /** Sugerencias del agente abiertas desde un hueco del horario. */
     fun huecos(dia: String, inicio: String, fin: String): String =
         "$HUECOS?$ARG_DIA=${android.net.Uri.encode(dia)}&$ARG_INICIO=$inicio&$ARG_FIN=$fin"
+
+    /** Detalle de una actividad publicada, identificada por su id. */
+    fun activityDetail(activityId: String): String =
+        "$ACTIVITY_DETAIL?$ARG_ACTIVITY_ID=${android.net.Uri.encode(activityId)}"
+
+    /** Formulario en modo edición de una actividad propia (precarga datos). */
+    fun editActivity(activityId: String): String =
+        "$EDIT_ACTIVITY?$ARG_ACTIVITY_ID=${android.net.Uri.encode(activityId)}"
 }
