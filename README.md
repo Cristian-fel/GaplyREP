@@ -14,10 +14,10 @@ actividades abiertas al resto de la comunidad del campus.
 - **Módulo 2 — Perfil y horario:** perfil con foto (Firebase Storage), edición
   en 3 pasos, "Mi horario" con clases por día, edición y eliminación, cálculo
   de huecos libres y pantalla de sugerencias ("Mis huecos").
-- **Configuración:** cuenta y seguridad (cambiar contraseña, desactivar y
+- **Módulo 3 - Configuración:** cuenta y seguridad (cambiar contraseña, desactivar y
   eliminar cuenta), preferencias (tema, notificaciones, idioma), acerca de la
   app, calificación con estrellas y cerrar sesión.
-- **Actividades:** crear, explorar, editar y eliminar actividades; detalle con
+- **Módulo 4 - Actividades:** crear, explorar, editar y eliminar actividades; detalle con
   asistentes y opción de unirse; pestaña "Tus actividades". Se persisten en la
   colección `activities` de Firestore.
 
