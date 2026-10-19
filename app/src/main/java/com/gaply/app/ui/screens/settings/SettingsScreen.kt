@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
@@ -185,7 +184,6 @@ fun SettingsScreen(
             },
             borderColor = ErrorRed,
             contentColor = ErrorRed,
-            shape = RoundedCornerShape(50),
             leadingIcon = Icons.AutoMirrored.Filled.Logout,
             textStyle = MaterialTheme.typography.titleMedium.copy(
                 fontFamily = PlayfairDisplay,

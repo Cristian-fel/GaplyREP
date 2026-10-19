@@ -1,5 +1,8 @@
 package com.gaply.app.ui.screens.settings
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.gaply.app.core.i18n.AppLanguage
@@ -23,8 +26,9 @@ class LanguageViewModel(
     /** Idiomas visibles y seleccionables en esta versión. */
     val languages: List<AppLanguage> = listOf(AppLanguage.ES, AppLanguage.EN)
 
-    var selected: AppLanguage =
-        if (initialLanguage in languages) initialLanguage else AppLanguage.DEFAULT
+    var selected: AppLanguage by mutableStateOf(
+        if (initialLanguage in languages) initialLanguage else AppLanguage.DEFAULT,
+    )
         private set
 
     val savedLanguage: StateFlow<AppLanguage> = preference.appLanguage

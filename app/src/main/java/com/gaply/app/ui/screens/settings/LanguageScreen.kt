@@ -35,7 +35,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.gaply.app.R
 import com.gaply.app.core.i18n.AppLanguage
@@ -120,14 +119,6 @@ fun LanguageScreen(
                 viewModel.save()
                 onBack()
             },
-            containerColor = BrandGreenDark,
-            contentColor = SurfaceWhite,
-            shape = RoundedCornerShape(50),
-            textStyle = MaterialTheme.typography.titleMedium.copy(
-                fontFamily = PlayfairDisplay,
-                fontWeight = FontWeight.Bold,
-                fontSize = 20.sp,
-            ),
         )
 
         Spacer(modifier = Modifier.height(24.dp))

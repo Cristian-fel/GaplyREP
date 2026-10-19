@@ -23,7 +23,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -164,14 +163,6 @@ fun RateAppScreen(
             onClick = viewModel::submit,
             enabled = viewModel.canSubmit,
             loading = viewModel.loading,
-            containerColor = BrandGreenDark,
-            contentColor = Color.White,
-            shape = RoundedCornerShape(50),
-            textStyle = MaterialTheme.typography.titleMedium.copy(
-                fontFamily = PlayfairDisplay,
-                fontWeight = FontWeight.Bold,
-                fontSize = 20.sp,
-            ),
         )
 
         Spacer(modifier = Modifier.height(24.dp))
