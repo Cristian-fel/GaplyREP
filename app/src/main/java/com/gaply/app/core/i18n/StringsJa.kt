@@ -559,6 +559,10 @@ object StringsJa : AppStrings {
     override fun attendeesCount(count: Int) = "参加者: $count"
     override val joinActivity = "参加する"
     override val alreadyJoined = "参加済みです"
+    override val leaveActivityTitle = "活動から退出する"
+    override val leaveActivityConfirmMsg =
+        "この活動から退出しますか？またいつでも参加できます。"
+    override val confirmLeaveActivity = "はい、退出する"
     override val comingSoonTitle = "近日公開！"
     override val comingSoonMsg = "現在制作中で、近日追加されます"
     override val eventChat = "イベントチャット"

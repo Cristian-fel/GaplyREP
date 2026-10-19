@@ -2,7 +2,10 @@ package com.gaply.app.ui.screens.activities
 
 import android.graphics.Color as AndroidColor
 import androidx.compose.ui.graphics.Color
+import com.gaply.app.domain.agent.DiaSemana
+import com.gaply.app.domain.agent.FranjaHoraria
 import com.gaply.app.domain.model.ActivityItem
+import com.gaply.app.domain.model.HuecoLibre
 import com.gaply.app.domain.model.ScheduleClass
 import com.gaply.app.ui.theme.BrandGreen
 import java.time.Instant
@@ -83,6 +86,41 @@ internal object ActivityFormat {
             ?.let { Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate() }
             ?: runCatching { LocalDate.parse(date) }.getOrNull()
         return fecha == dia
+    }
+
+    /**
+     * Día de la semana (del agente) de una fecha: LUNES..DOMINGO, el mismo
+     * orden en que está declarado [DiaSemana]. Sirve para cruzar las
+     * actividades de hoy con los huecos libres de hoy.
+     */
+    fun diaDe(fecha: LocalDate): DiaSemana =
+        DiaSemana.values()[fecha.dayOfWeek.value - 1]
+
+    /**
+     * Franja que ocupa la actividad (hora de inicio + duración) para cruzarla
+     * con los huecos libres. Devuelve null si la hora de inicio no es válida
+     * o si la actividad cruzaría la medianoche (no cabe en un solo día).
+     */
+    fun franjaDe(activity: ActivityItem, dia: DiaSemana): FranjaHoraria? {
+        val inicio = runCatching { FranjaHoraria.aMinutos(activity.startTime) }.getOrNull()
+            ?: return null
+        val fin = inicio + duracionMinutos(activity.duration)
+        if (fin > 24 * 60) return null
+        return runCatching { FranjaHoraria(dia, inicio, fin) }.getOrNull()
+    }
+
+    /**
+     * true si la actividad coincide con al menos un hueco libre del día
+     * (misma percepción que hace el agente de utilidad: lo que no solapa con
+     * ningún hueco no se propone).
+     */
+    fun encajaEnHueco(
+        activity: ActivityItem,
+        huecos: List<HuecoLibre>,
+        dia: DiaSemana,
+    ): Boolean {
+        val franja = franjaDe(activity, dia) ?: return false
+        return huecos.any { franja.solapaCon(it.aFranjaHoraria(dia)) }
     }
 
     /** Color sólido por defecto cuando no hay foto (verde de la paleta). */

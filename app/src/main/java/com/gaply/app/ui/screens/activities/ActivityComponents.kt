@@ -42,6 +42,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.gaply.app.core.i18n.LocalStrings
 import com.gaply.app.di.appContainer
+import com.gaply.app.ui.screens.home.HomeUiState
 import com.gaply.app.ui.screens.home.HomeViewModel
 import com.gaply.app.ui.theme.BrandGreen
 import com.gaply.app.ui.theme.Sage
@@ -127,22 +128,27 @@ internal fun HuecoBanner(
 }
 
 /**
- * Texto del banner de tiempo libre de las pantallas del módulo: consume
- * EXACTAMENTE el mismo [HomeViewModel] de la pantalla de Inicio
- * (cargarHorario + huecoDeHoy + tieneHorario) y las mismas cadenas i18n,
- * así las 3 pantallas (Inicio, Listado y Detalle) muestran siempre la
- * misma información del horario real del usuario, nunca un texto fijo.
+ * Estado del horario real de hoy (mismo [HomeViewModel] de la pantalla de
+ * Inicio): cargarHorario + huecos de hoy + tieneHorario. Las pantallas del
+ * módulo lo consumen para el banner y para filtrar las actividades por hueco.
  */
 @Composable
-internal fun huecoBannerDeHoy(): String {
+internal fun rememberHomeEstado(): HomeUiState {
     val context = LocalContext.current
     val homeViewModel: HomeViewModel = viewModel(
         factory = HomeViewModel.factory(context.appContainer()),
     )
     val homeState by homeViewModel.uiState.collectAsState()
-    val s = LocalStrings.current
 
     LaunchedEffect(Unit) { homeViewModel.cargarHorario() }
+
+    return homeState
+}
+
+/** Texto del banner de tiempo libre a partir del estado del horario de hoy. */
+@Composable
+internal fun bannerDeHueco(homeState: HomeUiState): String {
+    val s = LocalStrings.current
 
     return when (val hueco = homeState.huecoDeHoy) {
         null -> if (!homeState.tieneHorario) s.addClassesToSeeSlots else s.noFreeSlotsToday
@@ -152,6 +158,10 @@ internal fun huecoBannerDeHoy(): String {
         )
     }
 }
+
+/** Texto del banner de tiempo libre de las pantallas del módulo. */
+@Composable
+internal fun huecoBannerDeHoy(): String = bannerDeHueco(rememberHomeEstado())
 
 /** Etiqueta verde de categoría (esquina superior izquierda de la imagen). */
 @Composable

@@ -29,6 +29,12 @@ interface ActivityRepository {
     suspend fun join(activityId: String, attendeeName: String): RepoResult<String>
 
     /**
+     * Sale de la actividad (deshace "Unirme"): quita el uid de `attendeeIds`
+     * y el nombre de `attendees` con arrayRemove.
+     */
+    suspend fun leave(activityId: String, attendeeName: String): RepoResult<String>
+
+    /**
      * Sube la foto del lugar a Storage (ruta `activities/{uid}/{activityId}.jpg`)
      * y devuelve su downloadUrl, que queda guardada en el documento y se ve
      * desde cualquier perfil.

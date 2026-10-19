@@ -477,6 +477,10 @@ interface AppStrings {
     fun attendeesCount(count: Int): String
     val joinActivity: String
     val alreadyJoined: String
+    /** Confirmación de salir de una actividad a la que te uniste (deshacer "Unirme"). */
+    val leaveActivityTitle: String
+    val leaveActivityConfirmMsg: String
+    val confirmLeaveActivity: String
     val comingSoonTitle: String
     val comingSoonMsg: String
     val eventChat: String

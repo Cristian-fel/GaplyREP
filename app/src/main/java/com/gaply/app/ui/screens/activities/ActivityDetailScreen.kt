@@ -86,6 +86,7 @@ fun ActivityDetailScreen(
 
     var showComingSoon by remember { mutableStateOf(false) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
+    var showLeaveConfirm by remember { mutableStateOf(false) }
 
     Column(modifier = Modifier.fillMaxSize()) {
         ActivitiesTopSection(
@@ -249,10 +250,12 @@ fun ActivityDetailScreen(
                 Spacer(modifier = Modifier.height(16.dp))
             }
 
-            // Botón Unirme / Ya está dentro.
+            // Botón Unirme / Ya está dentro (estando dentro, al tocarlo pregunta si salir).
             Button(
-                onClick = { if (!activity.isJoined) viewModel.join(activity.id) },
-                enabled = !activity.isJoined,
+                onClick = {
+                    if (activity.isJoined) showLeaveConfirm = true
+                    else viewModel.join(activity.id)
+                },
                 shape = RoundedCornerShape(50),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = BrandGreen,
@@ -296,6 +299,45 @@ fun ActivityDetailScreen(
             message = s.comingSoonMsg,
             confirmText = s.close,
             onDismiss = { showComingSoon = false },
+        )
+    }
+
+    // Confirmación de salir de una actividad a la que se unió el usuario.
+    if (showLeaveConfirm) {
+        AlertDialog(
+            onDismissRequest = { showLeaveConfirm = false },
+            shape = RoundedCornerShape(24.dp),
+            containerColor = SurfaceWhite,
+            title = {
+                Text(
+                    text = s.leaveActivityTitle,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black,
+                )
+            },
+            text = {
+                Text(
+                    text = s.leaveActivityConfirmMsg,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = TextSecondary,
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.leave(activityId)
+                        showLeaveConfirm = false
+                    },
+                ) {
+                    Text(s.confirmLeaveActivity, color = ErrorRed, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showLeaveConfirm = false }) {
+                    Text(s.back, color = BrandGreen)
+                }
+            },
         )
     }
 
