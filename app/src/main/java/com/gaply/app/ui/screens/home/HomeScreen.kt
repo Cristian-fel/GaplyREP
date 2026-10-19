@@ -101,6 +101,15 @@ private data class PlaceItem(
     val icon: ImageVector,
 )
 
+/** Categoría canónica (de los 9 intereses) que representa cada lugar del campus. */
+private fun categoriaDe(key: PlaceKey): String = when (key) {
+    PlaceKey.BIBLIOTECA -> "Estudio"
+    PlaceKey.CANCHA -> "Deportes"
+    PlaceKey.SALON -> "Baile"
+    PlaceKey.ZONA_VERDE -> "Eventos"
+    PlaceKey.AUDITORIO -> "Música"
+}
+
 private fun placeTitle(key: PlaceKey, s: AppStrings): String = when (key) {
     PlaceKey.BIBLIOTECA -> s.placeLibrary
     PlaceKey.CANCHA -> s.placeCourt
@@ -187,7 +196,16 @@ fun HomeScreen(
                     state = state,
                     viewModel = viewModel,
                     s = s,
-                    onOpenActivities = onOpenActivities,
+                    onOpenActivities = {
+                        // Acceso general al listado: se olvida el filtro de lugar.
+                        context.appContainer().filtroActividades.value = null
+                        onOpenActivities()
+                    },
+                    onOpenActivitiesByCategory = { categoria ->
+                        // Tocar un lugar: el listado se abre filtrado por su categoría.
+                        context.appContainer().filtroActividades.value = categoria
+                        onOpenActivities()
+                    },
                     onCreateActivity = onCreateActivity,
                     onOpenMyActivities = onOpenMyActivities,
                 )
@@ -291,6 +309,7 @@ private fun DiscoverTab(
     viewModel: HomeViewModel,
     s: AppStrings = LocalStrings.current,
     onOpenActivities: () -> Unit = {},
+    onOpenActivitiesByCategory: (String) -> Unit = {},
     onCreateActivity: () -> Unit = {},
     onOpenMyActivities: () -> Unit = {},
 ) {
@@ -406,7 +425,11 @@ private fun DiscoverTab(
             contentPadding = PaddingValues(end = 16.dp)
         ) {
             items(suggestedPlaces) { place ->
-                PlaceCard(place = place, title = placeTitle(place.key, s))
+                PlaceCard(
+                    place = place,
+                    title = placeTitle(place.key, s),
+                    onClick = { onOpenActivitiesByCategory(categoriaDe(place.key)) },
+                )
             }
         }
 
@@ -607,12 +630,13 @@ private fun SectionTitle(text: String) {
 }
 
 @Composable
-private fun PlaceCard(place: PlaceItem, title: String) {
+private fun PlaceCard(place: PlaceItem, title: String, onClick: () -> Unit) {
     Card(
         shape = RoundedCornerShape(18.dp),
         modifier = Modifier
             .width(140.dp)
             .height(150.dp)
+            .clickable(onClick = onClick)
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
             Image(

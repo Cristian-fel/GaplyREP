@@ -224,9 +224,7 @@ fun GaplyNavHost() {
                 onEditClass = { classId ->
                     navController.navigate(Routes.scheduleEdit(classId = classId))
                 },
-                onOpenHuecos = { dia, inicio, fin ->
-                    navController.navigate(Routes.huecos(dia = dia, inicio = inicio, fin = fin))
-                },
+                onOpenActivities = { navController.navigate(Routes.ACTIVITIES_LIST) },
             )
         }
 

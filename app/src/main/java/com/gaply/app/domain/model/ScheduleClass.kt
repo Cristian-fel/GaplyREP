@@ -101,9 +101,7 @@ data class HuecoLibre(
 
     fun aFranjaHoraria(dia: DiaSemana): FranjaHoraria = FranjaHoraria(dia, inicioMinutos, finMinutos)
 
-    companion object {
-
-        /**
+    companion object {        /**
          * Huecos de al menos [minimoMinutos] entre clases consecutivas del día,
          * en orden. Los usa la pantalla del horario y el banner del Home
          * (el mismo dato con el que trabaja el agente de utilidad).
@@ -125,3 +123,12 @@ data class HuecoLibre(
         }
     }
 }
+
+/**
+ * Hueco tocado en la banda del horario ("ver actividades para este hueco"):
+ * el listado de actividades se filtra por ese día y ese rango exacto.
+ */
+data class FiltroFranja(
+    val dia: java.time.LocalDate,
+    val hueco: HuecoLibre,
+)

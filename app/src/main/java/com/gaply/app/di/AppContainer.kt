@@ -54,6 +54,21 @@ class AppContainer(context: Context) : LanguagePreference {
         LocalActivityRepository()
     }
 
+    /**
+     * Filtro de categoría del listado "Actividades para tu hueco": lo escribe
+     * el Home al tocar un lugar y lo lee el listado (null = ver todo). Vive
+     * aquí (igual que appLanguage) para no depender de argumentos de navegación.
+     */
+    val filtroActividades: kotlinx.coroutines.flow.MutableStateFlow<String?> =
+        kotlinx.coroutines.flow.MutableStateFlow(null)
+
+    /**
+     * Hueco tocado en la banda del horario (día + rango): el listado se
+     * filtra por ese hueco exacto en lugar de por los huecos de hoy.
+     */
+    val filtroFranja: kotlinx.coroutines.flow.MutableStateFlow<com.gaply.app.domain.model.FiltroFranja?> =
+        kotlinx.coroutines.flow.MutableStateFlow(null)
+
     val ratingsRepository: RatingsRepository = if (USE_FIREBASE) {
         FirebaseRatingsRepository()
     } else {

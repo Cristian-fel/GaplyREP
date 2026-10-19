@@ -53,6 +53,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.gaply.app.core.i18n.LocalStrings
 import com.gaply.app.di.appContainer
+import com.gaply.app.domain.model.FiltroFranja
 import com.gaply.app.domain.model.HuecoLibre
 import com.gaply.app.domain.model.ScheduleClass
 import com.gaply.app.ui.components.AppDialog
@@ -72,7 +73,7 @@ fun ScheduleScreen(
     onBack: () -> Unit,
     onAddClass: (String) -> Unit,
     onEditClass: (String) -> Unit,
-    onOpenHuecos: (String, String, String) -> Unit,
+    onOpenActivities: () -> Unit,
 ) {
     val context = LocalContext.current
     val viewModel: ScheduleViewModel = androidx.lifecycle.viewmodel.compose.viewModel(
@@ -139,7 +140,15 @@ fun ScheduleScreen(
                     onDiaSiguiente = { viewModel.cambiarDia(+1) },
                     onAddClass = onAddClass,
                     onEditClass = onEditClass,
-                    onOpenHuecos = onOpenHuecos,
+                    onVerActividadesDeHueco = { hueco ->
+                        // "Ver actividades para este hueco": filtra el
+                        // listado por ese día y rango y lo abre.
+                        val container = context.appContainer()
+                        container.filtroFranja.value =
+                            FiltroFranja(dia = state.fechaVisible, hueco = hueco)
+                        container.filtroActividades.value = null
+                        onOpenActivities()
+                    },
                     onImportar = { galeria.launch("image/*") },
                 )
             }
@@ -178,7 +187,7 @@ private fun ContenidoHorario(
     onDiaSiguiente: () -> Unit,
     onAddClass: (String) -> Unit,
     onEditClass: (String) -> Unit,
-    onOpenHuecos: (String, String, String) -> Unit,
+    onVerActividadesDeHueco: (HuecoLibre) -> Unit,
     onImportar: () -> Unit,
 ) {
     val s = LocalStrings.current
@@ -251,8 +260,7 @@ private fun ContenidoHorario(
                 state.huecos.find { it.inicioMinutos == clase.endMinutes }?.let { hueco ->
                     HuecoBand(
                         hueco = hueco,
-                        dia = state.dia,
-                        onVerActividades = onOpenHuecos,
+                        onVerActividades = { onVerActividadesDeHueco(hueco) },
                     )
                 }
             }
@@ -334,8 +342,7 @@ private fun ClaseBand(
 @Composable
 private fun HuecoBand(
     hueco: HuecoLibre,
-    dia: String,
-    onVerActividades: (String, String, String) -> Unit,
+    onVerActividades: () -> Unit,
 ) {
     val s = LocalStrings.current
 
@@ -343,7 +350,7 @@ private fun HuecoBand(
         modifier = Modifier
             .fillMaxWidth()
             .background(BrandGreen)
-            .clickable { onVerActividades(dia, hueco.inicioHora, hueco.finHora) }
+            .clickable { onVerActividades() }
             .padding(horizontal = 24.dp, vertical = 20.dp),
     ) {
         Column {

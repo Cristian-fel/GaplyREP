@@ -17,11 +17,13 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -56,6 +58,8 @@ fun ActivitiesListScreen(
 ) {
     val viewModel = rememberActivityViewModel()
     val state by viewModel.uiState.collectAsState()
+    val filtro by viewModel.filtroCategoria.collectAsState()
+    val franjaSel by viewModel.filtroFranja.collectAsState()
     val s = LocalStrings.current
 
     // Error de guardado/borrado en el repositorio (p. ej. permisos de Firestore):
@@ -83,22 +87,79 @@ fun ActivitiesListScreen(
 
         InterestsSubtitle()
 
-        // Solo las actividades de HOY que encajan en un hueco de hoy: lo que
-        // no solapa con ningún hueco libre no aparece (misma percepción que
-        // la del agente de utilidad, que descarta lo que no cabe en un hueco).
+        // Hueco tocado en la banda del horario ("ver actividades para este
+        // hueco"): filtra por ese día y rango; el chip "×" vuelve a hoy.
+        val franjaElegida = franjaSel
+        franjaElegida?.let { franja ->
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+            ) {
+                CategoryPill(
+                    text = s.formatTimeRange(franja.hueco.inicioHora, franja.hueco.finHora),
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                IconButton(onClick = { viewModel.limpiarFranja() }) {
+                    Icon(
+                        imageVector = Icons.Filled.Close,
+                        contentDescription = s.close,
+                        tint = BrandGreen,
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
+            }
+        }
+
+        // Filtro por categoría que llega del Home (tarjeta de lugar tocada):
+        // el chip "×" vuelve al listado completo.
+        filtro?.let { categoria ->
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+            ) {
+                CategoryPill(text = categoria)
+                Spacer(modifier = Modifier.width(8.dp))
+                IconButton(onClick = { viewModel.limpiarFiltro() }) {
+                    Icon(
+                        imageVector = Icons.Filled.Close,
+                        contentDescription = s.close,
+                        tint = BrandGreen,
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
+            }
+        }
+
+        // Si se tocó un hueco del horario: ese día y ese rango exacto. Si no:
+        // las actividades de HOY que encajan en un hueco de hoy (y en la
+        // categoría elegida, si la hay) — misma percepción que el agente.
         val hoy = LocalDate.now()
         val diaHoy = ActivityFormat.diaDe(hoy)
-        val paraTuHueco = state.activities.filter {
-            ActivityFormat.esDeFecha(it.date, hoy) &&
-                ActivityFormat.encajaEnHueco(it, home.huecosDeHoy, diaHoy)
+        val categoriaActiva = filtro
+        val paraTuHueco = when {
+            franjaElegida != null -> state.activities.filter {
+                ActivityFormat.esDeFecha(it.date, franjaElegida.dia) &&
+                    (categoriaActiva == null || it.category == categoriaActiva) &&
+                    ActivityFormat.solapaConHueco(
+                        it,
+                        franjaElegida.hueco,
+                        ActivityFormat.diaDe(franjaElegida.dia),
+                    )
+            }
+
+            else -> state.activities.filter {
+                ActivityFormat.esDeFecha(it.date, hoy) &&
+                    (categoriaActiva == null || it.category == categoriaActiva) &&
+                    ActivityFormat.encajaEnHueco(it, home.huecosDeHoy, diaHoy)
+            }
         }
 
         if (paraTuHueco.isEmpty()) {
             EmptyActivitiesState(
-                // Sin huecos, el mensaje explica el porqué (igual que el banner):
-                // con hueco libre y vacío, se invita a publicar.
+                // Con un hueco elegido o con hueco libre y vacío, se invita
+                // a publicar; sin horario o sin huecos, se explica el porqué.
                 message = when {
-                    home.huecosDeHoy.isNotEmpty() -> s.activitiesEmptyListMsg
+                    franjaElegida != null || home.huecosDeHoy.isNotEmpty() -> s.activitiesEmptyListMsg
                     !home.tieneHorario -> s.addClassesToSeeSlots
                     else -> s.noFreeSlotsToday
                 },

@@ -51,6 +51,8 @@ data class ActivitiesUiState(
 class ActivityViewModel(
     private val authRepository: AuthRepository,
     private val activityRepository: ActivityRepository,
+    private val filtroActividades: MutableStateFlow<String?>,
+    private val filtroFranjaDeHueco: MutableStateFlow<com.gaply.app.domain.model.FiltroFranja?>,
 ) : ViewModel() {
 
     private val _activities = MutableStateFlow<List<ActivityItem>>(emptyList())
@@ -78,8 +80,31 @@ class ActivityViewModel(
         initialValue = ActivitiesUiState(),
     )
 
+    /** Categoría activa del listado (null = ver todo); la escribe el Home. */
+    val filtroCategoria: StateFlow<String?> get() = filtroActividades
+
+    /** Hueco tocado en el horario (null = se usan los huecos de hoy). */
+    val filtroFranja: StateFlow<com.gaply.app.domain.model.FiltroFranja?> get() = filtroFranjaDeHueco
+
     init {
         refresh()
+    }
+
+    /** Filtra el listado por categoría (tarjeta de lugar tocada en el Home). */
+    fun filtrarPorCategoria(categoria: String) {
+        filtroActividades.value = categoria
+        // Las dos entradas se excluyen: un lugar elegido reemplaza al hueco.
+        filtroFranjaDeHueco.value = null
+    }
+
+    /** Muestra el listado completo (chip "×" o botón principal del Home). */
+    fun limpiarFiltro() {
+        filtroActividades.value = null
+    }
+
+    /** Vuelve de un hueco del horario a los huecos de hoy (chip "×"). */
+    fun limpiarFranja() {
+        filtroFranjaDeHueco.value = null
     }
 
     /** Recarga la lista desde el repositorio (al abrir y tras cada escritura). */
@@ -125,6 +150,10 @@ class ActivityViewModel(
             when (val result = activityRepository.save(dueno)) {
                 is RepoResult.Success -> {
                     _error.value = null
+                    // Tras publicar se vuelve al listado completo: la nueva
+                    // actividad no debe quedar oculta por ningún filtro.
+                    limpiarFiltro()
+                    limpiarFranja()
                     refresh()
                 }
 
@@ -298,6 +327,8 @@ class ActivityViewModel(
                     return ActivityViewModel(
                         authRepository = container.authRepository,
                         activityRepository = container.activityRepository,
+                        filtroActividades = container.filtroActividades,
+                        filtroFranjaDeHueco = container.filtroFranja,
                     ) as T
                 }
             }

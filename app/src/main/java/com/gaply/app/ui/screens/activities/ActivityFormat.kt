@@ -123,6 +123,16 @@ internal object ActivityFormat {
         return huecos.any { franja.solapaCon(it.aFranjaHoraria(dia)) }
     }
 
+    /**
+     * true si la actividad solapa con el hueco tocado en la banda del
+     * horario ("ver actividades para este hueco"): el mismo cruce de
+     * franjas que [encajaEnHueco], con un solo hueco elegido.
+     */
+    fun solapaConHueco(activity: ActivityItem, hueco: HuecoLibre, dia: DiaSemana): Boolean {
+        val franja = franjaDe(activity, dia) ?: return false
+        return franja.solapaCon(hueco.aFranjaHoraria(dia))
+    }
+
     /** Color sólido por defecto cuando no hay foto (verde de la paleta). */
     fun colorSolido(hex: String?): Color {
         val safe = hex?.takeIf { it.isNotBlank() } ?: ActivityItem.DEFAULT_COLOR_HEX

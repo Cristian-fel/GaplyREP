@@ -67,4 +67,21 @@ class ActivityFormatHuecoTest {
         // 23:30 + 2 horas no cabe en la franja de un solo día.
         assertFalse(encaja(actividad("23:30", duracion = "2 horas")))
     }
+
+    @Test
+    fun `la actividad que solapa el hueco tocado por el borde`() {
+        // 11:30-12:30 comparte 30 minutos con el hueco tocado 10:00-12:00.
+        assertTrue(ActivityFormat.solapaConHueco(actividad("11:30"), hueco, martes))
+    }
+
+    @Test
+    fun `la actividad fuera del hueco tocado no la propone`() {
+        // 12:00-13:00 empieza donde termina el hueco tocado: solape 0.
+        assertFalse(ActivityFormat.solapaConHueco(actividad("12:00"), hueco, martes))
+    }
+
+    @Test
+    fun `la hora invalida no solapa con el hueco tocado`() {
+        assertFalse(ActivityFormat.solapaConHueco(actividad("25:99"), hueco, martes))
+    }
 }

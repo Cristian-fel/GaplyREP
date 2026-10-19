@@ -32,6 +32,8 @@ data class ScheduleUiState(
     val mesCorto: String = "",
     /** Huecos libres entre clases del día visible. */
     val huecos: List<HuecoLibre> = emptyList(),
+    /** Fecha real del día visible; sirve para filtrar "este hueco". */
+    val fechaVisible: LocalDate = LocalDate.now(),
     /** true si hay clases en otros días (para orientar en el estado vacío). */
     val hayClasesOtrosDias: Boolean = false,
     val error: ScheduleError? = null,
@@ -132,6 +134,7 @@ class ScheduleViewModel(
             fecha = strings.formatMonthDay(fechaDelDia),
             mesCorto = strings.formatMonthAbbrev(fechaDelDia),
             huecos = calcularHuecos(clasesDelDia),
+            fechaVisible = fechaDelDia,
             hayClasesOtrosDias = clasesSemana.any { it.day != diaVisible },
         )
     }
