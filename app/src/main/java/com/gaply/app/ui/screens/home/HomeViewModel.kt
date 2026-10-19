@@ -24,6 +24,8 @@ data class HomeUiState(
     val dialog: HomeDialog? = null,
     /** El mayor hueco de hoy, o null. La pantalla lo formatea con el idioma activo. */
     val huecoDeHoy: HuecoLibre? = null,
+    /** Todos los huecos libres de hoy; con ellos se filtra el listado de actividades. */
+    val huecosDeHoy: List<HuecoLibre> = emptyList(),
     /** true si el usuario ya tiene al menos una clase en el horario. */
     val tieneHorario: Boolean = false,
 )
@@ -37,21 +39,23 @@ class HomeViewModel(
 
     private val selectedTab = MutableStateFlow(0)
     private val dialog = MutableStateFlow<HomeDialog?>(null)
-    private val huecoDeHoy = MutableStateFlow<HuecoLibre?>(null)
+    private val huecosDeHoy = MutableStateFlow<List<HuecoLibre>>(emptyList())
     private val tieneHorario = MutableStateFlow(false)
 
     val uiState: StateFlow<HomeUiState> = combine(
         authRepository.currentUser,
         selectedTab,
         dialog,
-        huecoDeHoy,
+        huecosDeHoy,
         tieneHorario,
-    ) { user, tab, currentDialog, hueco, horario ->
+    ) { user, tab, currentDialog, huecos, horario ->
         HomeUiState(
             user = user,
             selectedTab = tab,
             dialog = currentDialog,
-            huecoDeHoy = hueco,
+            // El banner muestra el mayor; el listado de actividades usa la lista completa.
+            huecoDeHoy = huecos.maxByOrNull { it.duracionMinutos },
+            huecosDeHoy = huecos,
             tieneHorario = horario,
         )
     }.stateIn(
@@ -61,8 +65,9 @@ class HomeViewModel(
     )
 
     /**
-     * Trae el horario y deja en el estado el hueco más grande de hoy: es el
-     * mismo dato que recibe el agente de utilidad para proponer actividades.
+     * Trae el horario y deja en el estado los huecos libres de hoy: es el
+     * mismo dato que reciben el banner y el agente de utilidad para
+     * proponer actividades.
      */
     fun cargarHorario() {
         viewModelScope.launch {
@@ -71,9 +76,8 @@ class HomeViewModel(
                     // Las clases se guardan con el día en español (clave canónica).
                     val hoy = ScheduleViewModel.tituloDia(LocalDate.now())
                     val clasesDeHoy = resultado.data.filter { it.day == hoy }
-                    huecoDeHoy.value = HuecoLibre
+                    huecosDeHoy.value = HuecoLibre
                         .deClases(clasesDeHoy, ScheduleViewModel.HUECO_MINIMO_MINUTOS)
-                        .maxByOrNull { it.duracionMinutos }
                     tieneHorario.value = resultado.data.isNotEmpty()
                 }
 

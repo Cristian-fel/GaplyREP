@@ -558,6 +558,10 @@ object StringsZh : AppStrings {
     override fun attendeesCount(count: Int) = "参与者：$count"
     override val joinActivity = "加入"
     override val alreadyJoined = "你已加入"
+    override val leaveActivityTitle = "退出活动"
+    override val leaveActivityConfirmMsg =
+        "您要退出此活动吗？您可以随时重新加入。"
+    override val confirmLeaveActivity = "是，退出"
     override val comingSoonTitle = "即将推出！"
     override val comingSoonMsg = "我们正在开发中，即将添加"
     override val eventChat = "活动聊天"

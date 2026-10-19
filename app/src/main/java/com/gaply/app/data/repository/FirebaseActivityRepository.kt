@@ -104,6 +104,25 @@ class FirebaseActivityRepository(
         RepoResult.Error(mapError(e))
     }
 
+    override suspend fun leave(activityId: String, attendeeName: String): RepoResult<String> {
+        val uid = auth.currentUser?.uid ?: return RepoResult.Error(RepoError.PERMISSION)
+        return try {
+            // arrayRemove es la operación simétrica a arrayUnion: quita el uid
+            // (siempre único) y el nombre del usuario que se va.
+            firestore.collection(ACTIVITIES).document(activityId)
+                .update(
+                    mapOf(
+                        CAMPO_ASISTENTES_UIDS to FieldValue.arrayRemove(uid),
+                        CAMPO_ASISTENTES_NOMBRES to FieldValue.arrayRemove(attendeeName),
+                    ),
+                )
+                .await()
+            RepoResult.Success(activityId)
+        } catch (e: Exception) {
+            RepoResult.Error(mapError(e))
+        }
+    }
+
     override suspend fun uploadPlacePhoto(
         activityId: String,
         localUri: String,

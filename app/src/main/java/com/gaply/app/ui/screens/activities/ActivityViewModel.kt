@@ -244,6 +244,21 @@ class ActivityViewModel(
         }
     }
 
+    /** Sale de la actividad (deshace "Unirme"): quita al usuario de los asistentes. */
+    fun leave(activityId: String) {
+        val attendeeName = userName()
+        viewModelScope.launch {
+            when (val result = activityRepository.leave(activityId, attendeeName)) {
+                is RepoResult.Success -> {
+                    _error.value = null
+                    refresh()
+                }
+
+                is RepoResult.Error -> _error.value = mensajeDe(result)
+            }
+        }
+    }
+
     /** Uid del usuario autenticado (dueño de las actividades que publica). */
     private fun userId(): String? = authRepository.currentUser.value?.userId
 

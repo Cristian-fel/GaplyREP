@@ -46,6 +46,20 @@ class LocalActivityRepository : ActivityRepository {
         return RepoResult.Success(activityId)
     }
 
+    override suspend fun leave(activityId: String, attendeeName: String): RepoResult<String> {
+        val uid = "local-user"
+        val indice = actividades.indexOfFirst { it.id == activityId }
+        if (indice >= 0) {
+            val actual = actividades[indice]
+            actividades[indice] = actual.copy(
+                attendeeIds = actual.attendeeIds - uid,
+                attendees = actual.attendees - attendeeName,
+                isJoined = false,
+            )
+        }
+        return RepoResult.Success(activityId)
+    }
+
     /** En modo local la "subida" deja la URI, que sí se puede mostrar. */
     override suspend fun uploadPlacePhoto(
         activityId: String,

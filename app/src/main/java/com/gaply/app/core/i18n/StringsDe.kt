@@ -551,6 +551,10 @@ object StringsDe : AppStrings {
     override fun attendeesCount(count: Int) = "Teilnehmer: $count"
     override val joinActivity = "Beitreten"
     override val alreadyJoined = "Du bist bereits dabei"
+    override val leaveActivityTitle = "Aktivität verlassen"
+    override val leaveActivityConfirmMsg =
+        "Möchtest du diese Aktivität verlassen? Du kannst jederzeit wieder beitreten."
+    override val confirmLeaveActivity = "Ja, verlassen"
     override val comingSoonTitle = "Bald verfügbar!"
     override val comingSoonMsg = "Wir arbeiten daran und es wird bald hinzugefügt"
     override val eventChat = "Event-Chat"

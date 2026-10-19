@@ -70,24 +70,38 @@ fun ActivitiesListScreen(
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
+        // Horario real de hoy (mismo HomeViewModel del banner): de aquí salen
+        // los huecos libres con los que se filtra el listado.
+        val home = rememberHomeEstado()
+
         ActivitiesTopSection(
             title = s.activitiesListTitle,
             // Banner dinámico: el mismo hueco libre real que muestra el Home.
-            huecoTexto = huecoBannerDeHoy(),
+            huecoTexto = bannerDeHueco(home),
             onBack = onBack,
         )
 
         InterestsSubtitle()
 
-        // Solo las actividades de HOY: al cambiar el día en el dispositivo,
-        // las de otras fechas dejan de mostrarse en este listado.
-        val actividadesDeHoy = state.activities.filter {
-            ActivityFormat.esDeFecha(it.date, LocalDate.now())
+        // Solo las actividades de HOY que encajan en un hueco de hoy: lo que
+        // no solapa con ningún hueco libre no aparece (misma percepción que
+        // la del agente de utilidad, que descarta lo que no cabe en un hueco).
+        val hoy = LocalDate.now()
+        val diaHoy = ActivityFormat.diaDe(hoy)
+        val paraTuHueco = state.activities.filter {
+            ActivityFormat.esDeFecha(it.date, hoy) &&
+                ActivityFormat.encajaEnHueco(it, home.huecosDeHoy, diaHoy)
         }
 
-        if (actividadesDeHoy.isEmpty()) {
+        if (paraTuHueco.isEmpty()) {
             EmptyActivitiesState(
-                message = s.activitiesEmptyListMsg,
+                // Sin huecos, el mensaje explica el porqué (igual que el banner):
+                // con hueco libre y vacío, se invita a publicar.
+                message = when {
+                    home.huecosDeHoy.isNotEmpty() -> s.activitiesEmptyListMsg
+                    !home.tieneHorario -> s.addClassesToSeeSlots
+                    else -> s.noFreeSlotsToday
+                },
             )
         } else {
             LazyColumn(
@@ -95,7 +109,7 @@ fun ActivitiesListScreen(
                 contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 24.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                items(actividadesDeHoy, key = { it.id }) { activity ->
+                items(paraTuHueco, key = { it.id }) { activity ->
                     ActivityCard(
                         activity = activity,
                         onClick = { onOpenActivity(activity.id) },
