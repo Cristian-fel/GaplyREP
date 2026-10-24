@@ -84,6 +84,8 @@ import com.gaply.app.di.appContainer
 import com.gaply.app.ui.components.AppDialog
 import com.gaply.app.ui.components.DialogStyle
 import com.gaply.app.ui.components.GaplyOutlineButton
+import com.gaply.app.ui.screens.chats.ChatsScreen
+import com.gaply.app.ui.screens.matches.MatchesScreen
 import com.gaply.app.ui.screens.profile.ProfileScreen
 import com.gaply.app.ui.theme.BackgroundApp
 import com.gaply.app.ui.theme.BrandGreen
@@ -167,6 +169,7 @@ fun HomeScreen(
     onOpenActivities: () -> Unit = {},
     onCreateActivity: () -> Unit = {},
     onOpenMyActivities: () -> Unit = {},
+    onOpenChat: (String) -> Unit = {},
 ) {
     val context = LocalContext.current
     val viewModel: HomeViewModel = androidx.lifecycle.viewmodel.compose.viewModel(
@@ -209,17 +212,9 @@ fun HomeScreen(
                     onCreateActivity = onCreateActivity,
                     onOpenMyActivities = onOpenMyActivities,
                 )
-                1 -> PlaceholderTab(
-                    emoji = "👥",
-                    title = s.tabMatches,
-                    message = s.matchesEmptyMsg,
-                )
+                1 -> MatchesScreen(onOpenChat = onOpenChat)
 
-                2 -> PlaceholderTab(
-                    emoji = "💬",
-                    title = s.tabChats,
-                    message = s.chatsEmptyMsg,
-                )
+                2 -> ChatsScreen(onOpenChat = onOpenChat)
 
                 else -> ProfileScreen(
                     user = state.user,

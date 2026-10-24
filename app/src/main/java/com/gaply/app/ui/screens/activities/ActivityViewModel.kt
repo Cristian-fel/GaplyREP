@@ -51,6 +51,7 @@ data class ActivitiesUiState(
 class ActivityViewModel(
     private val authRepository: AuthRepository,
     private val activityRepository: ActivityRepository,
+    private val matchRepository: com.gaply.app.domain.repository.MatchRepository,
     private val filtroActividades: MutableStateFlow<String?>,
     private val filtroFranjaDeHueco: MutableStateFlow<com.gaply.app.domain.model.FiltroFranja?>,
 ) : ViewModel() {
@@ -265,6 +266,9 @@ class ActivityViewModel(
             when (val result = activityRepository.join(activityId, attendeeName)) {
                 is RepoResult.Success -> {
                     _error.value = null
+                    // Al unirse también entra al chat del evento (grupo).
+                    val titulo = _activities.value.find { it.id == activityId }?.title.orEmpty()
+                    matchRepository.syncGroupChat(activityId, titulo, joined = true)
                     refresh()
                 }
 
@@ -280,9 +284,25 @@ class ActivityViewModel(
             when (val result = activityRepository.leave(activityId, attendeeName)) {
                 is RepoResult.Success -> {
                     _error.value = null
+                    // Al salir deja de tener acceso al chat del evento.
+                    val titulo = _activities.value.find { it.id == activityId }?.title.orEmpty()
+                    matchRepository.syncGroupChat(activityId, titulo, joined = false)
                     refresh()
                 }
 
+                is RepoResult.Error -> _error.value = mensajeDe(result)
+            }
+        }
+    }
+
+    /**
+     * "Chat del evento": crea/reutiliza la sala grupal (`act_<id>`), asegura
+     * que el usuario quede como miembro y devuelve el chatId para navegar.
+     */
+    fun abrirChatEvento(activity: ActivityItem, onChatId: (String) -> Unit) {
+        viewModelScope.launch {
+            when (val result = matchRepository.syncGroupChat(activity.id, activity.title, joined = true)) {
+                is RepoResult.Success -> onChatId(result.data)
                 is RepoResult.Error -> _error.value = mensajeDe(result)
             }
         }
@@ -327,6 +347,7 @@ class ActivityViewModel(
                     return ActivityViewModel(
                         authRepository = container.authRepository,
                         activityRepository = container.activityRepository,
+                        matchRepository = container.matchRepository,
                         filtroActividades = container.filtroActividades,
                         filtroFranjaDeHueco = container.filtroFranja,
                     ) as T

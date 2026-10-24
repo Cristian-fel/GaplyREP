@@ -6,6 +6,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.gaply.app.ui.screens.chats.ChatScreen
 import com.gaply.app.ui.screens.home.HomeScreen
 import com.gaply.app.ui.screens.activities.ActivitiesListScreen
 import com.gaply.app.ui.screens.activities.ActivityDetailScreen
@@ -115,6 +116,23 @@ fun GaplyNavHost() {
                 onOpenActivities = { navController.navigate(Routes.ACTIVITIES_LIST) },
                 onCreateActivity = { navController.navigate(Routes.NEW_ACTIVITY) },
                 onOpenMyActivities = { navController.navigate(Routes.MY_ACTIVITIES) },
+                onOpenChat = { chatId -> navController.navigate(Routes.chat(chatId)) },
+            )
+        }
+
+        // Conversación de un match (pestaña Chats / diálogo "¡Es un match!").
+        composable(
+            route = "${Routes.CHAT}?${Routes.ARG_CHAT_ID}={${Routes.ARG_CHAT_ID}}",
+            arguments = listOf(
+                navArgument(Routes.ARG_CHAT_ID) {
+                    type = NavType.StringType
+                    defaultValue = ""
+                },
+            ),
+        ) { entry ->
+            ChatScreen(
+                chatId = entry.arguments?.getString(Routes.ARG_CHAT_ID).orEmpty(),
+                onBack = { navController.popBackStack() },
             )
         }
 
@@ -158,6 +176,7 @@ fun GaplyNavHost() {
                     navController.navigate(Routes.editActivity(activityId))
                 },
                 onDeleted = { navController.popBackStack() },
+                onOpenEventChat = { chatId -> navController.navigate(Routes.chat(chatId)) },
             )
         }
 

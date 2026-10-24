@@ -77,6 +77,7 @@ fun ActivityDetailScreen(
     onBack: () -> Unit,
     onEditActivity: (String) -> Unit = {},
     onDeleted: () -> Unit = {},
+    onOpenEventChat: (String) -> Unit = {},
 ) {
     val viewModel = rememberActivityViewModel()
     val state by viewModel.uiState.collectAsState()
@@ -85,6 +86,7 @@ fun ActivityDetailScreen(
     val activity = state.activities.find { it.id == activityId }
 
     var showComingSoon by remember { mutableStateOf(false) }
+    var showJoinToChat by remember { mutableStateOf(false) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
     var showLeaveConfirm by remember { mutableStateOf(false) }
 
@@ -189,8 +191,19 @@ fun ActivityDetailScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Recuadro verde claro: Chat del evento + Cómo llegar (próximamente).
-            ComingSoonCard(onClick = { showComingSoon = true })
+            // Recuadro verde claro: Chat del evento (si ya se unió) + Cómo llegar.
+            ComingSoonCard(
+                onChatClick = {
+                    if (activity.isJoined || activity.isCreatedByMe) {
+                        // Sala grupal: se crea si no existe y se navega a ella.
+                        viewModel.abrirChatEvento(activity) { chatId -> onOpenEventChat(chatId) }
+                    } else {
+                        // Sin unirse no hay acceso al chat del grupo.
+                        showJoinToChat = true
+                    }
+                },
+                onLocationClick = { showComingSoon = true },
+            )
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -302,6 +315,17 @@ fun ActivityDetailScreen(
         )
     }
 
+    // "Chat del evento" tocado sin haberse unido: avisa que primero hay que unirse.
+    if (showJoinToChat) {
+        AppDialog(
+            style = DialogStyle.INFO,
+            title = s.eventChat,
+            message = s.joinToChat,
+            confirmText = s.close,
+            onDismiss = { showJoinToChat = false },
+        )
+    }
+
     // Confirmación de salir de una actividad a la que se unió el usuario.
     if (showLeaveConfirm) {
         AlertDialog(
@@ -394,9 +418,9 @@ private fun fechaLarga(date: String, locale: java.util.Locale): String {
     return millis?.let { ActivityFormat.fechaLarga(it, locale) } ?: date
 }
 
-/** Recuadro verde claro con "Chat del evento" y "Cómo llegar" (próximamente). */
+/** Recuadro verde claro: fila "Chat del evento" (activa si se unió) y "Cómo llegar". */
 @Composable
-private fun ComingSoonCard(onClick: () -> Unit) {
+private fun ComingSoonCard(onChatClick: () -> Unit, onLocationClick: () -> Unit) {
     val s = LocalStrings.current
     Column(
         modifier = Modifier
@@ -409,7 +433,7 @@ private fun ComingSoonCard(onClick: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable(onClick = onClick),
+                .clickable(onClick = onChatClick),
         ) {
             Text(
                 text = s.eventChat,
@@ -441,7 +465,7 @@ private fun ComingSoonCard(onClick: () -> Unit) {
                 modifier = Modifier.weight(1f),
             )
             Button(
-                onClick = onClick,
+                onClick = onLocationClick,
                 shape = RoundedCornerShape(50),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = BrandGreen,

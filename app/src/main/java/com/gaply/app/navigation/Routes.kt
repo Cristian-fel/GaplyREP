@@ -35,6 +35,10 @@ object Routes {
     const val ARG_ACCOUNT_MESSAGE = "accountMessage"
     const val ARG_ACTIVITY_ID = "activityId"
 
+    // ---- Módulo Matches + Chats ----
+    const val CHAT = "chat"
+    const val ARG_CHAT_ID = "chatId"
+
     fun reset(identifier: String): String =
         "$RESET?$ARG_IDENTIFIER=${android.net.Uri.encode(identifier)}"
 
@@ -58,4 +62,8 @@ object Routes {
     /** Formulario en modo edición de una actividad propia (precarga datos). */
     fun editActivity(activityId: String): String =
         "$EDIT_ACTIVITY?$ARG_ACTIVITY_ID=${android.net.Uri.encode(activityId)}"
+
+    /** Conversación de un match, identificada por el id de su sala de chat. */
+    fun chat(chatId: String): String =
+        "$CHAT?$ARG_CHAT_ID=${android.net.Uri.encode(chatId)}"
 }

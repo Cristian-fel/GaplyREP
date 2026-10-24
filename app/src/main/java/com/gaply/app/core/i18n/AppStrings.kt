@@ -198,6 +198,20 @@ interface AppStrings {
     val visitWebsite: String
     val matchesEmptyMsg: String
     val chatsEmptyMsg: String
+    /** Mazo de cartas del tab Matches sin más candidatos (estado vacío). */
+    val matchesNoMoreMsg: String
+    /** Título del diálogo cuando dos personas se gustan mutuamente. */
+    val matchTitle: String
+    /** Placeholder de la caja de texto del chat. */
+    val chatHint: String
+    /** Aviso al tocar "Chat del evento" sin haberse unido a la actividad. */
+    val joinToChat: String
+    /** Descripción de accesibilidad de los botones del mazo (✕/★/♥). */
+    val swipePassCd: String
+    val swipeStarCd: String
+    val swipeLikeCd: String
+    /** "Creado por {nombre}" en las cartas de actividad del mazo. */
+    fun createdBy(nombre: String): String
     val eventSiteInfoMsg: String
 
     val placeLibrary: String
