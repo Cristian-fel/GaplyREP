@@ -52,6 +52,7 @@ import androidx.compose.ui.unit.sp
 import com.gaply.app.core.i18n.LocalStrings
 import com.gaply.app.ui.components.AppDialog
 import com.gaply.app.ui.components.DialogStyle
+import com.gaply.app.ui.mensajeDe
 import com.gaply.app.ui.theme.BrandGreen
 import com.gaply.app.ui.theme.ErrorRed
 import com.gaply.app.ui.theme.Mint
@@ -77,9 +78,11 @@ fun ActivityDetailScreen(
     onBack: () -> Unit,
     onEditActivity: (String) -> Unit = {},
     onDeleted: () -> Unit = {},
+    onOpenChat: (String) -> Unit = {},
 ) {
     val viewModel = rememberActivityViewModel()
     val state by viewModel.uiState.collectAsState()
+    val chatError by viewModel.chatError.collectAsState()
     val s = LocalStrings.current
 
     val activity = state.activities.find { it.id == activityId }
@@ -189,8 +192,20 @@ fun ActivityDetailScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Recuadro verde claro: Chat del evento + Cómo llegar (próximamente).
-            ComingSoonCard(onClick = { showComingSoon = true })
+            // Recuadro verde claro: Chat del evento + Cómo llegar. Quien ya es
+            // parte de la actividad (dueño o asistente) entra al chat real.
+            ComingSoonCard(
+                onClick = { showComingSoon = true },
+                onOpenChat = if (activity.isCreatedByMe || activity.isJoined) {
+                    {
+                        viewModel.abrirChatDeLaActividad(activityId) { chatId ->
+                            onOpenChat(chatId)
+                        }
+                    }
+                } else {
+                    null
+                },
+            )
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -302,6 +317,16 @@ fun ActivityDetailScreen(
         )
     }
 
+    // No se pudo crear/abrir el chat del grupo (sesión o reglas de Firestore).
+    chatError?.let { error ->
+        AppDialog(
+            style = DialogStyle.WARNING,
+            title = s.upsTitle,
+            message = mensajeDe(error, s),
+            onDismiss = viewModel::limpiarChatError,
+        )
+    }
+
     // Confirmación de salir de una actividad a la que se unió el usuario.
     if (showLeaveConfirm) {
         AlertDialog(
@@ -394,9 +419,12 @@ private fun fechaLarga(date: String, locale: java.util.Locale): String {
     return millis?.let { ActivityFormat.fechaLarga(it, locale) } ?: date
 }
 
-/** Recuadro verde claro con "Chat del evento" y "Cómo llegar" (próximamente). */
+/** Recuadro verde claro con "Chat del evento" y "Cómo llegar". */
 @Composable
-private fun ComingSoonCard(onClick: () -> Unit) {
+private fun ComingSoonCard(
+    onClick: () -> Unit,
+    onOpenChat: (() -> Unit)? = null,
+) {
     val s = LocalStrings.current
     Column(
         modifier = Modifier
@@ -409,7 +437,8 @@ private fun ComingSoonCard(onClick: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable(onClick = onClick),
+                // Sin chat real, la fila entera sigue mostrando "próximamente".
+                .then(if (onOpenChat == null) Modifier.clickable(onClick = onClick) else Modifier),
         ) {
             Text(
                 text = s.eventChat,
@@ -418,11 +447,39 @@ private fun ComingSoonCard(onClick: () -> Unit) {
                 color = Color.Black,
                 modifier = Modifier.weight(1f),
             )
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                contentDescription = s.eventChat,
-                tint = Color.Black,
-            )
+            if (onOpenChat != null) {
+                // Módulo 5: dueño y asistentes entran a la conversación.
+                Button(
+                    onClick = onOpenChat,
+                    shape = RoundedCornerShape(50),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = BrandGreen,
+                        contentColor = SurfaceWhite,
+                    ),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                        horizontal = 14.dp,
+                        vertical = 6.dp,
+                    ),
+                ) {
+                    Text(
+                        text = s.openChat,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 13.sp,
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                    )
+                }
+            } else {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                    contentDescription = s.eventChat,
+                    tint = Color.Black,
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(10.dp))

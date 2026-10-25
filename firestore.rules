@@ -1,0 +1,60 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ====================== USUARIOS ======================
+    match /users/{userId} {
+      allow read: if true;
+      allow create: if request.auth != null && request.auth.uid == userId;
+      allow update: if request.auth != null && request.auth.uid == userId;
+      allow delete: if false;
+    }
+
+    // =================== ACTIVIDADES ======================
+    match /activities/{activityId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.resource.data.ownerId == request.auth.uid;
+      allow update: if request.auth != null;
+      allow delete: if request.auth != null && resource.data.ownerId == request.auth.uid;
+    }
+
+    // ==================== SWIPES (mazo) ===================
+    match /swipes/{swipeId} {
+      allow read: if request.auth != null && (
+        resource.data.fromUid == request.auth.uid ||
+        resource.data.toId == request.auth.uid
+      );
+      allow create: if request.auth != null && request.resource.data.fromUid == request.auth.uid;
+      allow delete: if request.auth != null && resource.data.fromUid == request.auth.uid;
+    }
+
+    // ==================== MATCHES =========================
+    match /matches/{matchId} {
+      allow read: if request.auth != null && request.auth.uid in resource.data.members;
+      allow create: if request.auth != null && request.auth.uid in request.resource.data.members;
+    }
+
+    // ===================== CHATS ==========================
+    match /chats/{chatId} {
+      allow read: if request.auth != null && request.auth.uid in resource.data.members;
+      allow create: if request.auth != null && request.auth.uid in request.resource.data.members;
+      // OJO con esta línea: permite que un nuevo asistente entre al chat
+      // del evento (aparece en el estado final de members).
+      allow update: if request.auth != null && (
+        request.auth.uid in resource.data.members ||
+        request.auth.uid in request.resource.data.members
+      );
+      allow delete: if request.auth != null && request.auth.uid in resource.data.members;
+
+      // =================== MENSAJES =======================
+      match /messages/{messageId} {
+        allow read: if request.auth != null &&
+          request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.members;
+        allow create: if request.auth != null &&
+          request.resource.data.senderId == request.auth.uid &&
+          request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.members;
+        allow update, delete: if false;
+      }
+    }
+  }
+}

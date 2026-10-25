@@ -32,6 +32,8 @@ object StringsJa : AppStrings {
     override val connectionErrorTitle = "接続エラー！"
     override val connectionErrorMessage = "接続を確認して、後でもう一度試してください。"
     override val noActiveSessionMsg = "アクティブなセッションがありません"
+    override val firestoreReadDenied =
+        "Firestoreがこのデータの読み取りを拒否しました（セッションまたはセキュリティルール）。"
 
     override val successCd = "成功"
     override val infoCd = "情報"
@@ -591,4 +593,56 @@ object StringsJa : AppStrings {
     override val duration30 = "30分"
     override val duration1h = "1時間"
     override val duration2h = "2時間"
+
+    // =================================================================
+    // MODULE 5 · MATCHES
+    // =================================================================
+
+    override val matchesNoMoreSuggestions = "現在、他の提案はありません"
+    override val matchesUtilityExplanation =
+        "ユーティリティ = 関心 60% + 空き時間の共通 40%。" +
+            "共通の空き時間がある人だけが表示されます。"
+    override val loadingData = "読み込み中…"
+
+    override val swipeLike = "いいね"
+    override val swipePass = "スキップ"
+    override val swipeSuper = "超いいね"
+    override val superLikeCd = "スーパーライク"
+
+    override val matchTitle = "マッチです！"
+    override fun matchMessage(name: String) =
+        "$name さんとお互いに気になりました！すぐチャットできます。"
+    override val openChat = "チャットを開く"
+
+    override fun ageYears(age: Int) = "$age 歳"
+    override fun commonFreeDuration(minutos: Int): String = when {
+        minutos >= 60 && minutos % 60 == 0 -> {
+            val horas = minutos / 60
+            if (horas == 1) "共通で1時間" else "共通で${horas}時間"
+        }
+
+        minutos >= 60 -> "共通で${minutos / 60}時間${minutos % 60}分"
+        else -> "共通で${minutos}分"
+    }
+
+    override val reasonNoCommonFreeSlot = "共通の空き時間がありません"
+    override fun reasonSharedFreeSlot(rango: String) = "共通の空き時間：$rango"
+
+    // =================================================================
+    // MODULE 5 · CHATS
+    // =================================================================
+
+    override val chatGroupTag = "グループ"
+    override val chatNoMessages = "まだメッセージがありません。最初のメッセージを送ろう！"
+    override val messageInputHint = "メッセージを入力..."
+    override val sendMessageCd = "メッセージを送信"
+    override val chatActivityActive = "本日開催中"
+    override fun chatActivityScheduled(fecha: String) = "開催日：$fecha"
+
+    override val timeJustNow = "たった今"
+    override fun timeAgoMinutes(minutes: Int) = "${minutes}分前"
+    override fun timeAgoHours(hours: Int) = "${hours}時間前"
+    override fun timeAgoDays(days: Int) = if (days <= 1) "昨日" else "${days}日前"
+
+    override fun unreadMessages(count: Int) = "${count}件の未読メッセージ"
 }

@@ -101,7 +101,15 @@ data class HuecoLibre(
 
     fun aFranjaHoraria(dia: DiaSemana): FranjaHoraria = FranjaHoraria(dia, inicioMinutos, finMinutos)
 
-    companion object {        /**
+    companion object {
+        /**
+         * Minutos mínimos para que un espacio entre dos clases se considere
+         * "hueco libre". Misma regla en Mi horario, en el banner del Home y en
+         * los candidatos del mazo de Matches.
+         */
+        const val MINIMO_MINUTOS = 60
+
+        /**
          * Huecos de al menos [minimoMinutos] entre clases consecutivas del día,
          * en orden. Los usa la pantalla del horario y el banner del Home
          * (el mismo dato con el que trabaja el agente de utilidad).
@@ -132,3 +140,24 @@ data class FiltroFranja(
     val dia: java.time.LocalDate,
     val hueco: HuecoLibre,
 )
+
+/**
+ * Todos los huecos libres de la semana, ya como [FranjaHoraria] (la unidad que
+ * entienden los agentes).
+ *
+ * Es la misma lógica de "Mis huecos" aplicada a los 7 días: agrupa por día,
+ * calcula los huecos entre clases consecutivas con [HuecoLibre.deClases] y los
+ * convierte a franja. Los usa el agente de Matches para medir el solape entre
+ * dos usuarios; los días que no son clave canónica en español se ignoran.
+ */
+fun huecosDelHorario(
+    clases: List<ScheduleClass>,
+    minimoMinutos: Int,
+): List<FranjaHoraria> = clases
+    .groupBy { it.day }
+    .flatMap { (dia, delDia) ->
+        val diaSemana = DiaSemana.values().firstOrNull { it.titulo == dia }
+            ?: return@flatMap emptyList()
+        HuecoLibre.deClases(delDia, minimoMinutos).map { it.aFranjaHoraria(diaSemana) }
+    }
+

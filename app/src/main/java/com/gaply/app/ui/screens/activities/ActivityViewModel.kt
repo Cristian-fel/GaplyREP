@@ -11,13 +11,16 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.gaply.app.di.AppContainer
 import com.gaply.app.di.appContainer
 import com.gaply.app.domain.model.ActivityItem
+import com.gaply.app.domain.model.RepoError
 import com.gaply.app.domain.model.RepoResult
 import com.gaply.app.domain.model.User
 import com.gaply.app.domain.repository.ActivityRepository
 import com.gaply.app.domain.repository.AuthRepository
+import com.gaply.app.domain.repository.ChatsRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -51,11 +54,16 @@ data class ActivitiesUiState(
 class ActivityViewModel(
     private val authRepository: AuthRepository,
     private val activityRepository: ActivityRepository,
+    private val chatsRepository: ChatsRepository,
     private val filtroActividades: MutableStateFlow<String?>,
     private val filtroFranjaDeHueco: MutableStateFlow<com.gaply.app.domain.model.FiltroFranja?>,
 ) : ViewModel() {
 
     private val _activities = MutableStateFlow<List<ActivityItem>>(emptyList())
+
+    /** Error al crear o abrir el chat de grupo (lo consume el detalle). */
+    private val _chatError = MutableStateFlow<RepoError?>(null)
+    val chatError: StateFlow<RepoError?> = _chatError.asStateFlow()
     private val _fotos = MutableStateFlow<Map<String, String>>(emptyMap())
     private val _cargando = MutableStateFlow(true)
     private val _error = MutableStateFlow<String?>(null)
@@ -265,12 +273,45 @@ class ActivityViewModel(
             when (val result = activityRepository.join(activityId, attendeeName)) {
                 is RepoResult.Success -> {
                     _error.value = null
+                    // El chat de grupo nace con el join: participantes =
+                    // dueño + asistentes (idempotente, no toca el historial).
+                    findById(activityId)?.let { previa ->
+                        chatsRepository.ensureGroupChat(
+                            previa.copy(
+                                attendeeIds = (previa.attendeeIds + userId().orEmpty()).distinct(),
+                                attendees = (previa.attendees + attendeeName).distinct(),
+                                isJoined = true,
+                            ),
+                        )
+                    }
                     refresh()
                 }
 
                 is RepoResult.Error -> _error.value = mensajeDe(result)
             }
         }
+    }
+
+    /**
+     * Botón "Abrir chat" del detalle (dueño y asistentes): crea o actualiza
+     * el grupo y devuelve su id para navegar a la conversación.
+     */
+    fun abrirChatDeLaActividad(activityId: String, onChatReady: (String) -> Unit) {
+        val activity = findById(activityId) ?: return
+        viewModelScope.launch {
+            when (val result = chatsRepository.ensureGroupChat(activity)) {
+                is RepoResult.Success -> {
+                    _chatError.value = null
+                    onChatReady(result.data)
+                }
+
+                is RepoResult.Error -> _chatError.value = result.type
+            }
+        }
+    }
+
+    fun limpiarChatError() {
+        _chatError.value = null
     }
 
     /** Sale de la actividad (deshace "Unirme"): quita al usuario de los asistentes. */
@@ -327,6 +368,7 @@ class ActivityViewModel(
                     return ActivityViewModel(
                         authRepository = container.authRepository,
                         activityRepository = container.activityRepository,
+                        chatsRepository = container.chatsRepository,
                         filtroActividades = container.filtroActividades,
                         filtroFranjaDeHueco = container.filtroFranja,
                     ) as T

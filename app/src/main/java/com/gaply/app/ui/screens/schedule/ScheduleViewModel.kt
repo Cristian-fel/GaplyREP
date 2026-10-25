@@ -154,8 +154,8 @@ class ScheduleViewModel(
         /** Días en los que el Figma permite programar clases. */
         val DIAS_ORDEN = listOf("Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado")
 
-        /** El hueco se muestra a partir de 60 minutos libres. */
-        const val HUECO_MINIMO_MINUTOS = 60
+        /** El hueco se muestra a partir de 60 minutos libres (regla única de la app). */
+        const val HUECO_MINIMO_MINUTOS = HuecoLibre.MINIMO_MINUTOS
 
         private val LOCALE = Locale("es", "CO")
 

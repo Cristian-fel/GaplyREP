@@ -84,6 +84,8 @@ import com.gaply.app.di.appContainer
 import com.gaply.app.ui.components.AppDialog
 import com.gaply.app.ui.components.DialogStyle
 import com.gaply.app.ui.components.GaplyOutlineButton
+import com.gaply.app.ui.screens.chats.ChatsScreen
+import com.gaply.app.ui.screens.matches.MatchesScreen
 import com.gaply.app.ui.screens.profile.ProfileScreen
 import com.gaply.app.ui.theme.BackgroundApp
 import com.gaply.app.ui.theme.BrandGreen
@@ -167,6 +169,7 @@ fun HomeScreen(
     onOpenActivities: () -> Unit = {},
     onCreateActivity: () -> Unit = {},
     onOpenMyActivities: () -> Unit = {},
+    onOpenChat: (String) -> Unit = {},
 ) {
     val context = LocalContext.current
     val viewModel: HomeViewModel = androidx.lifecycle.viewmodel.compose.viewModel(
@@ -209,17 +212,11 @@ fun HomeScreen(
                     onCreateActivity = onCreateActivity,
                     onOpenMyActivities = onOpenMyActivities,
                 )
-                1 -> PlaceholderTab(
-                    emoji = "👥",
-                    title = s.tabMatches,
-                    message = s.matchesEmptyMsg,
-                )
+                // Módulo 5 · Matches: mazo de swipe embebido en la Home.
+                1 -> MatchesScreen(onOpenChat = onOpenChat)
 
-                2 -> PlaceholderTab(
-                    emoji = "💬",
-                    title = s.tabChats,
-                    message = s.chatsEmptyMsg,
-                )
+                // Módulo 5 · Chats: lista en tiempo real de conversaciones.
+                2 -> ChatsScreen(onOpenChat = onOpenChat)
 
                 else -> ProfileScreen(
                     user = state.user,
@@ -706,31 +703,6 @@ private fun EventCard(
             contentDescription = event.title,
             contentScale = ContentScale.Crop,
             modifier = Modifier.fillMaxSize()
-        )
-    }
-}
-
-@Composable
-private fun PlaceholderTab(
-    emoji: String,
-    title: String,
-    message: String,
-) {
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Text(text = emoji, fontSize = 56.sp)
-        Spacer(modifier = Modifier.height(12.dp))
-        Text(text = title, style = MaterialTheme.typography.headlineSmall)
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = message,
-            style = MaterialTheme.typography.bodyMedium,
-            color = TextSecondary,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(horizontal = 32.dp),
         )
     }
 }

@@ -12,6 +12,7 @@ import com.gaply.app.ui.screens.activities.ActivityDetailScreen
 import com.gaply.app.ui.screens.activities.MyActivitiesScreen
 import com.gaply.app.ui.screens.activities.NewActivityScreen
 import com.gaply.app.ui.screens.activities.ProfileHostScreen
+import com.gaply.app.ui.screens.chats.ChatDetailScreen
 import com.gaply.app.ui.screens.login.LoginScreen
 import com.gaply.app.ui.screens.profile.edit.EditProfileScreen
 import com.gaply.app.ui.screens.register.RegisterScreen
@@ -115,6 +116,26 @@ fun GaplyNavHost() {
                 onOpenActivities = { navController.navigate(Routes.ACTIVITIES_LIST) },
                 onCreateActivity = { navController.navigate(Routes.NEW_ACTIVITY) },
                 onOpenMyActivities = { navController.navigate(Routes.MY_ACTIVITIES) },
+                // Módulo 5: la lista de chats y el diálogo de match abren la
+                // conversación, que sí es ruta propia (necesita back).
+                onOpenChat = { chatId -> navController.navigate(Routes.chatDetail(chatId)) },
+            )
+        }
+
+        // ==================== Módulo 5 · Chats ====================
+
+        composable(
+            route = "${Routes.CHAT_DETAIL}?${Routes.ARG_CHAT_ID}={${Routes.ARG_CHAT_ID}}",
+            arguments = listOf(
+                navArgument(Routes.ARG_CHAT_ID) {
+                    type = NavType.StringType
+                    defaultValue = ""
+                },
+            ),
+        ) { entry ->
+            ChatDetailScreen(
+                chatId = entry.arguments?.getString(Routes.ARG_CHAT_ID).orEmpty(),
+                onBack = { navController.popBackStack() },
             )
         }
 
@@ -158,6 +179,8 @@ fun GaplyNavHost() {
                     navController.navigate(Routes.editActivity(activityId))
                 },
                 onDeleted = { navController.popBackStack() },
+                // Módulo 5: dueño y asistentes entran al chat del grupo.
+                onOpenChat = { chatId -> navController.navigate(Routes.chatDetail(chatId)) },
             )
         }
 

@@ -32,6 +32,8 @@ object StringsPt : AppStrings {
     override val connectionErrorTitle = "Erro de conexão!"
     override val connectionErrorMessage = "Verifique sua conexão e tente novamente mais tarde."
     override val noActiveSessionMsg = "Não há uma sessão ativa"
+    override val firestoreReadDenied =
+        "O Firestore negou a leitura destes dados (sessão ou regras de segurança)."
 
     override val successCd = "Sucesso"
     override val infoCd = "Informações"
@@ -594,4 +596,56 @@ object StringsPt : AppStrings {
     override val duration30 = "30 min"
     override val duration1h = "1 hora"
     override val duration2h = "2 horas"
+
+    // =================================================================
+    // MODULE 5 · MATCHES
+    // =================================================================
+
+    override val matchesNoMoreSuggestions = "Por agora não temos mais sugestões"
+    override val matchesUtilityExplanation =
+        "Utilidade = 60% interesses + 40% horários livres em comum. " +
+            "Apenas perfis com tempo livre partilhado aparecem."
+    override val loadingData = "A carregar…"
+
+    override val swipeLike = "GOSTEI"
+    override val swipePass = "PASSAR"
+    override val swipeSuper = "SUPER"
+    override val superLikeCd = "Super gosto"
+
+    override val matchTitle = "É um match!"
+    override fun matchMessage(name: String) =
+        "Tu e $name gostam um do outro! Já podem conversar."
+    override val openChat = "Abrir chat"
+
+    override fun ageYears(age: Int) = "$age anos"
+    override fun commonFreeDuration(minutos: Int): String = when {
+        minutos >= 60 && minutos % 60 == 0 -> {
+            val horas = minutos / 60
+            if (horas == 1) "1 hora em comum" else "$horas horas em comum"
+        }
+
+        minutos >= 60 -> "${minutos / 60} h ${minutos % 60} min em comum"
+        else -> "$minutos minutos em comum"
+    }
+
+    override val reasonNoCommonFreeSlot = "Não têm horários livres em comum"
+    override fun reasonSharedFreeSlot(rango: String) = "Horário em comum: $rango"
+
+    // =================================================================
+    // MODULE 5 · CHATS
+    // =================================================================
+
+    override val chatGroupTag = "Grupo"
+    override val chatNoMessages = "Ainda não há mensagens. Envie a primeira!"
+    override val messageInputHint = "Escreva uma mensagem..."
+    override val sendMessageCd = "Enviar mensagem"
+    override val chatActivityActive = "Ativa hoje"
+    override fun chatActivityScheduled(fecha: String) = "Agendada: $fecha"
+
+    override val timeJustNow = "agora"
+    override fun timeAgoMinutes(minutes: Int) = "há $minutes min"
+    override fun timeAgoHours(hours: Int) = "há $hours h"
+    override fun timeAgoDays(days: Int) = if (days <= 1) "ontem" else "há $days dias"
+
+    override fun unreadMessages(count: Int) = "$count mensagens por ler"
 }

@@ -32,6 +32,8 @@ object StringsFr : AppStrings {
     override val connectionErrorTitle = "Erreur de connexion !"
     override val connectionErrorMessage = "Vérifiez votre connexion et réessayez plus tard."
     override val noActiveSessionMsg = "Aucune session active"
+    override val firestoreReadDenied =
+        "Firestore a refusé la lecture de ces données (session ou règles de sécurité)."
 
     override val successCd = "Succès"
     override val infoCd = "Information"
@@ -583,4 +585,56 @@ object StringsFr : AppStrings {
     override val duration30 = "30 min"
     override val duration1h = "1 heure"
     override val duration2h = "2 heures"
+
+    // =================================================================
+    // MODULE 5 · MATCHES
+    // =================================================================
+
+    override val matchesNoMoreSuggestions = "Nous n'avons plus de suggestions pour le moment"
+    override val matchesUtilityExplanation =
+        "Utilité = 60 % intérêts + 40 % créneaux libres en commun. " +
+            "Seuls les profils avec du temps libre commun apparaissent."
+    override val loadingData = "Chargement…"
+
+    override val swipeLike = "J'AIME"
+    override val swipePass = "PASSER"
+    override val swipeSuper = "SUPER"
+    override val superLikeCd = "Super j'aime"
+
+    override val matchTitle = "C'est un match !"
+    override fun matchMessage(name: String) =
+        "Toi et $name vous vous plaisez ! Vous pouvez discuter."
+    override val openChat = "Ouvrir le chat"
+
+    override fun ageYears(age: Int) = "$age ans"
+    override fun commonFreeDuration(minutos: Int): String = when {
+        minutos >= 60 && minutos % 60 == 0 -> {
+            val horas = minutos / 60
+            if (horas == 1) "1 heure en commun" else "$horas heures en commun"
+        }
+
+        minutos >= 60 -> "${minutos / 60} h ${minutos % 60} min en commun"
+        else -> "$minutos minutes en commun"
+    }
+
+    override val reasonNoCommonFreeSlot = "Vous n'avez aucun créneau libre en commun"
+    override fun reasonSharedFreeSlot(rango: String) = "Créneau en commun : $rango"
+
+    // =================================================================
+    // MODULE 5 · CHATS
+    // =================================================================
+
+    override val chatGroupTag = "Groupe"
+    override val chatNoMessages = "Pas encore de messages. Envoyez le premier !"
+    override val messageInputHint = "Écrivez un message..."
+    override val sendMessageCd = "Envoyer le message"
+    override val chatActivityActive = "Active aujourd'hui"
+    override fun chatActivityScheduled(fecha: String) = "Prévue le $fecha"
+
+    override val timeJustNow = "à l'instant"
+    override fun timeAgoMinutes(minutes: Int) = "il y a $minutes min"
+    override fun timeAgoHours(hours: Int) = "il y a $hours h"
+    override fun timeAgoDays(days: Int) = if (days <= 1) "hier" else "il y a $days jours"
+
+    override fun unreadMessages(count: Int) = "$count messages non lus"
 }

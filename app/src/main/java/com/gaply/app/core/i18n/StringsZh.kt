@@ -32,6 +32,7 @@ object StringsZh : AppStrings {
     override val connectionErrorTitle = "连接错误！"
     override val connectionErrorMessage = "请检查网络连接，稍后再试。"
     override val noActiveSessionMsg = "没有活跃的会话"
+    override val firestoreReadDenied = "Firestore 拒绝读取这些数据（会话或安全规则）。"
 
     override val successCd = "成功"
     override val infoCd = "信息"
@@ -590,4 +591,56 @@ object StringsZh : AppStrings {
     override val duration30 = "30分钟"
     override val duration1h = "1小时"
     override val duration2h = "2小时"
+
+    // =================================================================
+    // MODULE 5 · MATCHES
+    // =================================================================
+
+    override val matchesNoMoreSuggestions = "暂时没有更多推荐了"
+    override val matchesUtilityExplanation =
+        "效用 = 60% 兴趣 + 40% 共同空闲时间。" +
+            "只有拥有共同空闲时间的资料才会出现。"
+    override val loadingData = "加载中…"
+
+    override val swipeLike = "喜欢"
+    override val swipePass = "跳过"
+    override val swipeSuper = "超级喜欢"
+    override val superLikeCd = "超级喜欢"
+
+    override val matchTitle = "配对成功！"
+    override fun matchMessage(name: String) =
+        "你和 $name 互相喜欢！现在可以聊天了。"
+    override val openChat = "打开聊天"
+
+    override fun ageYears(age: Int) = "$age 岁"
+    override fun commonFreeDuration(minutos: Int): String = when {
+        minutos >= 60 && minutos % 60 == 0 -> {
+            val horas = minutos / 60
+            if (horas == 1) "共同 1 小时" else "共同 $horas 小时"
+        }
+
+        minutos >= 60 -> "共同 ${minutos / 60} 小时 ${minutos % 60} 分钟"
+        else -> "共同 $minutos 分钟"
+    }
+
+    override val reasonNoCommonFreeSlot = "你们没有共同的空闲时间"
+    override fun reasonSharedFreeSlot(rango: String) = "共同空闲时间：$rango"
+
+    // =================================================================
+    // MODULE 5 · CHATS
+    // =================================================================
+
+    override val chatGroupTag = "群组"
+    override val chatNoMessages = "还没有消息。发出第一条吧！"
+    override val messageInputHint = "输入消息..."
+    override val sendMessageCd = "发送消息"
+    override val chatActivityActive = "今天进行中"
+    override fun chatActivityScheduled(fecha: String) = "安排在：$fecha"
+
+    override val timeJustNow = "刚刚"
+    override fun timeAgoMinutes(minutes: Int) = "$minutes 分钟前"
+    override fun timeAgoHours(hours: Int) = "$hours 小时前"
+    override fun timeAgoDays(days: Int) = if (days <= 1) "昨天" else "$days 天前"
+
+    override fun unreadMessages(count: Int) = "$count 条未读消息"
 }

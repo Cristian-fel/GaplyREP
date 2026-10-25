@@ -1,5 +1,6 @@
 package com.gaply.app.data.repository
 
+import com.gaply.app.data.mapper.aScheduleClasses
 import com.gaply.app.domain.model.RepoError
 import com.gaply.app.domain.model.RepoResult
 import com.gaply.app.domain.model.ScheduleClass
@@ -30,12 +31,7 @@ class FirebaseScheduleRepository(
 
     override suspend fun getClasses(): RepoResult<List<ScheduleClass>> = try {
         val uid = auth.currentUser?.uid ?: return RepoResult.Error(RepoError.PERMISSION)
-        val mapa = mapaHorario(uid)
-        RepoResult.Success(
-            mapa.mapNotNull { (id, datos) ->
-                (datos as? Map<*, *>)?.let { aClase(id, it) }
-            },
-        )
+        RepoResult.Success(mapaHorario(uid).aScheduleClasses())
     } catch (e: kotlinx.coroutines.CancellationException) {
         throw e
     } catch (e: Exception) {
@@ -83,18 +79,6 @@ class FirebaseScheduleRepository(
             .set(mapOf(CAMPO_HORARIO to mapa), SetOptions.merge())
             .await()
     }
-
-    private fun aClase(id: String, datos: Map<*, *>): ScheduleClass = ScheduleClass(
-        id = id,
-        title = datos["title"] as? String ?: "",
-        day = datos["day"] as? String ?: "Lunes",
-        startDate = datos["startDate"] as? String ?: "",
-        endDate = datos["endDate"] as? String ?: "",
-        startHour = datos["startHour"] as? String ?: "08:00",
-        endHour = datos["endHour"] as? String ?: "10:00",
-        note = datos["note"] as? String ?: "",
-        color = datos["color"] as? String ?: ScheduleClass.COLOR_POR_DEFECTO,
-    )
 
     private fun ScheduleClass.aMapa(): Map<String, Any> = mapOf(
         "title" to title,

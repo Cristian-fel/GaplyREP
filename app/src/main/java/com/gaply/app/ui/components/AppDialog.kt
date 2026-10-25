@@ -61,6 +61,12 @@ fun AppDialog(
     iconTint: Color? = null,
     iconBackgroundColor: Color? = null,
     borderColor: Color = Color.Black,
+    /**
+     * Acción del botón de confirmación. Por defecto cierra (igual que antes);
+     * se pasa aparte cuando el CTA hace algo más, p. ej. "Abrir chat" en el
+     * diálogo de match.
+     */
+    onConfirm: () -> Unit = onDismiss,
 ) {
     val s = LocalStrings.current
     Dialog(onDismissRequest = onDismiss) {
@@ -182,7 +188,7 @@ fun AppDialog(
                     Spacer(modifier = Modifier.height(16.dp))
 
                     if (showConfirmButton) {
-                        TextButton(onClick = onDismiss) {
+                        TextButton(onClick = onConfirm) {
                             Text(
                                 text = confirmText,
                                 style = MaterialTheme.typography.labelLarge,

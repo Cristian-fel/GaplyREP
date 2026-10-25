@@ -1,0 +1,341 @@
+package com.gaply.app.data.repository
+
+import com.gaply.app.data.mapper.CAMPO_MIEMBROS
+import com.gaply.app.data.mapper.aChat
+import com.gaply.app.data.mapper.aFirestoreMap
+import com.gaply.app.data.mapper.aMessage
+import com.gaply.app.domain.model.ActivityItem
+import com.gaply.app.domain.model.Chat
+import com.gaply.app.domain.model.ChatIds
+import com.gaply.app.domain.model.ChatType
+import com.gaply.app.domain.model.Message
+import com.gaply.app.domain.model.RepoError
+import com.gaply.app.domain.model.RepoResult
+import com.gaply.app.domain.repository.ChatsRepository
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FieldValue
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.FirebaseFirestoreException
+import com.google.firebase.firestore.ListenerRegistration
+import com.google.firebase.firestore.Query
+import com.google.firebase.firestore.SetOptions
+import com.google.firebase.Timestamp
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.tasks.await
+import java.util.Date
+import java.util.concurrent.ConcurrentHashMap
+
+/**
+ * Módulo 5 · Chats en la nube (`chats/{chatId}` + `messages` en Firestore).
+ *
+ * Lecturas en tiempo real con `addSnapshotListener` dentro de `callbackFlow`
+ * (el listener se quita en `awaitClose`):
+ *  - lista: `where(members array-contains yo).orderBy(updatedAt desc).limit(30)`;
+ *  - mensajes: `orderBy(timestamp desc).limit(50)`.
+ *
+ * El campo de los miembros se llama `members` (no `participants`) porque
+ * así lo exige `firestore.rules`; ver [CAMPO_MIEMBROS].
+ *
+ * La lista requiere un **índice compuesto** (`members` + `updatedAt`). Si aún
+ * no existe, Firestore responde FAILED_PRECONDITION y aquí mismo se
+ * cae a la consulta sin `orderBy` ordenando en cliente, para que la pantalla
+ * nunca se quede rota a la espera de un índice.
+ *
+ * Escrituras:
+ *  - `sendMessage`: un batch con el add del mensaje + la actualización de
+ *    `lastMessage`, `updatedAt` e `unreadCounts` (increment para el resto).
+ *  - `markAsRead`: pone `unreadCounts[miUid]` en 0 con merge.
+ *
+ * Alcance de este corte: solo texto, sin presencia/"en línea".
+ */
+class FirebaseChatsRepository(
+    private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance(),
+    private val auth: FirebaseAuth = FirebaseAuth.getInstance(),
+) : ChatsRepository {
+
+    /** uid -> (nombre, foto): evita releer el perfil en cada snapshot. */
+    private val perfiles = ConcurrentHashMap<String, Pair<String, String>>()
+
+    override fun observeChats(): Flow<RepoResult<List<Chat>>> =
+        chatsSnapshot().map { resultado ->
+            when (resultado) {
+                is RepoResult.Success -> RepoResult.Success(enriquecer(resultado.data))
+                is RepoResult.Error -> resultado
+            }
+        }
+
+    override fun observeMessages(chatId: String): Flow<RepoResult<List<Message>>> = callbackFlow {
+        if (chatId.isBlank()) {
+            trySend(RepoResult.Error(RepoError.EMPTY_FIELDS))
+            close()
+            return@callbackFlow
+        }
+        val listener = firestore.collection(CHATS).document(chatId).collection(MESSAGES)
+            .orderBy(CAMPO_MARCA_TIEMPO, Query.Direction.DESCENDING)
+            .limit(LIST_MENSAJES.toLong())
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    trySend(RepoResult.Error(mapError(error)))
+                    return@addSnapshotListener
+                }
+                if (snapshot == null) return@addSnapshotListener
+                trySend(
+                    RepoResult.Success(snapshot.documents.mapNotNull { it.aMessage() }),
+                )
+            }
+        awaitClose { listener.remove() }
+    }
+
+    override suspend fun sendMessage(
+        chatId: String,
+        senderName: String,
+        text: String,
+    ): RepoResult<String> = try {
+        val uid = auth.currentUser?.uid ?: return RepoResult.Error(RepoError.PERMISSION)
+        val contenido = text.trim().takeIf { it.isNotEmpty() }
+            ?: return RepoResult.Error(RepoError.EMPTY_FIELDS)
+
+        val chatRef = firestore.collection(CHATS).document(chatId)
+        val documento = chatRef.get().await().takeIf { it.exists() }
+            ?: return RepoResult.Error(RepoError.UNKNOWN)
+        val participantes = documento.get(CAMPO_MIEMBROS)
+            ?.let { it as? List<*> }?.filterIsInstance<String>().orEmpty()
+
+        val ahora = System.currentTimeMillis()
+        val lote = firestore.batch()
+        lote.set(
+            chatRef.collection(MESSAGES).document(),
+            Message(
+                senderId = uid,
+                senderName = senderName,
+                text = contenido,
+                timestamp = ahora,
+            ).aFirestoreMap(),
+        )
+        val cambios = mutableMapOf<String, Any>(
+            "lastMessage" to contenido,
+            CAMPO_ACTUALIZADO to Timestamp(Date(ahora)),
+        )
+        participantes.filter { it != uid }.forEach {
+            cambios["$CAMPO_NO_LEIDOS.$it"] = FieldValue.increment(1)
+        }
+        lote.update(chatRef, cambios)
+        lote.commit().await()
+        RepoResult.Success(chatId)
+    } catch (e: kotlinx.coroutines.CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        RepoResult.Error(mapError(e))
+    }
+
+    override suspend fun markAsRead(chatId: String): RepoResult<Unit> = try {
+        val uid = auth.currentUser?.uid ?: return RepoResult.Error(RepoError.PERMISSION)
+        firestore.collection(CHATS).document(chatId)
+            .update(mapOf("$CAMPO_NO_LEIDOS.$uid" to 0))
+            .await()
+        RepoResult.Success(Unit)
+    } catch (e: kotlinx.coroutines.CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        RepoResult.Error(mapError(e))
+    }
+
+    override suspend fun ensureDirectChat(
+        otherUid: String,
+        otherName: String,
+        otherPhotoUrl: String,
+    ): RepoResult<String> = try {
+        val uid = auth.currentUser?.uid ?: return RepoResult.Error(RepoError.PERMISSION)
+        val destino = otherUid.takeIf { it.isNotBlank() && it != uid }
+            ?: return RepoResult.Error(RepoError.EMPTY_FIELDS)
+        val chatId = ChatIds.direct(uid, destino)
+        val ref = firestore.collection(CHATS).document(chatId)
+        val existente = ref.get().await()
+
+        if (!existente.exists()) {
+            // Id determinístico + merge: la carrera de los dos clientes no
+            // duplica el chat y quien llegue segundo no borra lo que ya
+            // escribió el primero.
+            ref.set(
+                Chat(
+                    id = chatId,
+                    type = ChatType.DIRECT,
+                    participants = listOf(uid, destino).sorted(),
+                    title = otherName,
+                    photoUrl = otherPhotoUrl,
+                    updatedAt = System.currentTimeMillis(),
+                ).aFirestoreMap(incluirVacios = true),
+                SetOptions.merge(),
+            ).await()
+        } else {
+            // Solo refresca el título/foto desde esta perspectiva.
+            ref.set(
+                mapOf(
+                    CAMPO_MIEMBROS to listOf(uid, destino).sorted(),
+                    "title" to otherName,
+                    "photoUrl" to otherPhotoUrl,
+                ),
+                SetOptions.merge(),
+            ).await()
+        }
+        RepoResult.Success(chatId)
+    } catch (e: kotlinx.coroutines.CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        RepoResult.Error(mapError(e))
+    }
+
+    override suspend fun ensureGroupChat(activity: ActivityItem): RepoResult<String> = try {
+        val uid = auth.currentUser?.uid ?: return RepoResult.Error(RepoError.PERMISSION)
+        val actividadId = activity.id.takeIf { it.isNotBlank() }
+            ?: return RepoResult.Error(RepoError.EMPTY_FIELDS)
+
+        val chatId = ChatIds.group(actividadId)
+        val ref = firestore.collection(CHATS).document(chatId)
+        val existente = ref.get().await()
+        val participantes = (activity.attendeeIds + activity.ownerId)
+            .filter { it.isNotBlank() }
+            .plus(uid)
+            .distinct()
+
+        if (!existente.exists()) {
+            ref.set(
+                Chat(
+                    id = chatId,
+                    type = ChatType.GROUP,
+                    participants = participantes,
+                    activityId = actividadId,
+                    title = activity.title,
+                    photoUrl = activity.imageUri.orEmpty(),
+                    updatedAt = System.currentTimeMillis(),
+                ).aFirestoreMap(incluirVacios = true),
+                SetOptions.merge(),
+            ).await()
+        } else {
+            // arrayUnion es idempotente y NO toca lastMessage/unreadCounts:
+            // reabrir el chat desde el detalle no borra el historial.
+            ref.set(
+                mapOf(
+                    "type" to ChatType.GROUP.name,
+                    CAMPO_MIEMBROS to FieldValue.arrayUnion(*participantes.toTypedArray()),
+                    "activityId" to actividadId,
+                    "title" to activity.title,
+                    "photoUrl" to (activity.imageUri ?: ""),
+                ),
+                SetOptions.merge(),
+            ).await()
+        }
+        RepoResult.Success(chatId)
+    } catch (e: kotlinx.coroutines.CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        RepoResult.Error(mapError(e))
+    }
+
+    // ------------------------------------------------------------------
+    // Listas en tiempo real
+    // ------------------------------------------------------------------
+
+    private fun chatsSnapshot(): Flow<RepoResult<List<Chat>>> = callbackFlow {
+        val uid = auth.currentUser?.uid
+        if (uid == null) {
+            trySend(RepoResult.Error(RepoError.PERMISSION))
+            close()
+            return@callbackFlow
+        }
+        val base = firestore.collection(CHATS).whereArrayContains(CAMPO_MIEMBROS, uid)
+        var registration: ListenerRegistration? = null
+        var sinIndice = false
+
+        fun registrar(query: Query) {
+            registration = query.addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    if (!sinIndice &&
+                        error.code == FirebaseFirestoreException.Code.FAILED_PRECONDITION
+                    ) {
+                        // Falta el índice compuesto: se reconsulta sin orderBy
+                        // y el orden por updatedAt se hace aquí mismo.
+                        sinIndice = true
+                        registration?.remove()
+                        registrar(base)
+                        return@addSnapshotListener
+                    }
+                    trySend(RepoResult.Error(mapError(error)))
+                    return@addSnapshotListener
+                }
+                if (snapshot == null) return@addSnapshotListener
+                trySend(RepoResult.Success(ordenados(snapshot.documents.mapNotNull { it.aChat(uid) })))
+            }
+        }
+
+        registrar(base.orderBy(CAMPO_ACTUALIZADO, Query.Direction.DESCENDING).limit(LIST_CHATS.toLong()))
+        awaitClose { registration?.remove() }
+    }
+
+    private fun ordenados(chats: List<Chat>): List<Chat> =
+        chats.sortedByDescending { it.updatedAt }.take(LIST_CHATS)
+
+    /**
+     * El título/foto de un chat directo depende de quién lo mire (el creador
+     * guardó al "otro" desde su perspectiva), así que cada cliente lo rellena
+     * con los datos reales del otro participante.
+     */
+    private suspend fun enriquecer(chats: List<Chat>): List<Chat> {
+        val uid = auth.currentUser?.uid ?: return chats
+        return chats.map { chat ->
+            if (chat.type != ChatType.DIRECT) chat
+            else {
+                val otro = chat.participants.firstOrNull { it != uid } ?: return@map chat
+                val perfil = perfilDe(otro) ?: return@map chat
+                chat.copy(
+                    title = perfil.first.ifBlank { chat.title },
+                    photoUrl = perfil.second.ifBlank { chat.photoUrl },
+                )
+            }
+        }
+    }
+
+    private suspend fun perfilDe(uid: String): Pair<String, String>? {
+        perfiles[uid]?.let { return it }
+        return runCatching {
+            val doc = firestore.collection(USERS).document(uid).get().await()
+            val nombre = doc.getString("firstName")?.ifBlank { null }
+                ?: doc.getString("username") ?: ""
+            val datos = nombre to (doc.getString("profilePictureUrl") ?: "")
+            if (nombre.isNotBlank()) perfiles[uid] = datos
+            datos
+        }.getOrNull()
+    }
+
+    private fun mapError(e: Exception): RepoError = when (e) {
+        is FirebaseFirestoreException -> when (e.code) {
+            FirebaseFirestoreException.Code.UNAVAILABLE,
+            FirebaseFirestoreException.Code.DEADLINE_EXCEEDED,
+            -> RepoError.CONNECTION
+
+            FirebaseFirestoreException.Code.PERMISSION_DENIED,
+            FirebaseFirestoreException.Code.UNAUTHENTICATED,
+            -> RepoError.PERMISSION
+
+            else -> RepoError.UNKNOWN
+        }
+
+        else -> RepoError.UNKNOWN
+    }
+
+    companion object {
+        private const val CHATS = "chats"
+        private const val MESSAGES = "messages"
+        private const val USERS = "users"
+        private const val CAMPO_ACTUALIZADO = "updatedAt"
+        private const val CAMPO_MARCA_TIEMPO = "timestamp"
+        private const val CAMPO_NO_LEIDOS = "unreadCounts"
+
+        /** Chats en la lista y mensajes visibles en una conversación. */
+        private const val LIST_CHATS = 30
+        private const val LIST_MENSAJES = 50
+    }
+}

@@ -2,11 +2,18 @@ package com.gaply.app.data.mapper
 
 import com.gaply.app.domain.model.User
 
+/**
+ * Mapa del perfil que se escribe en `users/{uid}`.
+ *
+ * IMPORTANTE: `passwordHash` NO se persiste aquí. Las credenciales viven en
+ * Firebase Auth; el hash solo existe en el respaldo local
+ * (`InMemoryAuthRepository` + `LocalUserStore`) y jamás debe salir del
+ * dispositivo. Leerlo de vuelta tolera documentos antiguos que aún lo tengan.
+ */
 fun User.toFirestoreMap(): HashMap<String, Any> = hashMapOf(
     "userId" to userId,
     "username" to username,
     "email" to email,
-    "passwordHash" to passwordHash,
     "firstName" to firstName,
     "lastName" to lastName,
     "birthDate" to birthDate,

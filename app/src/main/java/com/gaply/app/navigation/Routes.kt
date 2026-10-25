@@ -27,6 +27,11 @@ object Routes {
     const val MY_ACTIVITIES = "my_activities"
     const val EDIT_ACTIVITY = "edit_activity"
 
+    // ---- Módulo 5 · Chats ----
+    /** Detalle de una conversación (tiene back propio: no es pestaña). */
+    const val CHAT_DETAIL = "chat_detail"
+    const val ARG_CHAT_ID = "chatId"
+
     const val ARG_IDENTIFIER = "identifier"
     const val ARG_CLASS_ID = "classId"
     const val ARG_DIA = "dia"
@@ -58,4 +63,8 @@ object Routes {
     /** Formulario en modo edición de una actividad propia (precarga datos). */
     fun editActivity(activityId: String): String =
         "$EDIT_ACTIVITY?$ARG_ACTIVITY_ID=${android.net.Uri.encode(activityId)}"
+
+    /** Conversación abierta desde la lista de chats o desde el diálogo de match. */
+    fun chatDetail(chatId: String): String =
+        "$CHAT_DETAIL?$ARG_CHAT_ID=${android.net.Uri.encode(chatId)}"
 }

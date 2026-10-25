@@ -11,6 +11,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
 import com.google.firebase.auth.FirebaseAuthInvalidUserException
 import com.google.firebase.auth.FirebaseAuthUserCollisionException
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.ListenerRegistration
@@ -252,7 +253,7 @@ class FirebaseAuthRepository(
         return try {
             // Primero el documento de Firestore, después la cuenta de Auth
             // (si fallara Auth, no quedaría un usuario huérfano en la app).
-            firestore.collection(USERS).document(user.uid).delete().await()
+            borrarPerfil(user.uid)
             user.delete().await()
             RepoResult.Success(Unit)
         } catch (e: kotlinx.coroutines.CancellationException) {
@@ -260,6 +261,41 @@ class FirebaseAuthRepository(
         } catch (e: Exception) {
             Log.e("Gaply", "Fallo al eliminar la cuenta", e)
             RepoResult.Error(mapError(e))
+        }
+    }
+
+    /**
+     * Borra `users/{uid}`; si `firestore.rules` lo prohíbe (`allow delete:
+     * if false`) se anonimiza el perfil con un `update` (permitido al dueño)
+     * para que con lectura pública no quede nada personal, y la cuenta de Auth
+     * se elimina igual. Si algún día las reglas permiten borrar, se borra.
+     */
+    private suspend fun borrarPerfil(uid: String) {
+        try {
+            firestore.collection(USERS).document(uid).delete().await()
+        } catch (e: FirebaseFirestoreException) {
+            if (e.code != FirebaseFirestoreException.Code.PERMISSION_DENIED) throw e
+            Log.w("Gaply", "users/{uid} no permite delete: se anonimiza el perfil")
+            firestore.collection(USERS).document(uid).update(
+                mapOf(
+                    "userId" to "",
+                    "username" to "",
+                    "email" to "",
+                    "firstName" to "",
+                    "lastName" to "",
+                    "birthDate" to "",
+                    "university" to "",
+                    "gender" to "",
+                    "goal" to "",
+                    "interests" to emptyList<String>(),
+                    "bio" to "",
+                    "profilePictureUrl" to "",
+                    "receiveMarketing" to false,
+                    "schedule" to FieldValue.delete(),
+                    "rating" to FieldValue.delete(),
+                    KEY_DEACTIVATED to FieldValue.delete(),
+                ),
+            ).await()
         }
     }
 

@@ -38,6 +38,8 @@ interface AppStrings {
     val connectionErrorTitle: String
     val connectionErrorMessage: String
     val noActiveSessionMsg: String
+    /** Firestore rechazó la lectura: sesión caducada o reglas sin publicar. */
+    val firestoreReadDenied: String
 
     val successCd: String
     val infoCd: String
@@ -511,4 +513,57 @@ interface AppStrings {
     val duration30: String
     val duration1h: String
     val duration2h: String
+
+    // =================================================================
+    // MÓDULO 5 · MATCHES
+    // =================================================================
+
+    /** Mazo agotado: "No tenemos más sugerencias por el momento". */
+    val matchesNoMoreSuggestions: String
+    /** Pie del mazo con la función de utilidad del agente (evidencia de IA). */
+    val matchesUtilityExplanation: String
+    /** Estado de carga compartido de Matches y Chats. */
+    val loadingData: String
+
+    /** Etiquetas de los indicadores que aparecen al arrastrar la tarjeta. */
+    val swipeLike: String
+    val swipePass: String
+    val swipeSuper: String
+    /** Descripción accesible del botón de super me gusta. */
+    val superLikeCd: String
+
+    /** Diálogo de match mutuo: "¡Es un match!". */
+    val matchTitle: String
+    fun matchMessage(name: String): String
+    val openChat: String
+
+    /** "20 años" (la edad solo se muestra si hay fecha de nacimiento válida). */
+    fun ageYears(age: Int): String
+    /** "2 horas en común" a partir de los minutos de solape de huecos. */
+    fun commonFreeDuration(minutos: Int): String
+
+    /** Motivo de descarte del agente de matches (sin huecos en común). */
+    val reasonNoCommonFreeSlot: String
+    fun reasonSharedFreeSlot(rango: String): String
+
+    // =================================================================
+    // MÓDULO 5 · CHATS
+    // =================================================================
+
+    /** Distintivo de los chats de grupo (actividad) en la lista. */
+    val chatGroupTag: String
+    val chatNoMessages: String
+    val messageInputHint: String
+    val sendMessageCd: String
+    val chatActivityActive: String
+    fun chatActivityScheduled(fecha: String): String
+
+    /** Tiempo relativo del último mensaje de la lista de chats. */
+    val timeJustNow: String
+    fun timeAgoMinutes(minutes: Int): String
+    fun timeAgoHours(hours: Int): String
+    fun timeAgoDays(days: Int): String
+
+    /** Descripción accesible del badge de no leídos. */
+    fun unreadMessages(count: Int): String
 }
