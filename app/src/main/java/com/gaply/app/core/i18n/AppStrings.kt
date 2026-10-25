@@ -537,6 +537,10 @@ interface AppStrings {
     fun matchMessage(name: String): String
     val openChat: String
 
+    /** Diálogo al unirse a una actividad desde el mazo (CTA al chat). */
+    val activityJoinedTitle: String
+    fun activityJoinedMsg(titulo: String): String
+
     /** "20 años" (la edad solo se muestra si hay fecha de nacimiento válida). */
     fun ageYears(age: Int): String
     /** "2 horas en común" a partir de los minutos de solape de huecos. */

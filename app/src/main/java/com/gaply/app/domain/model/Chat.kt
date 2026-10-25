@@ -10,6 +10,9 @@ enum class ChatType { DIRECT, GROUP }
  * @param activityId solo para [ChatType.GROUP].
  * @param title     nombre mostrado (el otro usuario o el título de la actividad).
  * @param unreadCount no viaja a Firestore: se calcula al leer `unreadCounts[miUid]`.
+ * @param lastReadAt  idem: `lastReadAt[miUid]` (millis de la última vez que lo
+ *                    abrí). Null = nunca lo abrí, que es lo que cuenta un chat
+ *                    directo como "match nuevo" en el badge del Descubrir.
  */
 data class Chat(
     val id: String = "",
@@ -21,7 +24,12 @@ data class Chat(
     val lastMessage: String = "",
     val updatedAt: Long = 0L,
     val unreadCount: Int = 0,
-)
+    val lastReadAt: Long? = null,
+) {
+    /** Un match recién creado al que todavía no entré (alimenta el badge). */
+    val esMatchNuevo: Boolean
+        get() = type == ChatType.DIRECT && lastReadAt == null
+}
 
 /** Mensaje de texto de `chats/{chatId}/messages/{messageId}`. */
 data class Message(

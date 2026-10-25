@@ -23,6 +23,14 @@ import com.google.firebase.firestore.DocumentSnapshot
  */
 const val CAMPO_MIEMBROS = "members"
 
+/**
+ * Última vez que cada uid abrió la conversación (`{ uid: millis }`). Solo lo
+ * escribe el propio dueño al abrir el chat; con eso el badge del Descubrir
+ * distingue un match nuevo de uno ya visto. Escritura permitida porque
+ * `firestore.rules` deja actualizar `chats` a sus miembros.
+ */
+const val CAMPO_ULTIMA_LECTURA = "lastReadAt"
+
 /** Documento del chat listo para `set(..., SetOptions.merge())`. */
 fun Chat.aFirestoreMap(incluirVacios: Boolean): Map<String, Any> = buildMap {
     put("type", type.name)
@@ -32,7 +40,10 @@ fun Chat.aFirestoreMap(incluirVacios: Boolean): Map<String, Any> = buildMap {
     put("lastMessage", lastMessage)
     put("updatedAt", Timestamp(java.util.Date(updatedAt)))
     activityId?.let { put("activityId", it) }
-    if (incluirVacios) put("unreadCounts", emptyMap<String, Int>())
+    if (incluirVacios) {
+        put("unreadCounts", emptyMap<String, Int>())
+        put(CAMPO_ULTIMA_LECTURA, emptyMap<String, Long>())
+    }
 }
 
 fun DocumentSnapshot.aChat(miUid: String?): Chat {
@@ -40,6 +51,8 @@ fun DocumentSnapshot.aChat(miUid: String?): Chat {
     val participantes = (datos[CAMPO_MIEMBROS] as? List<*>)?.filterIsInstance<String>().orEmpty()
     @Suppress("UNCHECKED_CAST")
     val noLeidos = datos["unreadCounts"] as? Map<String, Number>
+    @Suppress("UNCHECKED_CAST")
+    val ultimaLectura = datos[CAMPO_ULTIMA_LECTURA] as? Map<String, Any?>
     return Chat(
         id = id,
         type = tipoDe(datos["type"], ChatType.DIRECT),
@@ -50,6 +63,11 @@ fun DocumentSnapshot.aChat(miUid: String?): Chat {
         lastMessage = datos["lastMessage"] as? String ?: "",
         updatedAt = datos["updatedAt"].aMillis(),
         unreadCount = if (miUid == null) 0 else (noLeidos?.get(miUid)?.toInt() ?: 0),
+        lastReadAt = if (miUid == null) {
+            null
+        } else {
+            ultimaLectura?.get(miUid)?.aMillis()?.takeIf { it > 0L }
+        },
     )
 }
 

@@ -4,19 +4,36 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.gaply.app.di.AppContainer
+import com.gaply.app.domain.model.Chat
+import com.gaply.app.domain.model.ChatType
 import com.gaply.app.domain.model.HuecoLibre
 import com.gaply.app.domain.model.RepoResult
 import com.gaply.app.domain.model.User
 import com.gaply.app.domain.repository.AuthRepository
+import com.gaply.app.domain.repository.ChatsRepository
 import com.gaply.app.domain.repository.ScheduleRepository
 import com.gaply.app.ui.screens.schedule.ScheduleViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.LocalDate
+
+/**
+ * Contador de la campana del Descubrir: mensajes sin leer (por su número) más
+ * los chats directos que nunca abrí (un match recién creado). Un chat con
+ * mensajes pendientes cuenta por esos mensajes y no dos veces.
+ */
+internal fun badgeDeChats(chats: List<Chat>): Int = chats.sumOf { chat ->
+    when {
+        chat.unreadCount > 0 -> chat.unreadCount
+        chat.esMatchNuevo -> 1
+        else -> 0
+    }
+}
 
 data class HomeUiState(
     val user: User? = null,
@@ -32,15 +49,44 @@ data class HomeUiState(
 
 enum class HomeDialog { CREATE_ACTIVITY, EVENT_SITE }
 
+/**
+ * Estado de la sección "Mis matches" y del badge de la campana del Descubrir.
+ *
+ * @param directos chats directos (dos personas): son exactamente mis matches.
+ * @param badge    no leídos + matches a los que todavía no entré.
+ */
+data class MatchesBarUiState(
+    val directos: List<Chat> = emptyList(),
+    val badge: Int = 0,
+)
+
 class HomeViewModel(
     private val authRepository: AuthRepository,
     private val scheduleRepository: ScheduleRepository,
+    chatsRepository: ChatsRepository,
 ) : ViewModel() {
 
     private val selectedTab = MutableStateFlow(0)
     private val dialog = MutableStateFlow<HomeDialog?>(null)
     private val huecosDeHoy = MutableStateFlow<List<HuecoLibre>>(emptyList())
     private val tieneHorario = MutableStateFlow(false)
+
+    private val _matchesBar = MutableStateFlow(MatchesBarUiState())
+    val matchesBar: StateFlow<MatchesBarUiState> = _matchesBar.asStateFlow()
+
+    init {
+        // La lista de chats en tiempo real alimenta la sección "Mis matches"
+        // y el contador de la campana (mismo dato que la pestaña Chats).
+        viewModelScope.launch {
+            chatsRepository.observeChats().collect { resultado ->
+                val chats = (resultado as? RepoResult.Success)?.data ?: return@collect
+                _matchesBar.value = MatchesBarUiState(
+                    directos = chats.filter { it.type == ChatType.DIRECT },
+                    badge = badgeDeChats(chats),
+                )
+            }
+        }
+    }
 
     val uiState: StateFlow<HomeUiState> = combine(
         authRepository.currentUser,
@@ -116,6 +162,7 @@ class HomeViewModel(
                     return HomeViewModel(
                         authRepository = container.authRepository,
                         scheduleRepository = container.scheduleRepository,
+                        chatsRepository = container.chatsRepository,
                     ) as T
                 }
             }

@@ -611,6 +611,8 @@ object StringsZh : AppStrings {
     override fun matchMessage(name: String) =
         "你和 $name 互相喜欢！现在可以聊天了。"
     override val openChat = "打开聊天"
+    override val activityJoinedTitle = "你已加入该活动！"
+    override fun activityJoinedMsg(titulo: String) = "「$titulo」的聊天已向参与者开放。"
 
     override fun ageYears(age: Int) = "$age 岁"
     override fun commonFreeDuration(minutos: Int): String = when {

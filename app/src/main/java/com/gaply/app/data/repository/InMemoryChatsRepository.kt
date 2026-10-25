@@ -33,10 +33,13 @@ class InMemoryChatsRepository(
     /** chatId -> uid -> no leídos (el equivalente al mapa `unreadCounts`). */
     private val noLeidos = MutableStateFlow<Map<String, Map<String, Int>>>(emptyMap())
 
+    /** chatId -> uid -> millis de la última vez que lo abrió (`lastReadAt`). */
+    private val ultimaLectura = MutableStateFlow<Map<String, Map<String, Long>>>(emptyMap())
+
     private fun miUid(): String? = store.currentUser.value?.userId
 
     override fun observeChats(): Flow<RepoResult<List<Chat>>> =
-        combine(chats, noLeidos) { mapa, leidos ->
+        combine(chats, noLeidos, ultimaLectura) { mapa, leidos, lecturas ->
             val uid = miUid()
                 ?: return@combine RepoResult.Success<List<Chat>>(emptyList())
             val usuarios = store.loadUsers().associateBy { it.userId }
@@ -48,6 +51,7 @@ class InMemoryChatsRepository(
                     .map { chat ->
                         chat.copy(
                             unreadCount = leidos[chat.id]?.get(uid) ?: 0,
+                            lastReadAt = lecturas[chat.id]?.get(uid),
                         ).conPerspectiva(uid, usuarios)
                     },
             )
@@ -97,6 +101,8 @@ class InMemoryChatsRepository(
         val uid = miUid() ?: return RepoResult.Error(RepoError.PERMISSION)
         val actual = noLeidos.value[chatId] ?: emptyMap()
         noLeidos.value = noLeidos.value + (chatId to (actual + (uid to 0)))
+        val lecturas = ultimaLectura.value[chatId] ?: emptyMap()
+        ultimaLectura.value = ultimaLectura.value + (chatId to (lecturas + (uid to System.currentTimeMillis())))
         return RepoResult.Success(Unit)
     }
 

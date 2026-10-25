@@ -605,6 +605,9 @@ object StringsFr : AppStrings {
     override fun matchMessage(name: String) =
         "Toi et $name vous vous plaisez ! Vous pouvez discuter."
     override val openChat = "Ouvrir le chat"
+    override val activityJoinedTitle = "Vous êtes dans l'activité !"
+    override fun activityJoinedMsg(titulo: String) =
+        "Le chat de « $titulo » est disponible avec les participants."
 
     override fun ageYears(age: Int) = "$age ans"
     override fun commonFreeDuration(minutos: Int): String = when {

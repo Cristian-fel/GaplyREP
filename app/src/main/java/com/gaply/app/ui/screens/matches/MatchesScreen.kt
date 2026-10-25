@@ -168,6 +168,22 @@ fun MatchesScreen(
             borderColor = BrandGreen,
         )
     }
+
+    // Swipe derecho a una actividad: ya estás dentro y su chat existe.
+    state.activityJoined?.let { unida ->
+        AppDialog(
+            style = DialogStyle.SUCCESS,
+            title = s.activityJoinedTitle,
+            message = s.activityJoinedMsg(unida.title),
+            confirmText = s.openChat,
+            onConfirm = {
+                viewModel.consumirActivityJoined()
+                onOpenChat(unida.chatId)
+            },
+            onDismiss = viewModel::consumirActivityJoined,
+            borderColor = BrandGreen,
+        )
+    }
 }
 
 @Composable

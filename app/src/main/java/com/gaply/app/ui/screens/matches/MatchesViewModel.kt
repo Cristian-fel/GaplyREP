@@ -55,6 +55,12 @@ data class MatchDialogData(
     val chatId: String,
 )
 
+/** Datos del diálogo tras unirse a una actividad (el CTA abre su chat). */
+data class ActivityJoinedData(
+    val title: String,
+    val chatId: String,
+)
+
 data class MatchesUiState(
     val phase: MatchesPhase = MatchesPhase.LOADING,
     val cartas: List<DeckCard> = emptyList(),
@@ -62,6 +68,7 @@ data class MatchesUiState(
     val agotado: Boolean = false,
     val error: RepoError? = null,
     val matchDialog: MatchDialogData? = null,
+    val activityJoined: ActivityJoinedData? = null,
 )
 
 /**
@@ -234,7 +241,20 @@ class MatchesViewModel(
         }
 
         when (resultado) {
-            is RepoResult.Success -> fallo(null)
+            is RepoResult.Success -> {
+                fallo(null)
+                // Ya es tuya y su chat existe: se ofrece entrar (el usuario
+                // decide si sigue swipando o abre la conversación).
+                _uiState.update {
+                    it.copy(
+                        activityJoined = ActivityJoinedData(
+                            title = activity.title,
+                            chatId = resultado.data,
+                        ),
+                    )
+                }
+            }
+
             is RepoResult.Error -> fallo(resultado.type)
         }
     }
@@ -263,6 +283,10 @@ class MatchesViewModel(
 
     fun consumirMatch() {
         _uiState.update { it.copy(matchDialog = null) }
+    }
+
+    fun consumirActivityJoined() {
+        _uiState.update { it.copy(activityJoined = null) }
     }
 
     fun limpiarError() {

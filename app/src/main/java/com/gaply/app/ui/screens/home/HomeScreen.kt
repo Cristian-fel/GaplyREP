@@ -42,6 +42,8 @@ import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SportsSoccer
 import androidx.compose.material.icons.filled.TheaterComedy
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -74,6 +76,7 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -81,9 +84,11 @@ import com.gaply.app.R
 import com.gaply.app.core.i18n.AppStrings
 import com.gaply.app.core.i18n.LocalStrings
 import com.gaply.app.di.appContainer
+import com.gaply.app.domain.model.Chat
 import com.gaply.app.ui.components.AppDialog
 import com.gaply.app.ui.components.DialogStyle
 import com.gaply.app.ui.components.GaplyOutlineButton
+import com.gaply.app.ui.screens.activities.InitialAvatar
 import com.gaply.app.ui.screens.chats.ChatsScreen
 import com.gaply.app.ui.screens.matches.MatchesScreen
 import com.gaply.app.ui.screens.profile.ProfileScreen
@@ -211,6 +216,7 @@ fun HomeScreen(
                     },
                     onCreateActivity = onCreateActivity,
                     onOpenMyActivities = onOpenMyActivities,
+                    onOpenChat = onOpenChat,
                 )
                 // Módulo 5 · Matches: mazo de swipe embebido en la Home.
                 1 -> MatchesScreen(onOpenChat = onOpenChat)
@@ -309,8 +315,10 @@ private fun DiscoverTab(
     onOpenActivitiesByCategory: (String) -> Unit = {},
     onCreateActivity: () -> Unit = {},
     onOpenMyActivities: () -> Unit = {},
+    onOpenChat: (String) -> Unit = {},
 ) {
     val uriHandler = LocalUriHandler.current
+    val matches by viewModel.matchesBar.collectAsState()
 
     Column(
         modifier = Modifier
@@ -357,13 +365,31 @@ private fun DiscoverTab(
                 color = Color.Black,
                 modifier = Modifier.weight(1f)
             )
-            IconButton(onClick = { }) {
-                Icon(
-                    imageVector = Icons.Filled.Notifications,
-                    contentDescription = s.notificationsCd,
-                    tint = Color.Black,
-                    modifier = Modifier.size(26.dp)
-                )
+            // Campana con contador: mensajes sin leer + matches sin abrir.
+            // Al tocarla se abre la pestaña Chats (índice 2).
+            IconButton(onClick = { viewModel.onSelectTab(2) }) {
+                BadgedBox(
+                    badge = {
+                        if (matches.badge > 0) {
+                            Badge {
+                                Text(
+                                    text = if (matches.badge > 99) {
+                                        "99+"
+                                    } else {
+                                        matches.badge.toString()
+                                    },
+                                )
+                            }
+                        }
+                    },
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Notifications,
+                        contentDescription = s.notificationsCd,
+                        tint = Color.Black,
+                        modifier = Modifier.size(26.dp),
+                    )
+                }
             }
         }
 
@@ -410,6 +436,15 @@ private fun DiscoverTab(
                 )
             }
         }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Mis matches: personas con las que ya hay match (chats directos).
+        MisMatchesSection(
+            matches = matches,
+            onOpenChat = onOpenChat,
+            s = s,
+        )
 
         Spacer(modifier = Modifier.height(24.dp))
 
@@ -624,6 +659,71 @@ private fun SectionTitle(text: String) {
         ),
         color = Color.Black,
     )
+}
+
+/**
+ * Sección "Mis matches" del Descubrir: los chats directos (cada uno es una
+ * persona con la que ya hay match). Tocar un avatar abre su conversación.
+ */
+@Composable
+private fun MisMatchesSection(
+    matches: MatchesBarUiState,
+    onOpenChat: (String) -> Unit,
+    s: AppStrings,
+) {
+    SectionTitle(text = s.tabMatches)
+    Spacer(modifier = Modifier.height(12.dp))
+
+    if (matches.directos.isEmpty()) {
+        Text(
+            text = s.matchesEmptyMsg,
+            style = MaterialTheme.typography.bodyMedium,
+            color = TextSecondary,
+        )
+    } else {
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+            items(matches.directos, key = { it.id }) { chat ->
+                MatchAvatarItem(chat = chat, onClick = { onOpenChat(chat.id) })
+            }
+        }
+    }
+}
+
+/** Avatar con el nombre debajo y punto rojo cuando hay algo sin ver. */
+@Composable
+private fun MatchAvatarItem(chat: Chat, onClick: () -> Unit) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .width(72.dp)
+            .clickable(onClick = onClick),
+    ) {
+        Box {
+            InitialAvatar(
+                initial = chat.title.take(1),
+                photoUrl = chat.photoUrl,
+                sizeDp = 60,
+            )
+            if (chat.unreadCount > 0 || chat.esMatchNuevo) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .size(14.dp)
+                        .background(ErrorRed, CircleShape)
+                        .border(2.dp, SurfaceWhite, CircleShape),
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(6.dp))
+        Text(
+            text = chat.title,
+            fontSize = 12.sp,
+            color = Color.Black,
+            textAlign = TextAlign.Center,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
 }
 
 @Composable

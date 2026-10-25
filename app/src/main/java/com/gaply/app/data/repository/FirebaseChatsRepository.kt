@@ -1,6 +1,7 @@
 package com.gaply.app.data.repository
 
 import com.gaply.app.data.mapper.CAMPO_MIEMBROS
+import com.gaply.app.data.mapper.CAMPO_ULTIMA_LECTURA
 import com.gaply.app.data.mapper.aChat
 import com.gaply.app.data.mapper.aFirestoreMap
 import com.gaply.app.data.mapper.aMessage
@@ -133,8 +134,15 @@ class FirebaseChatsRepository(
 
     override suspend fun markAsRead(chatId: String): RepoResult<Unit> = try {
         val uid = auth.currentUser?.uid ?: return RepoResult.Error(RepoError.PERMISSION)
+        // Deja en 0 mis no leídos y anota en qué momento lo abrí: con eso el
+        // badge del Descubrir distingue un match nuevo de uno ya visto.
         firestore.collection(CHATS).document(chatId)
-            .update(mapOf("$CAMPO_NO_LEIDOS.$uid" to 0))
+            .update(
+                mapOf(
+                    "$CAMPO_NO_LEIDOS.$uid" to 0,
+                    "$CAMPO_ULTIMA_LECTURA.$uid" to Timestamp(Date(System.currentTimeMillis())),
+                ),
+            )
             .await()
         RepoResult.Success(Unit)
     } catch (e: kotlinx.coroutines.CancellationException) {

@@ -22,8 +22,10 @@ actividades abiertas al resto de la comunidad del campus.
   colección `activities` de Firestore.
 - **Módulo 5 - Matches y Chats:** mazo de swipe con perfiles (PASS / LIKE / SUPER)
   y "Flash Activities" (unirse o pasar), detección de match mutuo 100% en el
-  cliente, diálogo "¡Es un match!" con acceso al chat, lista de chats en
-  tiempo real con no leídos y conversaciones de texto (directas y de grupo).
+  cliente, diálogo "¡Es un match!" con acceso al chat, diálogo "¡Ya estás
+  dentro!" al unirte a una actividad, sección **Mis matches** + badge de la
+  campana en Descubrir, lista de chats en tiempo real con no leídos y
+  conversaciones de texto (directas y de grupo).
 
 
 ## Pantallas
@@ -75,10 +77,15 @@ activities/{activityId}
 chats/{chatId}
 ├── type: "DIRECT" | "GROUP", members[], activityId?      (solo GROUP)
 ├── title, photoUrl, lastMessage, updatedAt
-└── unreadCounts: { uid: Number }
+├── unreadCounts: { uid: Number }        (no leídos; el badge del Home)
+└── lastReadAt: { uid: millis }          (última vez que cada uid lo abrió)
       └── messages/{messageId}
             senderId, senderName, text, timestamp
 ```
+
+Un chat directo es exactamente un match: la sección **Mis matches** del
+Descubrir y el badge de la campana salen de esta colección (`type == DIRECT`,
+no leídos + los que nunca abriste).
 
 Los ids de chat son determinísticos para que dos clientes nunca lo dupliquen:
 `direct_{uidA}_{uidB}` (uids ordenados) y `act_{activityId}`. El id del swipe
