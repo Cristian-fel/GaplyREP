@@ -110,6 +110,7 @@ fun Message.aFirestoreMap(): Map<String, Any> = buildMap {
     put("kind", kind.name)
     if (targetUid.isNotBlank()) put("targetUid", targetUid)
     if (targetName.isNotBlank()) put("targetName", targetName)
+    if (senderPhotoUrl.isNotBlank()) put("senderPhotoUrl", senderPhotoUrl)
 }
 
 fun DocumentSnapshot.aMessage(): Message = Message(
@@ -121,6 +122,7 @@ fun DocumentSnapshot.aMessage(): Message = Message(
     kind = tipoDe(getString("kind"), MessageKind.TEXT),
     targetUid = getString("targetUid") ?: "",
     targetName = getString("targetName") ?: "",
+    senderPhotoUrl = getString("senderPhotoUrl") ?: "",
 )
 
 private inline fun <reified T : Enum<T>> tipoDe(valor: Any?, porDefecto: T): T {

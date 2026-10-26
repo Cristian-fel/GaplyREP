@@ -327,14 +327,22 @@ private fun Burbuja(
         horizontalArrangement = if (esMia) Arrangement.End else Arrangement.Start,
         modifier = Modifier.fillMaxWidth(),
     ) {
-        if (!esMia && esGrupo && mostrarEmisor) {
-            InitialAvatar(
-                initial = mensaje.senderName.take(1),
-                photoUrl = null,
-                sizeDp = 28,
-                backgroundColor = Mint,
-                textColor = BrandGreen,
-            )
+        // En grupo TODOS los mensajes entrantes ocupan el mismo hueco
+        // (28 + 8 dp): el primero de la tanda muestra el avatar —con la foto
+        // real del emisor, o su inicial si el mensaje no la trae— y el resto
+        // deja el espacio libre, así todas las burbujas quedan alineadas.
+        if (!esMia && esGrupo) {
+            Box(modifier = Modifier.size(28.dp)) {
+                if (mostrarEmisor) {
+                    InitialAvatar(
+                        initial = mensaje.senderName.take(1),
+                        photoUrl = mensaje.senderPhotoUrl.ifBlank { null },
+                        sizeDp = 28,
+                        backgroundColor = Mint,
+                        textColor = BrandGreen,
+                    )
+                }
+            }
             Spacer(modifier = Modifier.width(8.dp))
         }
 

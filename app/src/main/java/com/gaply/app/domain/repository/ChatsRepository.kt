@@ -36,6 +36,7 @@ interface ChatsRepository {
         senderName: String,
         text: String,
         members: List<String>,
+        senderPhotoUrl: String = "",
     ): RepoResult<String>
 
     /** Pone en 0 mi contador de no leídos al abrir la conversación. */

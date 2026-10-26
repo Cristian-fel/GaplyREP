@@ -81,6 +81,7 @@ class InMemoryChatsRepository(
         senderName: String,
         text: String,
         members: List<String>,
+        senderPhotoUrl: String,
     ): RepoResult<String> {
         val uid = miUid() ?: return RepoResult.Error(RepoError.PERMISSION)
         val contenido = text.trim()
@@ -94,6 +95,7 @@ class InMemoryChatsRepository(
             senderName = senderName,
             text = contenido,
             timestamp = ahora,
+            senderPhotoUrl = senderPhotoUrl,
         )
         val historial = (mensajes.value[chatId] ?: emptyList()) + nuevo
         mensajes.value = mensajes.value + (chatId to historial)

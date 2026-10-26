@@ -150,6 +150,9 @@ class ChatDetailViewModel(
                     // Los miembros vienen del chat ya cargado: así no hay que
                     // releerlo (las reglas solo dejan leer siendo miembro).
                     members = _uiState.value.chat?.participants.orEmpty(),
+                    // La foto va dentro del mensaje: cada burbuja la pinta sin
+                    // releer perfiles.
+                    senderPhotoUrl = authRepository.currentUser.value?.profilePictureUrl.orEmpty(),
                 )
             ) {
                 is RepoResult.Success -> {

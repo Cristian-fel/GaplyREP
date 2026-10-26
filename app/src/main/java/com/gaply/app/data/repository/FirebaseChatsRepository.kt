@@ -100,6 +100,7 @@ class FirebaseChatsRepository(
         senderName: String,
         text: String,
         members: List<String>,
+        senderPhotoUrl: String,
     ): RepoResult<String> {
         val uid = auth.currentUser?.uid ?: return RepoResult.Error(RepoError.PERMISSION)
         val contenido = text.trim().takeIf { it.isNotEmpty() }
@@ -119,6 +120,7 @@ class FirebaseChatsRepository(
                         senderName = senderName,
                         text = contenido,
                         timestamp = ahora,
+                        senderPhotoUrl = senderPhotoUrl,
                     ).aFirestoreMap(),
                 )
                 .await()

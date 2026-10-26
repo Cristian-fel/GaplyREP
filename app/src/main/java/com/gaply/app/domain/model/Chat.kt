@@ -56,6 +56,12 @@ data class Message(
     /** A quién se refiere el aviso de sistema (uid y nombre visibles). */
     val targetUid: String = "",
     val targetName: String = "",
+    /**
+     * Foto de perfil de quien escribió, guardada en el propio mensaje: así
+     * cada burbuja pinta la foto real sin releer perfiles (los mensajes
+     * antiguos que no la traen caen a la inicial del nombre).
+     */
+    val senderPhotoUrl: String = "",
 ) {
     /** true si lo escribí yo (la UI pinta distinto mis burbujas). */
     fun esMio(miUid: String): Boolean = senderId.isNotBlank() && senderId == miUid
