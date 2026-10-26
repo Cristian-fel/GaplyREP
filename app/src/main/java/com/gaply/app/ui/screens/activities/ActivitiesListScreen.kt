@@ -87,8 +87,9 @@ fun ActivitiesListScreen(
             onBack = onBack,
         )
 
-        // El subtítulo de intereses solo aplica al listado general.
-        if (!soloInscritas) {
+        // El subtítulo de intereses solo aplica al listado general (no al de
+        // "solo inscritas" ni al de una categoría concreta).
+        if (!soloInscritas && filtro == null) {
             InterestsSubtitle()
         }
 
@@ -135,18 +136,30 @@ fun ActivitiesListScreen(
             }
         }
 
-        // Si se tocó un hueco del horario: ese día y ese rango exacto. Si no:
-        // las actividades de HOY que encajan en un hueco de hoy (y en la
-        // categoría elegida, si la hay) — misma percepción que el agente.
-        // En modo "solo inscritas" manda otro criterio: todo a lo que me uní,
-        // con lo más próximo primero.
+        // Tres modos de listado, en orden de prioridad:
+        //  1 · "Solo mis inscritas" (botón del Descubrir): todo a lo que me
+        //      uní, con lo más próximo primero.
+        //  2 · Categoría tocada en el Descubrir (Biblioteca → Estudio, Cancha
+        //      → Deportes, …): TODAS las de esa categoría de cualquier fecha,
+        //      ordenadas por arranque. No se filtra por hueco y NO se esconde
+        //      nada por haber dado like/pasada en el mazo (el listado nunca
+        //      mira los swipes).
+        //  3 · Listado general: las de HOY que encajan en un hueco libre.
         val hoy = LocalDate.now()
         val diaHoy = ActivityFormat.diaDe(hoy)
         val categoriaActiva = filtro
-        val paraTuHueco = when {
+
+        val lista = when {
+            soloInscritas -> state.activities
+                .filter { it.isJoined }
+                .sortedBy { ActivityFormat.ordenDeProximidad(it) }
+
+            categoriaActiva != null -> state.activities
+                .filter { it.category == categoriaActiva }
+                .sortedBy { ActivityFormat.ordenDeProximidad(it) }
+
             franjaElegida != null -> state.activities.filter {
                 ActivityFormat.esDeFecha(it.date, franjaElegida.dia) &&
-                    (categoriaActiva == null || it.category == categoriaActiva) &&
                     ActivityFormat.solapaConHueco(
                         it,
                         franjaElegida.hueco,
@@ -156,25 +169,15 @@ fun ActivitiesListScreen(
 
             else -> state.activities.filter {
                 ActivityFormat.esDeFecha(it.date, hoy) &&
-                    (categoriaActiva == null || it.category == categoriaActiva) &&
                     ActivityFormat.encajaEnHueco(it, home.huecosDeHoy, diaHoy)
             }
         }
 
-        val lista = if (soloInscritas) {
-            state.activities
-                .filter { it.isJoined }
-                .sortedBy { ActivityFormat.ordenDeProximidad(it) }
-        } else {
-            paraTuHueco
-        }
-
         if (lista.isEmpty()) {
             EmptyActivitiesState(
-                // Con inscritas vacías se explica que aún no te has unido a
-                // nada; en el listado general se conserva la lógica anterior.
                 message = when {
                     soloInscritas -> s.joinedActivitiesEmpty
+                    categoriaActiva != null -> s.activitiesEmptyCategory
                     franjaElegida != null || home.huecosDeHoy.isNotEmpty() -> s.activitiesEmptyListMsg
                     !home.tieneHorario -> s.addClassesToSeeSlots
                     else -> s.noFreeSlotsToday

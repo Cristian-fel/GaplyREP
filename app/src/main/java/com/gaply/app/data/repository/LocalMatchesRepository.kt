@@ -44,7 +44,10 @@ class LocalMatchesRepository(
         val guardada = entry.copy(
             createdAt = entry.createdAt.takeIf { it > 0L } ?: System.currentTimeMillis(),
         )
-        entradas.getOrPut(uid) { mutableMapOf() }[guardada.targetId] = guardada
+        // fromUid se guarda aquí (en la nube lo escribe el mapper): hace falta
+        // para saber quién me dio like y aún no respondí.
+        entradas.getOrPut(uid) { mutableMapOf() }[guardada.targetId] =
+            guardada.copy(fromUid = uid)
         return RepoResult.Success(guardada)
     }
 
@@ -73,4 +76,18 @@ class LocalMatchesRepository(
         RepoResult.Success(
             uid.ifBlank { null }?.let { id -> store.loadUsers().find { it.userId == id } },
         )
+
+    override suspend fun getPendingLikeUids(): RepoResult<List<String>> {
+        val uid = miUid() ?: return RepoResult.Success(emptyList())
+        val respondidos = entradas[uid]?.values?.map { it.targetId }?.toSet() ?: emptySet()
+        return RepoResult.Success(
+            entradas.entries
+                .filter { it.key != uid }
+                .flatMap { (_, mapa) -> mapa.values }
+                .filter { it.targetId == uid && it.fromUid.isNotBlank() && it.fromUid !in respondidos }
+                .sortedByDescending { it.createdAt }
+                .map { it.fromUid }
+                .distinct(),
+        )
+    }
 }

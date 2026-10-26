@@ -546,6 +546,7 @@ object StringsZh : AppStrings {
     override val joinedActivitiesButton = "查看我当前的活动"
     override val joinedActivitiesTitle = "你当前的活动"
     override val joinedActivitiesEmpty = "你还没有加入任何活动。"
+    override val activitiesEmptyCategory = "该类别下还没有活动。"
     override val myActivitiesCardTitle = "我的活动"
     override val myActivitiesCardSubtitle = "编辑或取消你已发布的活动"
     override val activitiesListTitle = "适合你空档的活动"
@@ -632,6 +633,8 @@ object StringsZh : AppStrings {
 
     override val reasonNoCommonFreeSlot = "你们没有共同的空闲时间"
     override fun reasonSharedFreeSlot(rango: String) = "共同空闲时间：$rango"
+    override fun likesReceived(count: Int) =
+        if (count == 1) "1 个人赞了你" else "$count 个人赞了你"
 
     // =================================================================
     // MODULE 5 · CHATS

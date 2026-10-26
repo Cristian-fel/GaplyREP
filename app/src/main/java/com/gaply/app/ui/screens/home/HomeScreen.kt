@@ -92,9 +92,11 @@ fun HomeScreen(
                     },
                     onOpenActivitiesByCategory = { categoria ->
                         // Tocar un lugar: el listado se abre filtrado por su
-                        // categoría y sale del modo "solo inscritas".
+                        // categoría (y salen el modo "solo inscritas" y el
+                        // hueco elegido: las entradas se excluyen entre sí).
                         val contenedor = context.appContainer()
                         contenedor.filtroActividades.value = categoria
+                        contenedor.filtroFranja.value = null
                         contenedor.filtroSoloInscritas.value = false
                         onOpenActivities()
                     },

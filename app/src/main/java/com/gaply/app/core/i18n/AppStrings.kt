@@ -462,6 +462,8 @@ interface AppStrings {
     val joinedActivitiesTitle: String
     /** Estado vacío del listado anterior. */
     val joinedActivitiesEmpty: String
+    /** Estado vacío del listado filtrado por categoría (lugar del Descubrir). */
+    val activitiesEmptyCategory: String
     /** Tarjeta del Descubrir: "Tus actividades". */
     val myActivitiesCardTitle: String
     /** Subtítulo de la tarjeta de "Tus actividades". */
@@ -557,6 +559,9 @@ interface AppStrings {
     /** Motivo de descarte del agente de matches (sin huecos en común). */
     val reasonNoCommonFreeSlot: String
     fun reasonSharedFreeSlot(rango: String): String
+
+    /** "1 persona te dio like" / "3 personas te dieron like" (pendientes). */
+    fun likesReceived(count: Int): String
 
     // =================================================================
     // MÓDULO 5 · CHATS

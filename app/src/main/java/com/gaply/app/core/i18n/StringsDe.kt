@@ -539,6 +539,7 @@ object StringsDe : AppStrings {
     override val joinedActivitiesButton = "Meine aktuellen Aktivitäten ansehen"
     override val joinedActivitiesTitle = "Deine aktuellen Aktivitäten"
     override val joinedActivitiesEmpty = "Du bist noch keiner Aktivität beigetreten."
+    override val activitiesEmptyCategory = "Es gibt noch keine Aktivitäten in dieser Kategorie."
     override val myActivitiesCardTitle = "Deine Aktivitäten"
     override val myActivitiesCardSubtitle = "Bearbeite oder storniere die bereits veröffentlichten"
     override val activitiesListTitle = "Aktivitäten für deinen Slot"
@@ -627,6 +628,8 @@ object StringsDe : AppStrings {
 
     override val reasonNoCommonFreeSlot = "Ihr habt keine gemeinsamen freien Zeiten"
     override fun reasonSharedFreeSlot(rango: String) = "Gemeinsame freie Zeit: $rango"
+    override fun likesReceived(count: Int) =
+        if (count == 1) "1 Person hat dir einen Like gegeben" else "$count Personen haben dir einen Like gegeben"
 
     // =================================================================
     // MODULE 5 · CHATS

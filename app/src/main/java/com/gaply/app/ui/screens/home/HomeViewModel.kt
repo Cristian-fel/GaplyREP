@@ -13,6 +13,7 @@ import com.gaply.app.domain.model.User
 import com.gaply.app.domain.repository.ActivityRepository
 import com.gaply.app.domain.repository.AuthRepository
 import com.gaply.app.domain.repository.ChatsRepository
+import com.gaply.app.domain.repository.MatchesRepository
 import com.gaply.app.domain.repository.ScheduleRepository
 import com.gaply.app.ui.screens.activities.ActivityFormat
 import com.gaply.app.ui.screens.schedule.ScheduleViewModel
@@ -60,13 +61,17 @@ enum class HomeDialog { CREATE_ACTIVITY, EVENT_SITE }
  */
 data class MatchesBarUiState(
     val directos: List<Chat> = emptyList(),
+    /** No leídos + matches sin abrir + likes recibidos pendientes. */
     val badge: Int = 0,
+    /** Likes recibidos que aún no respondí (encabezan el mazo de Matches). */
+    val likesRecibidos: Int = 0,
 )
 
 class HomeViewModel(
     private val authRepository: AuthRepository,
     private val scheduleRepository: ScheduleRepository,
     private val activityRepository: ActivityRepository,
+    private val matchesRepository: MatchesRepository,
     chatsRepository: ChatsRepository,
 ) : ViewModel() {
 
@@ -74,6 +79,9 @@ class HomeViewModel(
     private val dialog = MutableStateFlow<HomeDialog?>(null)
     private val huecosDeHoy = MutableStateFlow<List<HuecoLibre>>(emptyList())
     private val tieneHorario = MutableStateFlow(false)
+
+    private val chats = MutableStateFlow<List<Chat>>(emptyList())
+    private val likesRecibidos = MutableStateFlow(0)
 
     /**
      * Hasta 3 actividades reales de hoy que caben en un hueco libre y no son
@@ -86,17 +94,23 @@ class HomeViewModel(
     val matchesBar: StateFlow<MatchesBarUiState> = _matchesBar.asStateFlow()
 
     init {
-        // La lista de chats en tiempo real alimenta la sección "Mis matches"
-        // y el contador de la campana (mismo dato que la pestaña Chats).
+        // Chats en tiempo real (mismo flujo que la pestaña Chats).
         viewModelScope.launch {
             chatsRepository.observeChats().collect { resultado ->
-                val chats = (resultado as? RepoResult.Success)?.data ?: return@collect
-                _matchesBar.value = MatchesBarUiState(
-                    directos = chats.filter { it.type == ChatType.DIRECT },
-                    badge = badgeDeChats(chats),
-                )
+                chats.value = (resultado as? RepoResult.Success)?.data.orEmpty()
             }
         }
+        // Badge de la campana = no leídos + matches sin abrir + likes recibidos.
+        viewModelScope.launch {
+            combine(chats, likesRecibidos) { lista, likes ->
+                MatchesBarUiState(
+                    directos = lista.filter { it.type == ChatType.DIRECT },
+                    badge = badgeDeChats(lista) + likes,
+                    likesRecibidos = likes,
+                )
+            }.collect { _matchesBar.value = it }
+        }
+        refrescarLikes()
     }
 
     val uiState: StateFlow<HomeUiState> = combine(
@@ -143,6 +157,21 @@ class HomeViewModel(
                 // Sin conexión no se cambia lo que ya se mostraba: la próxima
                 // entrada a la pantalla vuelve a intentarlo.
                 is RepoResult.Error -> Unit
+            }
+            // Los likes recibidos pendientes también entran al badge de la campana.
+            refrescarLikes()
+        }
+    }
+
+    /**
+     * Likes recibidos que aún no respondí. Se refresca al cargar (cada vez que
+     * se entra a la Home): un like no cambia los chats, así que no hay listener.
+     */
+    fun refrescarLikes() {
+        viewModelScope.launch {
+            when (val resultado = matchesRepository.getPendingLikeUids()) {
+                is RepoResult.Success -> likesRecibidos.value = resultado.data.size
+                is RepoResult.Error -> Unit // sin conexión se conserva el valor
             }
         }
     }
@@ -200,6 +229,7 @@ class HomeViewModel(
                         authRepository = container.authRepository,
                         scheduleRepository = container.scheduleRepository,
                         activityRepository = container.activityRepository,
+                        matchesRepository = container.matchesRepository,
                         chatsRepository = container.chatsRepository,
                     ) as T
                 }

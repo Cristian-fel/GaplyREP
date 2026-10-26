@@ -24,6 +24,8 @@ data class MatchEntry(
     val kind: MatchKind = MatchKind.PROFILE,
     val action: MatchAction = MatchAction.PASS,
     val createdAt: Long = 0L,
+    /** Quién hizo el swipe (vacío en las entradas propias que aún no se releen). */
+    val fromUid: String = "",
 )
 
 /**

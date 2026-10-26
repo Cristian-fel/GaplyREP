@@ -547,6 +547,7 @@ object StringsJa : AppStrings {
     override val joinedActivitiesButton = "参加中のアクティビティを見る"
     override val joinedActivitiesTitle = "参加中のアクティビティ"
     override val joinedActivitiesEmpty = "まだ参加しているアクティビティはありません。"
+    override val activitiesEmptyCategory = "このカテゴリーのアクティビティはまだありません。"
     override val myActivitiesCardTitle = "自分のアクティビティ"
     override val myActivitiesCardSubtitle = "公開済みのものを編集またはキャンセル"
     override val activitiesListTitle = "空き時間のアクティビティ"
@@ -635,6 +636,8 @@ object StringsJa : AppStrings {
 
     override val reasonNoCommonFreeSlot = "共通の空き時間がありません"
     override fun reasonSharedFreeSlot(rango: String) = "共通の空き時間：$rango"
+    override fun likesReceived(count: Int) =
+        if (count == 1) "1人があなたにいいねしました" else "${count}人があなたにいいねしました"
 
     // =================================================================
     // MODULE 5 · CHATS

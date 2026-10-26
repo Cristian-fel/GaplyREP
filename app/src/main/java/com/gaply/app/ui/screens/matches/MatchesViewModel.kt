@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.gaply.app.core.i18n.AppStrings
 import com.gaply.app.core.i18n.StringsEs
+import com.gaply.app.data.mapper.aMatchProfile
 import com.gaply.app.di.AppContainer
 import com.gaply.app.domain.agent.AgenteMatches
 import com.gaply.app.domain.agent.CandidatoMatch
@@ -69,6 +70,11 @@ data class MatchesUiState(
     val error: RepoError? = null,
     val matchDialog: MatchDialogData? = null,
     val activityJoined: ActivityJoinedData? = null,
+    /**
+     * Perfiles que me dieron like y **yo aún no respondí**: encabezan el mazo
+     * (darles like de vuelta cierra el match al instante).
+     */
+    val pendientes: List<MatchProfile> = emptyList(),
 )
 
 /**
@@ -130,6 +136,16 @@ class MatchesViewModel(
                 }
             }
 
+            // Likes recibidos que aún no respondí: van primero del mazo.
+            val pendientesUids = when (val resultado = matchesRepository.getPendingLikeUids()) {
+                is RepoResult.Success -> resultado.data.take(LIMIT_PENDIENTES)
+                is RepoResult.Error -> {
+                    registrarFallo(fallos, "los likes recibidos", resultado.type)
+                    emptyList()
+                }
+            }
+            val pendientes = resolverPendientes(pendientesUids, candidatos)
+
             val actividades = when (val resultado = activityRepository.getActivities()) {
                 is RepoResult.Success -> resultado.data
                 is RepoResult.Error -> {
@@ -142,10 +158,14 @@ class MatchesViewModel(
             val sugeridos = evaluar(perfiles)
             val flash = actividadesSinSwipar(entradas, actividades)
 
-            val cartas = intercalar(
+            val idsPendientes = pendientes.map { "profile_${it.userId}" }.toSet()
+            val resto = intercalar(
                 sugeridos.map { DeckCard.ProfileCard(it) },
                 flash.map { DeckCard.ActivityCard(it) },
             )
+            // Encabezan el mazo: son los que faltan para cerrar el match.
+            val cartas = pendientes.map { DeckCard.ProfileCard(it) } +
+                resto.filterNot { it.id in idsPendientes }
 
             _uiState.update {
                 it.copy(
@@ -155,6 +175,7 @@ class MatchesViewModel(
                         else -> MatchesPhase.READY
                     },
                     cartas = cartas,
+                    pendientes = pendientes,
                     // Al cargar nunca está agotado: EMPTY = "no hay candidatos".
                     // "Se acabaron las sugerencias" aparece al swipear la última.
                     agotado = false,
@@ -170,7 +191,18 @@ class MatchesViewModel(
      * nunca espere a Firestore.
      */
     fun swipe(card: DeckCard, action: MatchAction) {
-        _uiState.update { estado -> estado.copy(cartas = estado.cartas.filterNot { it.id == card.id }) }
+        _uiState.update { estado ->
+            val perfilSwipeado = (card as? DeckCard.ProfileCard)?.profile?.userId
+            estado.copy(
+                cartas = estado.cartas.filterNot { it.id == card.id },
+                // Ya respondí: deja de contar como pendiente y de encabezar.
+                pendientes = if (perfilSwipeado == null) {
+                    estado.pendientes
+                } else {
+                    estado.pendientes.filterNot { it.userId == perfilSwipeado }
+                },
+            )
+        }
         marcarAgotado()
 
         viewModelScope.launch {
@@ -288,6 +320,21 @@ class MatchesViewModel(
         _uiState.update { it.copy(matchDialog = null) }
     }
 
+    /**
+     * Botón "N personas te dieron like": vuelve a poner esos perfiles al frente
+     * del mazo (darles like de vuelta cierra el match y abre el chat).
+     */
+    fun priorizarPendientes() {
+        _uiState.update { estado ->
+            if (estado.pendientes.isEmpty()) return@update estado
+            val ids = estado.pendientes.map { "profile_${it.userId}" }.toSet()
+            estado.copy(
+                cartas = estado.pendientes.map { DeckCard.ProfileCard(it) } +
+                    estado.cartas.filterNot { it.id in ids },
+            )
+        }
+    }
+
     fun consumirActivityJoined() {
         _uiState.update { it.copy(activityJoined = null) }
     }
@@ -364,6 +411,42 @@ class MatchesViewModel(
         fallos += tipo
     }
 
+    /**
+     * Perfiles de quienes me dieron like: primero se resuelven con los
+     * candidatos ya cargados (sin llamadas extra); si alguno quedó fuera del
+     * límite del deck se pide su perfil individual.
+     */
+    private suspend fun resolverPendientes(
+        uids: List<String>,
+        candidatos: List<MatchProfile>,
+    ): List<MatchProfile> {
+        if (uids.isEmpty()) return emptyList()
+        val porUid = candidatos.associateBy { it.userId }
+        val perfiles = mutableListOf<MatchProfile>()
+        val faltantes = mutableListOf<String>()
+        uids.forEach { uid ->
+            val perfil = porUid[uid]
+            if (perfil != null) {
+                perfiles.add(perfil)
+            } else {
+                faltantes.add(uid)
+            }
+        }
+        faltantes.forEach { uid ->
+            when (val resultado = matchesRepository.getUserProfile(uid)) {
+                // Sin horario no se descarta: puntúa por intereses.
+                is RepoResult.Success -> {
+                    val perfil = resultado.data
+                    if (perfil != null) perfiles.add(perfil.aMatchProfile(emptyList()))
+                }
+
+                // Un perfil no encontrado no tumba el mazo.
+                is RepoResult.Error -> Unit
+            }
+        }
+        return perfiles
+    }
+
     /** Percepción -> decisión -> acción sobre los perfiles candidatos. */
     private suspend fun evaluar(perfiles: List<MatchProfile>): List<MatchProfile> {
         if (perfiles.isEmpty()) return emptyList()
@@ -433,6 +516,9 @@ class MatchesViewModel(
 
         /** Perfiles que se piden a Firestore en cada corrida del mazo. */
         private const val CANDIDATOS = 40
+
+        /** Tope de "likes recibidos" que encabezan el mazo en cada carga. */
+        private const val LIMIT_PENDIENTES = 10
 
         /** Actividades rápidas visibles a la vez. */
         private const val ACTIVIDADES_MAX = 8

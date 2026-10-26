@@ -119,6 +119,45 @@ class FirebaseMatchesRepository(
         RepoResult.Error(mapError(e))
     }
 
+    override suspend fun getPendingLikeUids(): RepoResult<List<String>> = try {
+        val uid = auth.currentUser?.uid ?: return RepoResult.Error(RepoError.PERMISSION)
+
+        // A quién ya respondí (para no volver a ofrecerlo): lectura permitida
+        // por `fromUid == yo`, el primer desdichado de la regla de swipes.
+        val respondidos = firestore.collection(SWIPES)
+            .where(Filter.equalTo(CAMPO_DESDE, uid))
+            .limit(LIST_SWIPES.toLong())
+            .get()
+            .await()
+            .documents
+            .mapNotNull { it.getString(CAMPO_HASTA) }
+            .toSet()
+
+        // Quién me dio like: lectura permitida por `toId == yo` (2º desdichado).
+        RepoResult.Success(
+            firestore.collection(SWIPES)
+                .where(Filter.equalTo(CAMPO_HASTA, uid))
+                .limit(LIST_SWIPES.toLong())
+                .get()
+                .await()
+                .documents
+                .sortedByDescending { (it.get(CAMPO_CREADO_EN) as? Number)?.toLong() ?: 0L }
+                .mapNotNull { doc ->
+                    val desde = doc.getString(CAMPO_DESDE)
+                    if (desde.isNullOrBlank() || desde == uid || desde in respondidos) {
+                        null
+                    } else {
+                        desde
+                    }
+                }
+                .distinct(),
+        )
+    } catch (e: kotlinx.coroutines.CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        RepoResult.Error(mapError(e))
+    }
+
     override suspend fun getUserProfile(uid: String): RepoResult<User?> = try {
         val objetivo = uid.ifBlank { return RepoResult.Error(RepoError.EMPTY_FIELDS) }
         val doc = firestore.collection(USERS).document(objetivo).get().await()
@@ -163,6 +202,10 @@ class FirebaseMatchesRepository(
         private const val SWIPES = "swipes"
         private const val USERS = "users"
         private const val CAMPO_ACCION = "action"
+        private const val CAMPO_CREADO_EN = "createdAt"
+
+        /** Tope de swipes leídos en cada consulta (son igualdades: sin índice). */
+        private const val LIST_SWIPES = 200
 
         /** Id determinístico: repetir un swipe sobrescribe el mismo documento. */
         private fun swipeId(desde: String, targetId: String): String = "swipe_${desde}_$targetId"

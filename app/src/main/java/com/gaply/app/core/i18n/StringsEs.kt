@@ -503,6 +503,7 @@ object StringsEs : AppStrings {
     override val joinedActivitiesButton = "Ver mis actividades actuales"
     override val joinedActivitiesTitle = "Tus actividades actuales"
     override val joinedActivitiesEmpty = "Todavía no estás inscrito en ninguna actividad."
+    override val activitiesEmptyCategory = "Todavía no hay actividades en esta categoría."
     override val myActivitiesCardTitle = "Tus actividades"
     override val myActivitiesCardSubtitle = "Edita o cancela las que ya publicaste"
     override val activitiesListTitle = "Actividades para tu hueco"
@@ -591,6 +592,8 @@ object StringsEs : AppStrings {
 
     override val reasonNoCommonFreeSlot = "No tienen huecos libres en común"
     override fun reasonSharedFreeSlot(rango: String) = "Hueco en común: $rango"
+    override fun likesReceived(count: Int) =
+        if (count == 1) "1 persona te dio like" else "$count personas te dieron like"
 
     // =================================================================
     // MÓDULO 5 · CHATS

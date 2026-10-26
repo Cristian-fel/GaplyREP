@@ -539,6 +539,7 @@ object StringsFr : AppStrings {
     override val joinedActivitiesButton = "Voir mes activités actuelles"
     override val joinedActivitiesTitle = "Vos activités actuelles"
     override val joinedActivitiesEmpty = "Vous n'avez encore rejoint aucune activité."
+    override val activitiesEmptyCategory = "Il n'y a pas encore d'activités dans cette catégorie."
     override val myActivitiesCardTitle = "Vos activités"
     override val myActivitiesCardSubtitle = "Modifiez ou annulez celles que vous avez déjà publiées"
     override val activitiesListTitle = "Activités pour votre créneau"
@@ -627,6 +628,8 @@ object StringsFr : AppStrings {
 
     override val reasonNoCommonFreeSlot = "Vous n'avez aucun créneau libre en commun"
     override fun reasonSharedFreeSlot(rango: String) = "Créneau en commun : $rango"
+    override fun likesReceived(count: Int) =
+        if (count == 1) "1 personne a liké votre profil" else "$count personnes ont liké votre profil"
 
     // =================================================================
     // MODULE 5 · CHATS

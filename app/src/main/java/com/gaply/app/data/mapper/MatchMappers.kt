@@ -39,6 +39,7 @@ fun Map<String, Any?>.aMatchEntry(targetId: String): MatchEntry = MatchEntry(
     kind = enumDe<MatchKind>(this["kind"], MatchKind.PROFILE),
     action = enumDe<MatchAction>(this["action"], MatchAction.PASS),
     createdAt = (this["createdAt"] as? Number)?.toLong() ?: 0L,
+    fromUid = this[CAMPO_DESDE] as? String ?: "",
 )
 
 /**

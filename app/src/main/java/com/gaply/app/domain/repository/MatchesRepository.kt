@@ -35,6 +35,13 @@ interface MatchesRepository {
     /** true si [otherUid] ya me dio LIKE o SUPER (match mutuo). */
     suspend fun hasMutualLike(otherUid: String): RepoResult<Boolean>
 
+    /**
+     * uids de quienes me dieron like y **yo aún no respondí** (ni like, ni
+     * super, ni pass): son los que faltan para cerrar el match. Van ordenados
+     * del like más reciente al más antiguo.
+     */
+    suspend fun getPendingLikeUids(): RepoResult<List<String>>
+
     /** Perfil de otro usuario para la vista previa (foto, bio, intereses). */
     suspend fun getUserProfile(uid: String): RepoResult<User?>
 }
