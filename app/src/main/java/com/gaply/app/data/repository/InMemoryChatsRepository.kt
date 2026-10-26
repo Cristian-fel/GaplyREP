@@ -36,22 +36,33 @@ class InMemoryChatsRepository(
     /** chatId -> uid -> millis de la última vez que lo abrió (`lastReadAt`). */
     private val ultimaLectura = MutableStateFlow<Map<String, Map<String, Long>>>(emptyMap())
 
+    /** chatId -> uids que lo destacaron (`pinnedBy`) / lo ocultaron (`hiddenFor`). */
+    private val destacados = MutableStateFlow<Map<String, Set<String>>>(emptyMap())
+    private val ocultos = MutableStateFlow<Map<String, Set<String>>>(emptyMap())
+
     private fun miUid(): String? = store.currentUser.value?.userId
 
     override fun observeChats(): Flow<RepoResult<List<Chat>>> =
-        combine(chats, noLeidos, ultimaLectura) { mapa, leidos, lecturas ->
+        combine(chats, noLeidos, ultimaLectura, destacados, ocultos) {
+                mapa, leidos, lecturas, pin, oculto ->
             val uid = miUid()
                 ?: return@combine RepoResult.Success<List<Chat>>(emptyList())
             val usuarios = store.loadUsers().associateBy { it.userId }
             RepoResult.Success(
                 mapa.values
                     .filter { uid in it.participants }
-                    .sortedByDescending { it.updatedAt }
+                    // Mis "eliminados" no aparecen en MI lista (como WhatsApp).
+                    .filterNot { uid in (oculto[it.id] ?: emptySet()) }
+                    .sortedWith(
+                        compareByDescending<Chat> { uid in (pin[it.id] ?: emptySet()) }
+                            .thenByDescending { it.updatedAt },
+                    )
                     .take(LIST_CHATS)
                     .map { chat ->
                         chat.copy(
                             unreadCount = leidos[chat.id]?.get(uid) ?: 0,
                             lastReadAt = lecturas[chat.id]?.get(uid),
+                            pinned = uid in (pin[chat.id] ?: emptySet()),
                         ).conPerspectiva(uid, usuarios)
                     },
             )
@@ -159,6 +170,22 @@ class InMemoryChatsRepository(
         }
         chats.value = chats.value + (chatId to actualizado)
         return RepoResult.Success(chatId)
+    }
+
+    override suspend fun hideChat(chatId: String): RepoResult<Unit> {
+        val uid = miUid() ?: return RepoResult.Error(RepoError.PERMISSION)
+        val actual = ocultos.value[chatId] ?: emptySet()
+        ocultos.value = ocultos.value + (chatId to (actual + uid))
+        return RepoResult.Success(Unit)
+    }
+
+    override suspend fun setPinned(chatId: String, pinned: Boolean): RepoResult<Unit> {
+        val uid = miUid() ?: return RepoResult.Error(RepoError.PERMISSION)
+        val actual = destacados.value[chatId] ?: emptySet()
+        destacados.value = destacados.value + (
+            chatId to if (pinned) actual + uid else actual - uid
+        )
+        return RepoResult.Success(Unit)
     }
 
     /**

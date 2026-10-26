@@ -42,6 +42,19 @@ interface ChatsRepository {
     suspend fun markAsRead(chatId: String): RepoResult<Unit>
 
     /**
+     * "Eliminar chat": solo lo saca de MI lista (`hiddenFor`). Es local a
+     * propósito, como en WhatsApp: no borra los mensajes ni afecta a los
+     * demás participantes.
+     */
+    suspend fun hideChat(chatId: String): RepoResult<Unit>
+
+    /**
+     * "Destacar chat": el chat se queda arriba del todo aunque otros tengan
+     * mensajes más recientes. También es por usuario (`pinnedBy`).
+     */
+    suspend fun setPinned(chatId: String, pinned: Boolean): RepoResult<Unit>
+
+    /**
      * Crea (si no existe) el chat directo con id determinístico
      * `direct_{uidA}_{uidB}`: así la carrera de ambos clientes nunca lo duplica.
      *

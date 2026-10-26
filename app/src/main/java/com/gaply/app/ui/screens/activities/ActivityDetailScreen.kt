@@ -90,6 +90,7 @@ fun ActivityDetailScreen(
     var showComingSoon by remember { mutableStateOf(false) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
     var showLeaveConfirm by remember { mutableStateOf(false) }
+    var showChatSoloMiembros by remember { mutableStateOf(false) }
 
     Column(modifier = Modifier.fillMaxSize()) {
         ActivitiesTopSection(
@@ -193,10 +194,12 @@ fun ActivityDetailScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             // Recuadro verde claro: Chat del evento + Cómo llegar. Quien ya es
-            // parte de la actividad (dueño o asistente) entra al chat real.
+            // parte de la actividad (dueño o asistente) entra al chat real; el
+            // resto recibe el aviso de que primero tiene que unirse.
+            val esParticipante = activity.isCreatedByMe || activity.isJoined
             ComingSoonCard(
                 onClick = { showComingSoon = true },
-                onOpenChat = if (activity.isCreatedByMe || activity.isJoined) {
+                onOpenChat = if (esParticipante) {
                     {
                         viewModel.abrirChatDeLaActividad(activityId) { chatId ->
                             onOpenChat(chatId)
@@ -204,6 +207,11 @@ fun ActivityDetailScreen(
                     }
                 } else {
                     null
+                },
+                onChatSoloMiembros = if (esParticipante) {
+                    null
+                } else {
+                    { showChatSoloMiembros = true }
                 },
             )
 
@@ -323,6 +331,17 @@ fun ActivityDetailScreen(
         )
     }
 
+    // "Chat del evento" sin ser parte: no es "próximamente", es que falta unirse.
+    if (showChatSoloMiembros) {
+        AppDialog(
+            style = DialogStyle.INFO,
+            title = s.chatOnlyForMembersTitle,
+            message = s.chatOnlyForMembersMsg,
+            confirmText = s.close,
+            onDismiss = { showChatSoloMiembros = false },
+        )
+    }
+
     // No se pudo crear/abrir el chat del grupo (sesión o reglas de Firestore).
     chatError?.let { error ->
         AppDialog(
@@ -430,6 +449,7 @@ private fun fechaLarga(date: String, locale: java.util.Locale): String {
 private fun ComingSoonCard(
     onClick: () -> Unit,
     onOpenChat: (() -> Unit)? = null,
+    onChatSoloMiembros: (() -> Unit)? = null,
 ) {
     val s = LocalStrings.current
     Column(
@@ -443,8 +463,18 @@ private fun ComingSoonCard(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .fillMaxWidth()
-                // Sin chat real, la fila entera sigue mostrando "próximamente".
-                .then(if (onOpenChat == null) Modifier.clickable(onClick = onClick) else Modifier),
+                // Participante → el botón de la derecha abre el chat; sin
+                // unirse → la fila avisa que primero hay que ser parte; sin
+                // chat disponible → "próximamente".
+                .then(
+                    when {
+                        onOpenChat != null -> Modifier
+                        onChatSoloMiembros != null ->
+                            Modifier.clickable(onClick = onChatSoloMiembros)
+
+                        else -> Modifier.clickable(onClick = onClick)
+                    },
+                ),
         ) {
             Text(
                 text = s.eventChat,

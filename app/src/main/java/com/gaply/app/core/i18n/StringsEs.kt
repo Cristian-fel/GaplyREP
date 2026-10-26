@@ -613,4 +613,14 @@ object StringsEs : AppStrings {
     override val appTitle = "Gaply"
     override val searchChatsHint = "Buscar chats o personas"
     override val searchNoResults = "No hay chats que coincidan con tu búsqueda."
+
+    override val chatOnlyForMembersTitle = "Primero únete a la actividad"
+    override val chatOnlyForMembersMsg =
+        "Tienes que ser parte primero de la actividad para entrar en su chat."
+    override val deleteChatOption = "Eliminar chat"
+    override val pinChatOption = "Destacar chat"
+    override val deleteChatConfirmTitle = "¿Eliminar este chat?"
+    override val deleteChatConfirmMsg =
+        "Se quitará de tu lista; los mensajes seguirán guardados en Gaply."
+    override val pickChatHint = "Toca el chat sobre el que quieras actuar."
 }

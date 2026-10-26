@@ -13,6 +13,10 @@ enum class ChatType { DIRECT, GROUP }
  * @param lastReadAt  idem: `lastReadAt[miUid]` (millis de la última vez que lo
  *                    abrí). Null = nunca lo abrí, que es lo que cuenta un chat
  *                    directo como "match nuevo" en el badge del Descubrir.
+ * @param pinned      idem: `pinnedBy` contiene mi uid → el chat se queda arriba
+ *                    del todo aunque otros tengan mensajes más recientes.
+ * @param hidden      idem: `hiddenFor` contiene mi uid → "eliminar chat" solo
+ *                    lo saca de MI lista (los demás y los mensajes siguen igual).
  */
 data class Chat(
     val id: String = "",
@@ -25,6 +29,8 @@ data class Chat(
     val updatedAt: Long = 0L,
     val unreadCount: Int = 0,
     val lastReadAt: Long? = null,
+    val pinned: Boolean = false,
+    val hidden: Boolean = false,
 ) {
     /** Un match recién creado al que todavía no entré (alimenta el badge). */
     val esMatchNuevo: Boolean

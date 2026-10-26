@@ -60,6 +60,26 @@ class ChatsViewModel(
         _uiState.update { it.copy(error = null) }
     }
 
+    /** "Eliminar chat": lo saca de mi lista sin tocar los mensajes ni a los demás. */
+    fun eliminarChat(chatId: String) {
+        viewModelScope.launch {
+            when (val resultado = chatsRepository.hideChat(chatId)) {
+                is RepoResult.Error -> _uiState.update { it.copy(error = resultado.type) }
+                is RepoResult.Success -> Unit
+            }
+        }
+    }
+
+    /** "Destacar chat": lo manda al tope de la lista (y quita el pin si ya lo tenía). */
+    fun alternarDestacado(chat: Chat) {
+        viewModelScope.launch {
+            when (val resultado = chatsRepository.setPinned(chatId = chat.id, pinned = !chat.pinned)) {
+                is RepoResult.Error -> _uiState.update { it.copy(error = resultado.type) }
+                is RepoResult.Success -> Unit
+            }
+        }
+    }
+
     companion object {
         fun factory(container: AppContainer): ViewModelProvider.Factory =
             object : ViewModelProvider.Factory {

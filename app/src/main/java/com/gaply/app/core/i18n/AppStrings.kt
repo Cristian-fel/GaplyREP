@@ -585,4 +585,17 @@ interface AppStrings {
     val searchChatsHint: String
     /** Estado vacío cuando la búsqueda no encuentra nada. */
     val searchNoResults: String
+
+    /** Aviso al tocar "Chat del evento" sin ser parte de la actividad. */
+    val chatOnlyForMembersTitle: String
+    val chatOnlyForMembersMsg: String
+
+    /** Menú de los tres puntos de la pestaña Chats. */
+    val deleteChatOption: String
+    val pinChatOption: String
+    /** Confirmación antes de quitar un chat de la lista. */
+    val deleteChatConfirmTitle: String
+    val deleteChatConfirmMsg: String
+    /** Indicación mientras el listado está en modo eliminar/destacar. */
+    val pickChatHint: String
 }

@@ -32,6 +32,10 @@ const val CAMPO_MIEMBROS = "members"
  */
 const val CAMPO_ULTIMA_LECTURA = "lastReadAt"
 
+/** uids que destacaron el chat (`pinnedBy`) o lo quitaron de su lista (`hiddenFor`). */
+const val CAMPO_DESTACADOS = "pinnedBy"
+const val CAMPO_OCULTOS = "hiddenFor"
+
 /**
  * Campos del chat para `set(..., SetOptions.merge())`.
  *
@@ -61,6 +65,10 @@ fun DocumentSnapshot.aChat(miUid: String?): Chat {
     val noLeidos = datos["unreadCounts"] as? Map<String, Number>
     @Suppress("UNCHECKED_CAST")
     val ultimaLectura = datos[CAMPO_ULTIMA_LECTURA] as? Map<String, Any?>
+    @Suppress("UNCHECKED_CAST")
+    val destacados = datos[CAMPO_DESTACADOS] as? List<*>
+    @Suppress("UNCHECKED_CAST")
+    val ocultos = datos[CAMPO_OCULTOS] as? List<*>
     return Chat(
         id = id,
         type = tipoDe(datos["type"], ChatType.DIRECT),
@@ -76,6 +84,8 @@ fun DocumentSnapshot.aChat(miUid: String?): Chat {
         } else {
             ultimaLectura?.get(miUid)?.aMillis()?.takeIf { it > 0L }
         },
+        pinned = miUid != null && destacados?.contains(miUid) == true,
+        hidden = miUid != null && ocultos?.contains(miUid) == true,
     )
 }
 

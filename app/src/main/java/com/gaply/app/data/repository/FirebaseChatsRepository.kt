@@ -1,6 +1,8 @@
 package com.gaply.app.data.repository
 
+import com.gaply.app.data.mapper.CAMPO_DESTACADOS
 import com.gaply.app.data.mapper.CAMPO_MIEMBROS
+import com.gaply.app.data.mapper.CAMPO_OCULTOS
 import com.gaply.app.data.mapper.CAMPO_ULTIMA_LECTURA
 import com.gaply.app.data.mapper.aChat
 import com.gaply.app.data.mapper.aFirestoreMap
@@ -165,6 +167,37 @@ class FirebaseChatsRepository(
         RepoResult.Error(mapError(e))
     }
 
+    override suspend fun hideChat(chatId: String): RepoResult<Unit> = try {
+        val uid = auth.currentUser?.uid ?: return RepoResult.Error(RepoError.PERMISSION)
+        firestore.collection(CHATS).document(chatId)
+            .update(CAMPO_OCULTOS, FieldValue.arrayUnion(uid))
+            .await()
+        RepoResult.Success(Unit)
+    } catch (e: kotlinx.coroutines.CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        Log.w(TAG, "hideChat falló en el chat $chatId", e)
+        RepoResult.Error(mapError(e))
+    }
+
+    override suspend fun setPinned(chatId: String, pinned: Boolean): RepoResult<Unit> = try {
+        val uid = auth.currentUser?.uid ?: return RepoResult.Error(RepoError.PERMISSION)
+        val transformacion = if (pinned) {
+            FieldValue.arrayUnion(uid)
+        } else {
+            FieldValue.arrayRemove(uid)
+        }
+        firestore.collection(CHATS).document(chatId)
+            .update(CAMPO_DESTACADOS, transformacion)
+            .await()
+        RepoResult.Success(Unit)
+    } catch (e: kotlinx.coroutines.CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        Log.w(TAG, "setPinned falló en el chat $chatId", e)
+        RepoResult.Error(mapError(e))
+    }
+
     /**
      * Crea (o refresca) el chat directo **sin leerlo antes**: con
      * `firestore.rules` solo se pueden leer documentos donde ya soy miembro,
@@ -287,8 +320,17 @@ class FirebaseChatsRepository(
         awaitClose { registration?.remove() }
     }
 
-    private fun ordenados(chats: List<Chat>): List<Chat> =
-        chats.sortedByDescending { it.updatedAt }.take(LIST_CHATS)
+    /**
+     * Los que "eliminé" salen de mi lista (siguen existiendo para los demás);
+     * los destacados quedan arriba del todo y el resto por fecha, con tope.
+     */
+    private fun ordenados(chats: List<Chat>): List<Chat> = chats
+        .filterNot { it.hidden }
+        .sortedWith(
+            compareByDescending<Chat> { it.pinned }
+                .thenByDescending { it.updatedAt },
+        )
+        .take(LIST_CHATS)
 
     /**
      * El título/foto de un chat directo depende de quién lo mire (el creador

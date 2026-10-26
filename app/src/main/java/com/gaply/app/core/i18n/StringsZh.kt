@@ -654,4 +654,12 @@ object StringsZh : AppStrings {
     override val appTitle = "Gaply"
     override val searchChatsHint = "搜索聊天或联系人"
     override val searchNoResults = "没有与您的搜索匹配的聊天。"
+
+    override val chatOnlyForMembersTitle = "请先加入该活动"
+    override val chatOnlyForMembersMsg = "你必须先成为该活动的成员才能进入其聊天。"
+    override val deleteChatOption = "删除聊天"
+    override val pinChatOption = "置顶聊天"
+    override val deleteChatConfirmTitle = "删除此聊天？"
+    override val deleteChatConfirmMsg = "它将从你的列表中移除；消息仍会保存在 Gaply 中。"
+    override val pickChatHint = "点按你要操作的聊天。"
 }

@@ -24,15 +24,22 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChatBubble
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Event
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -64,6 +71,7 @@ import com.gaply.app.ui.mensajeDe
 import com.gaply.app.ui.screens.activities.InitialAvatar
 import com.gaply.app.ui.theme.BackgroundApp
 import com.gaply.app.ui.theme.BrandGreen
+import com.gaply.app.ui.theme.ErrorRed
 import com.gaply.app.ui.theme.Mint
 import com.gaply.app.ui.theme.OutlineGray
 import com.gaply.app.ui.theme.Sage
@@ -74,6 +82,9 @@ import java.text.Normalizer
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
+
+/** Modos del menú de los tres puntos de la cabecera de Chats. */
+private enum class ModoChats { ELIMINAR, DESTACAR }
 
 /**
  * Módulo 5 · Pestaña "Chats" (embebida en la Home, sin ruta propia).
@@ -95,6 +106,8 @@ fun ChatsScreen(
     val state by viewModel.uiState.collectAsState()
     val s = LocalStrings.current
     var consulta by remember { mutableStateOf("") }
+    var modo by remember { mutableStateOf<ModoChats?>(null) }
+    var chatAEliminar by remember { mutableStateOf<Chat?>(null) }
 
     Column(
         modifier = modifier
@@ -104,15 +117,19 @@ fun ChatsScreen(
         CabeceraChats(
             consulta = consulta,
             onConsultaChange = { consulta = it },
+            modo = modo,
+            onElegirModo = { nuevoModo -> modo = nuevoModo },
+            onCancelarModo = { modo = null },
             s = s,
         )
 
         // Filtrado en cliente sobre nombre y última frase (sin tildes ni
-        // mayúsculas); la lista completa sigue viva en el estado.
-        val visibles = if (consulta.isBlank()) {
-            state.chats
-        } else {
-            state.chats.filter { coincideCon(it, consulta) }
+        // mayúsculas); la lista completa sigue viva en el estado. En modo
+        // eliminar/destacar se ignora la búsqueda para no esconder el objetivo.
+        val visibles = when {
+            modo != null -> state.chats
+            consulta.isBlank() -> state.chats
+            else -> state.chats.filter { coincideCon(it, consulta) }
         }
 
         when {
@@ -144,11 +161,69 @@ fun ChatsScreen(
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 items(visibles, key = { it.id }) { chat ->
-                    ChatFila(chat = chat, onClick = { onOpenChat(chat.id) })
+                    ChatFila(
+                        chat = chat,
+                        onClick = {
+                            when (modo) {
+                                // Tocar la fila es la acción elegida en el menú.
+                                ModoChats.ELIMINAR -> {
+                                    chatAEliminar = chat
+                                    modo = null
+                                }
+
+                                ModoChats.DESTACAR -> {
+                                    viewModel.alternarDestacado(chat)
+                                    modo = null
+                                }
+
+                                null -> onOpenChat(chat.id)
+                            }
+                        },
+                    )
                     HorizontalDivider(color = Mint)
                 }
             }
         }
+    }
+
+    // Confirmación de "Eliminar chat": solo sale de MI lista (los mensajes y
+    // los demás participantes no se tocan).
+    chatAEliminar?.let { chat ->
+        AlertDialog(
+            onDismissRequest = { chatAEliminar = null },
+            shape = RoundedCornerShape(24.dp),
+            containerColor = SurfaceWhite,
+            title = {
+                Text(
+                    text = s.deleteChatConfirmTitle,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black,
+                )
+            },
+            text = {
+                Text(
+                    text = s.deleteChatConfirmMsg,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = TextSecondary,
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.eliminarChat(chat.id)
+                        chatAEliminar = null
+                    },
+                ) {
+                    Text(s.delete, color = ErrorRed, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { chatAEliminar = null }) {
+                    Text(s.cancel, color = BrandGreen)
+                }
+            },
+        )
     }
 
     state.error?.let { error ->
@@ -163,72 +238,151 @@ fun ChatsScreen(
 
 /**
  * Cabecera fija de la pestaña (fuera del `LazyColumn`: no se va con el
- * scroll): nombre de la app + buscador con botón para limpiar.
+ * scroll): nombre de la app + buscador + menú de tres puntos con las
+ * acciones "Eliminar chat" y "Destacar chat".
+ *
+ * Al elegir una acción el listado entra en modo selección: la cabecera
+ * cambia su título por el de la acción y muestra cómo salir de él.
  */
 @Composable
 private fun CabeceraChats(
     consulta: String,
     onConsultaChange: (String) -> Unit,
+    modo: ModoChats?,
+    onElegirModo: (ModoChats) -> Unit,
+    onCancelarModo: () -> Unit,
     s: AppStrings,
 ) {
+    var menuAbierto by remember { mutableStateOf(false) }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .background(SurfaceWhite)
             .padding(horizontal = 16.dp, vertical = 12.dp),
     ) {
-        Text(
-            text = s.appTitle,
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-            color = Color.Black,
-        )
-        Spacer(modifier = Modifier.height(10.dp))
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(50))
-                .background(BackgroundApp)
-                .border(1.dp, OutlineGray, RoundedCornerShape(50))
-                .padding(horizontal = 14.dp, vertical = 10.dp),
-        ) {
-            Icon(
-                imageVector = Icons.Filled.Search,
-                contentDescription = s.searchChatsHint,
-                tint = TextSecondary,
-                modifier = Modifier.size(18.dp),
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            BasicTextField(
-                value = consulta,
-                onValueChange = onConsultaChange,
-                singleLine = true,
-                textStyle = MaterialTheme.typography.bodyLarge.copy(color = TextPrimary),
-                cursorBrush = SolidColor(BrandGreen),
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = when (modo) {
+                    ModoChats.ELIMINAR -> s.deleteChatOption
+                    ModoChats.DESTACAR -> s.pinChatOption
+                    null -> s.appTitle
+                },
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = Color.Black,
                 modifier = Modifier.weight(1f),
-                decorationBox = { caja ->
-                    if (consulta.isEmpty()) {
-                        Text(
-                            text = s.searchChatsHint,
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = TextSecondary,
+            )
+            if (modo == null) {
+                Box {
+                    IconButton(onClick = { menuAbierto = true }) {
+                        Icon(
+                            imageVector = Icons.Filled.MoreVert,
+                            contentDescription = s.expandOptionsCd,
+                            tint = Color.Black,
                         )
                     }
-                    caja()
-                },
-            )
-            if (consulta.isNotEmpty()) {
-                IconButton(
-                    onClick = { onConsultaChange("") },
-                    modifier = Modifier.size(32.dp),
-                ) {
+                    DropdownMenu(
+                        expanded = menuAbierto,
+                        onDismissRequest = { menuAbierto = false },
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text(s.deleteChatOption) },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Filled.Delete,
+                                    contentDescription = null,
+                                    tint = ErrorRed,
+                                )
+                            },
+                            onClick = {
+                                menuAbierto = false
+                                onElegirModo(ModoChats.ELIMINAR)
+                            },
+                        )
+                        DropdownMenuItem(
+                            text = { Text(s.pinChatOption) },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Filled.PushPin,
+                                    contentDescription = null,
+                                    tint = BrandGreen,
+                                )
+                            },
+                            onClick = {
+                                menuAbierto = false
+                                onElegirModo(ModoChats.DESTACAR)
+                            },
+                        )
+                    }
+                }
+            } else {
+                IconButton(onClick = onCancelarModo) {
                     Icon(
                         imageVector = Icons.Filled.Close,
                         contentDescription = s.close,
-                        tint = TextSecondary,
-                        modifier = Modifier.size(18.dp),
+                        tint = Color.Black,
                     )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        if (modo != null) {
+            // En modo selección el buscador se sustituye por la indicación.
+            Text(
+                text = s.pickChatHint,
+                style = MaterialTheme.typography.bodyMedium,
+                color = TextSecondary,
+            )
+        } else {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(50))
+                    .background(BackgroundApp)
+                    .border(1.dp, OutlineGray, RoundedCornerShape(50))
+                    .padding(horizontal = 14.dp, vertical = 10.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Search,
+                    contentDescription = s.searchChatsHint,
+                    tint = TextSecondary,
+                    modifier = Modifier.size(18.dp),
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                BasicTextField(
+                    value = consulta,
+                    onValueChange = onConsultaChange,
+                    singleLine = true,
+                    textStyle = MaterialTheme.typography.bodyLarge.copy(color = TextPrimary),
+                    cursorBrush = SolidColor(BrandGreen),
+                    modifier = Modifier.weight(1f),
+                    decorationBox = { caja ->
+                        if (consulta.isEmpty()) {
+                            Text(
+                                text = s.searchChatsHint,
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = TextSecondary,
+                            )
+                        }
+                        caja()
+                    },
+                )
+                if (consulta.isNotEmpty()) {
+                    IconButton(
+                        onClick = { onConsultaChange("") },
+                        modifier = Modifier.size(32.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Close,
+                            contentDescription = s.close,
+                            tint = TextSecondary,
+                            modifier = Modifier.size(18.dp),
+                        )
+                    }
                 }
             }
         }
@@ -256,14 +410,26 @@ private fun ChatFila(chat: Chat, onClick: () -> Unit) {
         Spacer(modifier = Modifier.width(12.dp))
 
         Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = chat.title,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = Color.Black,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = chat.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = true),
+                )
+                if (chat.pinned) {
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Icon(
+                        imageVector = Icons.Filled.PushPin,
+                        contentDescription = s.pinChatOption,
+                        tint = Sage,
+                        modifier = Modifier.size(14.dp),
+                    )
+                }
+            }
             Spacer(modifier = Modifier.height(3.dp))
             Text(
                 text = chat.lastMessage.ifBlank { s.chatNoMessages },
