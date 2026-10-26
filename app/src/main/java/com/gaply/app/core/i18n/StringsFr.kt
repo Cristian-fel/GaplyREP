@@ -238,6 +238,7 @@ object StringsFr : AppStrings {
     override val culturalAgenda = "Agenda culturel"
     override val visitWebsite = "aller au site"
     override val matchesEmptyMsg = "Vos matches apparaîtront ici."
+    override val discoverMatchesCta = "Trouve quelqu'un avec le même créneau"
     override val chatsEmptyMsg = "Vos conversations apparaîtront ici."
     override val eventSiteInfoMsg = "Dans la version finale, ce lien ouvrira le site de l'événement."
 
@@ -534,6 +535,10 @@ object StringsFr : AppStrings {
     // =================================================================
 
     override val activitiesForYourSlot = "Voir les activités pour votre créneau"
+    override val activitiesSectionTitle = "Activités pour votre créneau"
+    override val joinedActivitiesButton = "Voir mes activités actuelles"
+    override val joinedActivitiesTitle = "Vos activités actuelles"
+    override val joinedActivitiesEmpty = "Vous n'avez encore rejoint aucune activité."
     override val myActivitiesCardTitle = "Vos activités"
     override val myActivitiesCardSubtitle = "Modifiez ou annulez celles que vous avez déjà publiées"
     override val activitiesListTitle = "Activités pour votre créneau"
@@ -640,4 +645,8 @@ object StringsFr : AppStrings {
     override fun timeAgoDays(days: Int) = if (days <= 1) "hier" else "il y a $days jours"
 
     override fun unreadMessages(count: Int) = "$count messages non lus"
+
+    override val appTitle = "Gaply"
+    override val searchChatsHint = "Rechercher des chats ou des personnes"
+    override val searchNoResults = "Aucun chat ne correspond à votre recherche."
 }

@@ -68,6 +68,7 @@ class InMemoryChatsRepository(
         chatId: String,
         senderName: String,
         text: String,
+        members: List<String>,
     ): RepoResult<String> {
         val uid = miUid() ?: return RepoResult.Error(RepoError.PERMISSION)
         val contenido = text.trim()

@@ -1,11 +1,13 @@
 package com.gaply.app.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.gaply.app.di.appContainer
 import com.gaply.app.ui.screens.home.HomeScreen
 import com.gaply.app.ui.screens.activities.ActivitiesListScreen
 import com.gaply.app.ui.screens.activities.ActivityDetailScreen
@@ -35,6 +37,7 @@ import com.gaply.app.ui.screens.welcome.WelcomeScreen
 @Composable
 fun GaplyNavHost() {
     val navController = rememberNavController()
+    val context = LocalContext.current
 
     NavHost(
         navController = navController,
@@ -119,6 +122,14 @@ fun GaplyNavHost() {
                 // Módulo 5: la lista de chats y el diálogo de match abren la
                 // conversación, que sí es ruta propia (necesita back).
                 onOpenChat = { chatId -> navController.navigate(Routes.chatDetail(chatId)) },
+                // Tarjeta de actividad sugerida en el Descubrir.
+                onOpenActivity = { activityId ->
+                    navController.navigate(Routes.activityDetail(activityId))
+                },
+                // Banner del hueco de hoy → "Mis huecos" con la franja precargada.
+                onOpenHuecos = { dia, inicio, fin ->
+                    navController.navigate(Routes.huecos(dia = dia, inicio = inicio, fin = fin))
+                },
             )
         }
 
@@ -247,7 +258,12 @@ fun GaplyNavHost() {
                 onEditClass = { classId ->
                     navController.navigate(Routes.scheduleEdit(classId = classId))
                 },
-                onOpenActivities = { navController.navigate(Routes.ACTIVITIES_LIST) },
+                onOpenActivities = {
+                    // Desde el horario se ve el listado general, nunca el
+                    // modo "solo mis inscritas" del Descubrir.
+                    context.appContainer().filtroSoloInscritas.value = false
+                    navController.navigate(Routes.ACTIVITIES_LIST)
+                },
             )
         }
 

@@ -246,6 +246,7 @@ object StringsJa : AppStrings {
     override val culturalAgenda = "カルチャーイベント"
     override val visitWebsite = "サイトを見る"
     override val matchesEmptyMsg = "マッチはここに表示されます。"
+    override val discoverMatchesCta = "同じ空き時間の人を見つけよう"
     override val chatsEmptyMsg = "トークはここに表示されます。"
     override val eventSiteInfoMsg = "正式版では、このリンクがイベントサイトを開きます。"
 
@@ -542,6 +543,10 @@ object StringsJa : AppStrings {
     // =================================================================
 
     override val activitiesForYourSlot = "空き時間のアクティビティを見る"
+    override val activitiesSectionTitle = "空き時間のアクティビティ"
+    override val joinedActivitiesButton = "参加中のアクティビティを見る"
+    override val joinedActivitiesTitle = "参加中のアクティビティ"
+    override val joinedActivitiesEmpty = "まだ参加しているアクティビティはありません。"
     override val myActivitiesCardTitle = "自分のアクティビティ"
     override val myActivitiesCardSubtitle = "公開済みのものを編集またはキャンセル"
     override val activitiesListTitle = "空き時間のアクティビティ"
@@ -648,4 +653,8 @@ object StringsJa : AppStrings {
     override fun timeAgoDays(days: Int) = if (days <= 1) "昨日" else "${days}日前"
 
     override fun unreadMessages(count: Int) = "${count}件の未読メッセージ"
+
+    override val appTitle = "Gaply"
+    override val searchChatsHint = "チャットや人を検索"
+    override val searchNoResults = "検索に一致するチャットはありません。"
 }

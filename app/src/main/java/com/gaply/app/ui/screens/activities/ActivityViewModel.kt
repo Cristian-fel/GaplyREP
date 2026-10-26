@@ -57,6 +57,7 @@ class ActivityViewModel(
     private val chatsRepository: ChatsRepository,
     private val filtroActividades: MutableStateFlow<String?>,
     private val filtroFranjaDeHueco: MutableStateFlow<com.gaply.app.domain.model.FiltroFranja?>,
+    private val filtroSoloInscritas: MutableStateFlow<Boolean>,
 ) : ViewModel() {
 
     private val _activities = MutableStateFlow<List<ActivityItem>>(emptyList())
@@ -94,6 +95,12 @@ class ActivityViewModel(
     /** Hueco tocado en el horario (null = se usan los huecos de hoy). */
     val filtroFranja: StateFlow<com.gaply.app.domain.model.FiltroFranja?> get() = filtroFranjaDeHueco
 
+    /**
+     * true = el listado muestra solo las actividades a las que me uní
+     * (botón "Ver mis actividades actuales"), ordenadas por la más próxima.
+     */
+    val soloInscritas: StateFlow<Boolean> get() = filtroSoloInscritas
+
     init {
         refresh()
     }
@@ -101,18 +108,29 @@ class ActivityViewModel(
     /** Filtra el listado por categoría (tarjeta de lugar tocada en el Home). */
     fun filtrarPorCategoria(categoria: String) {
         filtroActividades.value = categoria
-        // Las dos entradas se excluyen: un lugar elegido reemplaza al hueco.
+        // Las dos entradas se excluyen: un lugar elegido reemplaza al hueco
+        // y sale del modo "solo inscritas".
         filtroFranjaDeHueco.value = null
+        filtroSoloInscritas.value = false
     }
 
     /** Muestra el listado completo (chip "×" o botón principal del Home). */
     fun limpiarFiltro() {
         filtroActividades.value = null
+        filtroSoloInscritas.value = false
     }
 
     /** Vuelve de un hueco del horario a los huecos de hoy (chip "×"). */
     fun limpiarFranja() {
         filtroFranjaDeHueco.value = null
+        filtroSoloInscritas.value = false
+    }
+
+    /** Modo "solo mis inscritas": lo activa el botón del Descubrir. */
+    fun filtrarSoloInscritas() {
+        filtroActividades.value = null
+        filtroFranjaDeHueco.value = null
+        filtroSoloInscritas.value = true
     }
 
     /** Recarga la lista desde el repositorio (al abrir y tras cada escritura). */
@@ -143,14 +161,18 @@ class ActivityViewModel(
     fun publish(activity: ActivityItem) {
         viewModelScope.launch {
             _cargando.value = true
+            val uid = userId().orEmpty()
+            val nombre = userName()
             val dueno = subirFoto(
                 finalize(activity).copy(
-                    ownerId = userId().orEmpty(),
-                    ownerName = userName(),
+                    ownerId = uid,
+                    ownerName = nombre,
                     organizerInitial = organizerInitial(),
-                    attendeeIds = emptyList(),
-                    attendees = emptyList(),
-                    isJoined = false,
+                    // Quien publica ya está dentro: queda en los asistentes
+                    // (y su chat de grupo nace en el mismo guardado).
+                    attendeeIds = if (uid.isBlank()) emptyList() else listOf(uid),
+                    attendees = listOf(nombre),
+                    isJoined = true,
                     isCreatedByMe = true,
                     createdAt = System.currentTimeMillis(),
                 ),
@@ -158,6 +180,9 @@ class ActivityViewModel(
             when (val result = activityRepository.save(dueno)) {
                 is RepoResult.Success -> {
                     _error.value = null
+                    // Mejor esfuerzo: al publicar ya nace el chat de grupo del
+                    // evento (el dueño es participante desde el primer momento).
+                    chatsRepository.ensureGroupChat(result.data)
                     // Tras publicar se vuelve al listado completo: la nueva
                     // actividad no debe quedar oculta por ningún filtro.
                     limpiarFiltro()
@@ -193,6 +218,8 @@ class ActivityViewModel(
             when (val result = activityRepository.save(editada)) {
                 is RepoResult.Success -> {
                     _error.value = null
+                    // Sincroniza título/foto del chat de grupo si se editó el evento.
+                    chatsRepository.ensureGroupChat(result.data)
                     refresh()
                 }
 
@@ -371,6 +398,7 @@ class ActivityViewModel(
                         chatsRepository = container.chatsRepository,
                         filtroActividades = container.filtroActividades,
                         filtroFranjaDeHueco = container.filtroFranja,
+                        filtroSoloInscritas = container.filtroSoloInscritas,
                     ) as T
                 }
             }

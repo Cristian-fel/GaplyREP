@@ -223,6 +223,7 @@ object StringsEs : AppStrings {
     override val culturalAgenda = "Agenda cultural"
     override val visitWebsite = "ir al sitio"
     override val matchesEmptyMsg = "Tus matches aparecerán aquí."
+    override val discoverMatchesCta = "Encuentra a alguien con tu mismo hueco"
     override val chatsEmptyMsg = "Tus conversaciones aparecerán aquí."
     override val eventSiteInfoMsg = "En la versión final, este enlace abrirá el sitio del evento."
 
@@ -498,6 +499,10 @@ object StringsEs : AppStrings {
     // =================================================================
 
     override val activitiesForYourSlot = "Ver actividades para tu hueco"
+    override val activitiesSectionTitle = "Actividades para tu hueco"
+    override val joinedActivitiesButton = "Ver mis actividades actuales"
+    override val joinedActivitiesTitle = "Tus actividades actuales"
+    override val joinedActivitiesEmpty = "Todavía no estás inscrito en ninguna actividad."
     override val myActivitiesCardTitle = "Tus actividades"
     override val myActivitiesCardSubtitle = "Edita o cancela las que ya publicaste"
     override val activitiesListTitle = "Actividades para tu hueco"
@@ -604,4 +609,8 @@ object StringsEs : AppStrings {
     override fun timeAgoDays(days: Int) = if (days <= 1) "ayer" else "hace $days días"
 
     override fun unreadMessages(count: Int) = "$count mensajes sin leer"
+
+    override val appTitle = "Gaply"
+    override val searchChatsHint = "Buscar chats o personas"
+    override val searchNoResults = "No hay chats que coincidan con tu búsqueda."
 }

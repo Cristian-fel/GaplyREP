@@ -265,42 +265,48 @@ fun ActivityDetailScreen(
                 Spacer(modifier = Modifier.height(16.dp))
             }
 
-            // Botón Unirme / Ya está dentro (estando dentro, al tocarlo pregunta si salir).
-            Button(
-                onClick = {
-                    if (activity.isJoined) showLeaveConfirm = true
-                    else viewModel.join(activity.id)
-                },
-                shape = RoundedCornerShape(50),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = BrandGreen,
-                    contentColor = SurfaceWhite,
-                    disabledContainerColor = BrandGreen,
-                    disabledContentColor = SurfaceWhite,
-                ),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(52.dp),
-            ) {
-                if (activity.isJoined) {
-                    Icon(
-                        imageVector = Icons.Filled.Check,
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp),
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = s.alreadyJoined,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                    )
-                } else {
-                    Text(
-                        text = s.joinActivity,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                    )
+            // Botón Unirme / Ya está dentro (estando dentro, al tocarlo pregunta
+            // si salir). Solo para quien NO creó la actividad: el dueño ya está
+            // dentro desde que la publicó y aquí solo ve sus acciones de gestión.
+            if (!activity.isCreatedByMe) {
+                Button(
+                    onClick = {
+                        if (activity.isJoined) showLeaveConfirm = true
+                        else viewModel.join(activity.id)
+                    },
+                    shape = RoundedCornerShape(50),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = BrandGreen,
+                        contentColor = SurfaceWhite,
+                        disabledContainerColor = BrandGreen,
+                        disabledContentColor = SurfaceWhite,
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp),
+                ) {
+                    if (activity.isJoined) {
+                        Icon(
+                            imageVector = Icons.Filled.Check,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp),
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = s.alreadyJoined,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                        )
+                    } else {
+                        Text(
+                            text = s.joinActivity,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                        )
+                    }
                 }
+
+                Spacer(modifier = Modifier.height(16.dp))
             }
 
             Spacer(modifier = Modifier.height(24.dp))

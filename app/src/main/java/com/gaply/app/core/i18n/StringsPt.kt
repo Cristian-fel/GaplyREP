@@ -249,6 +249,7 @@ object StringsPt : AppStrings {
     override val culturalAgenda = "Agenda cultural"
     override val visitWebsite = "ir para o site"
     override val matchesEmptyMsg = "Seus matches aparecerão aqui."
+    override val discoverMatchesCta = "Encontre alguém com o mesmo intervalo"
     override val chatsEmptyMsg = "Suas conversas aparecerão aqui."
     override val eventSiteInfoMsg = "Na versão final, este link abrirá o site do evento."
 
@@ -545,6 +546,10 @@ object StringsPt : AppStrings {
     // =================================================================
 
     override val activitiesForYourSlot = "Ver atividades para o seu intervalo"
+    override val activitiesSectionTitle = "Atividades para o seu intervalo"
+    override val joinedActivitiesButton = "Ver as minhas atividades atuais"
+    override val joinedActivitiesTitle = "As tuas atividades atuais"
+    override val joinedActivitiesEmpty = "Ainda não te inscreveste em nenhuma atividade."
     override val myActivitiesCardTitle = "Suas atividades"
     override val myActivitiesCardSubtitle = "Edite ou cancele as que você já publicou"
     override val activitiesListTitle = "Atividades para o seu intervalo"
@@ -651,4 +656,8 @@ object StringsPt : AppStrings {
     override fun timeAgoDays(days: Int) = if (days <= 1) "ontem" else "há $days dias"
 
     override fun unreadMessages(count: Int) = "$count mensagens por ler"
+
+    override val appTitle = "Gaply"
+    override val searchChatsHint = "Pesquisar chats ou pessoas"
+    override val searchNoResults = "Nenhum chat corresponde à tua pesquisa."
 }

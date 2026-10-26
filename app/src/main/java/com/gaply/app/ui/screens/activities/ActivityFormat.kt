@@ -133,6 +133,28 @@ internal object ActivityFormat {
         return franja.solapaCon(hueco.aFranjaHoraria(dia))
     }
 
+    /**
+     * Clave de orden "lo que pasa primero va primero": fecha de la actividad
+     * más su hora de inicio. Las que no tienen fecha legible quedan al final.
+     * La usan "Mis actividades actuales" (las que uní) para mostrarlas en
+     * orden cronológico.
+     */
+    fun ordenDeProximidad(activity: ActivityItem): Long {
+        val fecha = fechaMillis(activity.date) ?: return Long.MAX_VALUE
+        val hora = ScheduleClass.minutosDeHora(activity.startTime)?.toLong() ?: 0L
+        return fecha + hora * 60_000L
+    }
+
+    /** `date` como millis en texto o como ISO "yyyy-MM-dd" -> millis. */
+    fun fechaMillis(date: String): Long? =
+        date.toLongOrNull()
+            ?: runCatching {
+                LocalDate.parse(date)
+                    .atStartOfDay(ZoneId.systemDefault())
+                    .toInstant()
+                    .toEpochMilli()
+            }.getOrNull()
+
     /** Color sólido por defecto cuando no hay foto (verde de la paleta). */
     fun colorSolido(hex: String?): Color {
         val safe = hex?.takeIf { it.isNotBlank() } ?: ActivityItem.DEFAULT_COLOR_HEX

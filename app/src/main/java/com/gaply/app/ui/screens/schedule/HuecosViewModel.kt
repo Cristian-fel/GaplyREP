@@ -12,13 +12,20 @@ import com.gaply.app.domain.agent.DiaSemana
 import com.gaply.app.domain.agent.FranjaHoraria
 import com.gaply.app.domain.agent.PerfilAgente
 import com.gaply.app.domain.agent.ResultadoAgente
+import com.gaply.app.domain.model.ActivityItem
+import com.gaply.app.domain.model.RepoResult
+import com.gaply.app.domain.repository.ActivityRepository
 import com.gaply.app.domain.repository.AuthRepository
+import com.gaply.app.ui.screens.activities.ActivityFormat
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
 
 data class HuecosUiState(
     val interesesSeleccionados: List<String> = emptyList(),
@@ -43,6 +50,7 @@ enum class HuecosAviso { MAX_INTERESTS, END_BEFORE_START }
  */
 class HuecosViewModel(
     private val authRepository: AuthRepository,
+    private val activityRepository: ActivityRepository,
     diaInicial: String = "",
     inicioInicial: String = "",
     finInicial: String = "",
@@ -61,6 +69,9 @@ class HuecosViewModel(
         ),
     )
     val uiState: StateFlow<HuecosUiState> = _uiState.asStateFlow()
+
+    /** Candidatas reales de la colección `activities` (se cargan en init). */
+    private var candidatas: List<Actividad> = emptyList()
 
     var strings: AppStrings = StringsEs
         set(value) {
@@ -82,6 +93,19 @@ class HuecosViewModel(
             ) {
                 _uiState.value = _uiState.value.copy(interesesSeleccionados = intereses)
                 recalcular()
+            }
+        }
+        // Candidatas reales: lo que el agente evalúa para este hueco.
+        viewModelScope.launch {
+            when (val resultado = activityRepository.getActivities()) {
+                is RepoResult.Success -> {
+                    candidatas = resultado.data.aCandidatas()
+                    recalcular()
+                }
+
+                // Sin conexión se mantienen las candidatas actuales (vacías
+                // la primera vez): la próxima entrada vuelve a intentarlo.
+                is RepoResult.Error -> Unit
             }
         }
     }
@@ -153,7 +177,7 @@ class HuecosViewModel(
         _uiState.value = estado.copy(
             resultado = AgenteRecomendacion(strings).recomendar(
                 perfil = perfil,
-                candidatas = CATALOGO_DEMO,
+                candidatas = candidatas,
             ),
             aviso = null,
         )
@@ -173,6 +197,7 @@ class HuecosViewModel(
                 override fun <T : ViewModel> create(modelClass: Class<T>): T {
                     return HuecosViewModel(
                         authRepository = container.authRepository,
+                        activityRepository = container.activityRepository,
                         diaInicial = diaInicial,
                         inicioInicial = inicioInicial,
                         finInicial = finInicial,
@@ -183,64 +208,23 @@ class HuecosViewModel(
 }
 
 /**
- * Catálogo de demostración: son las actividades candidatas que el agente evalúa.
- * En la fase siguiente se reemplazará por la colección `activities` de Firestore.
+ * Convierte las actividades reales de Firestore en candidatas del agente:
+ * la fecha (ISO "yyyy-MM-dd" o millis en texto) define el día de la franja y
+ * la categoría de la app es el interés con el que se cruza el perfil. Las que
+ * no tienen fecha/hora legibles se descartan (no podrían solapar ningún hueco).
  */
-private val CATALOGO_DEMO = listOf(
+private fun List<ActivityItem>.aCandidatas(): List<Actividad> = mapNotNull { activity ->
+    val fecha = activity.date.toLongOrNull()
+        ?.let { Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate() }
+        ?: runCatching { LocalDate.parse(activity.date) }.getOrNull()
+        ?: return@mapNotNull null
+    val franja = ActivityFormat.franjaDe(activity, ActivityFormat.diaDe(fecha))
+        ?: return@mapNotNull null
     Actividad(
-        id = "futbol",
-        nombre = "Partido de fútbol",
-        intereses = listOf("Deportes"),
-        franja = FranjaHoraria.desde(DiaSemana.MARTES, "10:00", "12:00"),
-        descripcion = "Cancha del campus.",
-    ),
-    Actividad(
-        id = "repaso",
-        nombre = "Café y repaso",
-        intereses = listOf("Estudio"),
-        franja = FranjaHoraria.desde(DiaSemana.MARTES, "10:00", "11:00"),
-        descripcion = "Repaso grupal en la cafetería.",
-    ),
-    Actividad(
-        id = "mesa",
-        nombre = "Torneo de juegos de mesa",
-        intereses = listOf("Juegos de mesa"),
-        franja = FranjaHoraria.desde(DiaSemana.MARTES, "10:30", "12:00"),
-        descripcion = "Sala de actividades.",
-    ),
-    Actividad(
-        id = "musica",
-        nombre = "Sesión de música",
-        intereses = listOf("Música"),
-        franja = FranjaHoraria.desde(DiaSemana.MARTES, "11:00", "13:00"),
-        descripcion = "Auditorio.",
-    ),
-    Actividad(
-        id = "baile",
-        nombre = "Clase de baile",
-        intereses = listOf("Baile"),
-        franja = FranjaHoraria.desde(DiaSemana.MARTES, "13:00", "14:00"),
-        descripcion = "Piso multiusos.",
-    ),
-    Actividad(
-        id = "artes",
-        nombre = "Taller de artes",
-        intereses = listOf("Artes"),
-        franja = FranjaHoraria.desde(DiaSemana.MARTES, "16:00", "18:00"),
-        descripcion = "Aula de artes.",
-    ),
-    Actividad(
-        id = "cine",
-        nombre = "Cine en el campus",
-        intereses = listOf("Películas"),
-        franja = FranjaHoraria.desde(DiaSemana.MARTES, "19:00", "21:00"),
-        descripcion = "Auditorio.",
-    ),
-    Actividad(
-        id = "evento",
-        nombre = "Evento cultural",
-        intereses = listOf("Eventos"),
-        franja = FranjaHoraria.desde(DiaSemana.MIERCOLES, "10:00", "12:00"),
-        descripcion = "Plaza principal.",
-    ),
-)
+        id = activity.id,
+        nombre = activity.title,
+        intereses = listOf(activity.category),
+        franja = franja,
+        descripcion = activity.description.ifBlank { activity.location },
+    )
+}

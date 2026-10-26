@@ -97,6 +97,14 @@ class AppContainer(context: Context) : LanguagePreference {
     val filtroFranja: kotlinx.coroutines.flow.MutableStateFlow<com.gaply.app.domain.model.FiltroFranja?> =
         kotlinx.coroutines.flow.MutableStateFlow(null)
 
+    /**
+     * true = el listado de actividades muestra **solo las que uní** ("Ver mis
+     * actividades actuales"), ordenadas por la más próxima. Vive aquí junto a
+     * los otros filtros para que cada entrada al listado defina su modo.
+     */
+    val filtroSoloInscritas: kotlinx.coroutines.flow.MutableStateFlow<Boolean> =
+        kotlinx.coroutines.flow.MutableStateFlow(false)
+
     val ratingsRepository: RatingsRepository = if (USE_FIREBASE) {
         FirebaseRatingsRepository()
     } else {

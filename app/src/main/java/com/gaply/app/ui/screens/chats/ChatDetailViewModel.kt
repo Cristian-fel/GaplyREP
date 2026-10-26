@@ -81,7 +81,14 @@ class ChatDetailViewModel(
             chatsRepository.observeMessages(chatId).collect { resultado ->
                 when (resultado) {
                     is RepoResult.Success -> {
-                        val reales = resultado.data.sortedBy { it.timestamp }
+                        // La query del servidor ya viene ordenada por fecha
+                        // descendente (la autoridad es Firestore, no el reloj
+                        // de cada teléfono): al invertirla queda "lo más
+                        // antiguo arriba, lo nuevo abajo". No se reordena por
+                        // el timestamp leído en el cliente, porque si un
+                        // cliente no lo parsea (0) el orden se caía justo en
+                        // lo contrario a lo pedido.
+                        val reales = resultado.data.reversed()
                         _uiState.update {
                             it.copy(
                                 phase = ChatDetailPhase.READY,
@@ -130,7 +137,16 @@ class ChatDetailViewModel(
         _uiState.update { it.copy(enviando = true) }
 
         viewModelScope.launch {
-            when (val resultado = chatsRepository.sendMessage(chatId, nombre, contenido)) {
+            when (
+                val resultado = chatsRepository.sendMessage(
+                    chatId = chatId,
+                    senderName = nombre,
+                    text = contenido,
+                    // Los miembros vienen del chat ya cargado: así no hay que
+                    // releerlo (las reglas solo dejan leer siendo miembro).
+                    members = _uiState.value.chat?.participants.orEmpty(),
+                )
+            ) {
                 is RepoResult.Success -> {
                     // El snapshot del listener se encarga de mostrarlo "real".
                     Unit

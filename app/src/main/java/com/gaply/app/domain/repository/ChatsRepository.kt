@@ -25,10 +25,18 @@ interface ChatsRepository {
     fun observeMessages(chatId: String): Flow<RepoResult<List<Message>>>
 
     /**
-     * Envía un mensaje de texto y, en la misma escritura, actualiza
-     * `lastMessage`, `updatedAt` y el contador de no leídos del resto.
+     * Envía un mensaje de texto. El mensaje se escribe solo (si eso falla, no
+     * se envió nada); la vista previa (`lastMessage`/`updatedAt`) y los no
+     * leídos del resto son mejor esfuerzo con [members] (los entrega quien
+     * llama: así no hay que releer el chat, que las reglas solo dejan leer
+     * cuando ya soy miembro).
      */
-    suspend fun sendMessage(chatId: String, senderName: String, text: String): RepoResult<String>
+    suspend fun sendMessage(
+        chatId: String,
+        senderName: String,
+        text: String,
+        members: List<String>,
+    ): RepoResult<String>
 
     /** Pone en 0 mi contador de no leídos al abrir la conversación. */
     suspend fun markAsRead(chatId: String): RepoResult<Unit>

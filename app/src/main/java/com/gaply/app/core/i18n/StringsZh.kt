@@ -245,6 +245,7 @@ object StringsZh : AppStrings {
     override val culturalAgenda = "文化日程"
     override val visitWebsite = "前往网站"
     override val matchesEmptyMsg = "你的匹配会显示在这里。"
+    override val discoverMatchesCta = "找到和你有同样空闲时间的人"
     override val chatsEmptyMsg = "你的对话会显示在这里。"
     override val eventSiteInfoMsg = "正式版中，这个链接会打开活动网站。"
 
@@ -541,6 +542,10 @@ object StringsZh : AppStrings {
     // =================================================================
 
     override val activitiesForYourSlot = "查看适合你空档的活动"
+    override val activitiesSectionTitle = "适合你空档的活动"
+    override val joinedActivitiesButton = "查看我当前的活动"
+    override val joinedActivitiesTitle = "你当前的活动"
+    override val joinedActivitiesEmpty = "你还没有加入任何活动。"
     override val myActivitiesCardTitle = "我的活动"
     override val myActivitiesCardSubtitle = "编辑或取消你已发布的活动"
     override val activitiesListTitle = "适合你空档的活动"
@@ -645,4 +650,8 @@ object StringsZh : AppStrings {
     override fun timeAgoDays(days: Int) = if (days <= 1) "昨天" else "$days 天前"
 
     override fun unreadMessages(count: Int) = "$count 条未读消息"
+
+    override val appTitle = "Gaply"
+    override val searchChatsHint = "搜索聊天或联系人"
+    override val searchNoResults = "没有与您的搜索匹配的聊天。"
 }

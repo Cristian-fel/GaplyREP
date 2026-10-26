@@ -1,6 +1,7 @@
 package com.gaply.app.ui.screens.chats
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -11,26 +12,38 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChatBubble
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Event
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -52,16 +65,23 @@ import com.gaply.app.ui.screens.activities.InitialAvatar
 import com.gaply.app.ui.theme.BackgroundApp
 import com.gaply.app.ui.theme.BrandGreen
 import com.gaply.app.ui.theme.Mint
+import com.gaply.app.ui.theme.OutlineGray
 import com.gaply.app.ui.theme.Sage
 import com.gaply.app.ui.theme.SurfaceWhite
+import com.gaply.app.ui.theme.TextPrimary
 import com.gaply.app.ui.theme.TextSecondary
+import java.text.Normalizer
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
 
 /**
  * Módulo 5 · Pestaña "Chats" (embebida en la Home, sin ruta propia).
  *
- * Lista las conversaciones del usuario en tiempo real: avatar, nombre,
- * etiqueta "Grupo" cuando corresponde, vista previa del último mensaje,
- * tiempo relativo y badge de no leídos. Tocar una fila abre `ChatDetail`.
+ * Estilo WhatsApp: **cabecera fija** con el nombre de la app y un buscador de
+ * chats/personas que no se va con el scroll; debajo, la lista en tiempo real
+ * con avatar (y su distintivo), nombre, último mensaje, fecha a la derecha y
+ * badge de no leídos. Tocar una fila abre `ChatDetail`.
  */
 @Composable
 fun ChatsScreen(
@@ -74,40 +94,56 @@ fun ChatsScreen(
     )
     val state by viewModel.uiState.collectAsState()
     val s = LocalStrings.current
+    var consulta by remember { mutableStateOf("") }
 
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(BackgroundApp)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .background(BackgroundApp),
     ) {
-        Text(
-            text = s.tabChats,
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-            color = Color.Black,
+        CabeceraChats(
+            consulta = consulta,
+            onConsultaChange = { consulta = it },
+            s = s,
         )
-        Spacer(modifier = Modifier.height(12.dp))
 
-        when (state.phase) {
-            ChatsPhase.LOADING -> EstadoCargando(s)
+        // Filtrado en cliente sobre nombre y última frase (sin tildes ni
+        // mayúsculas); la lista completa sigue viva en el estado.
+        val visibles = if (consulta.isBlank()) {
+            state.chats
+        } else {
+            state.chats.filter { coincideCon(it, consulta) }
+        }
 
-            ChatsPhase.EMPTY -> EstadoVacio(
-                icono = Icons.Filled.ChatBubble,
-                mensaje = s.chatsEmptyMsg,
-            )
+        when {
+            state.phase == ChatsPhase.LOADING -> EstadoCargando(s, Modifier.weight(1f))
 
-            ChatsPhase.ERROR -> EstadoVacio(
+            state.phase == ChatsPhase.ERROR -> EstadoVacio(
                 icono = Icons.Filled.ChatBubble,
                 mensaje = mensajeDe(state.error ?: RepoError.UNKNOWN, s),
+                modifier = Modifier.weight(1f),
+            )
+
+            state.chats.isEmpty() -> EstadoVacio(
+                icono = Icons.Filled.ChatBubble,
+                mensaje = s.chatsEmptyMsg,
+                modifier = Modifier.weight(1f),
+            )
+
+            visibles.isEmpty() -> EstadoVacio(
+                icono = Icons.Filled.Search,
+                mensaje = s.searchNoResults,
+                modifier = Modifier.weight(1f),
             )
 
             else -> LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(bottom = 16.dp),
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                items(state.chats, key = { it.id }) { chat ->
+                items(visibles, key = { it.id }) { chat ->
                     ChatFila(chat = chat, onClick = { onOpenChat(chat.id) })
                     HorizontalDivider(color = Mint)
                 }
@@ -125,7 +161,85 @@ fun ChatsScreen(
     }
 }
 
-/** Fila de la lista: avatar, nombre + tag, última frase, hora y no leídos. */
+/**
+ * Cabecera fija de la pestaña (fuera del `LazyColumn`: no se va con el
+ * scroll): nombre de la app + buscador con botón para limpiar.
+ */
+@Composable
+private fun CabeceraChats(
+    consulta: String,
+    onConsultaChange: (String) -> Unit,
+    s: AppStrings,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(SurfaceWhite)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+    ) {
+        Text(
+            text = s.appTitle,
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+            color = Color.Black,
+        )
+        Spacer(modifier = Modifier.height(10.dp))
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(50))
+                .background(BackgroundApp)
+                .border(1.dp, OutlineGray, RoundedCornerShape(50))
+                .padding(horizontal = 14.dp, vertical = 10.dp),
+        ) {
+            Icon(
+                imageVector = Icons.Filled.Search,
+                contentDescription = s.searchChatsHint,
+                tint = TextSecondary,
+                modifier = Modifier.size(18.dp),
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            BasicTextField(
+                value = consulta,
+                onValueChange = onConsultaChange,
+                singleLine = true,
+                textStyle = MaterialTheme.typography.bodyLarge.copy(color = TextPrimary),
+                cursorBrush = SolidColor(BrandGreen),
+                modifier = Modifier.weight(1f),
+                decorationBox = { caja ->
+                    if (consulta.isEmpty()) {
+                        Text(
+                            text = s.searchChatsHint,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = TextSecondary,
+                        )
+                    }
+                    caja()
+                },
+            )
+            if (consulta.isNotEmpty()) {
+                IconButton(
+                    onClick = { onConsultaChange("") },
+                    modifier = Modifier.size(32.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Close,
+                        contentDescription = s.close,
+                        tint = TextSecondary,
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
+            }
+        }
+    }
+    HorizontalDivider(color = Mint)
+}
+
+/**
+ * Fila de la lista: avatar con el distintivo del tipo (evento = chat de
+ * actividad, persona = chat directo), nombre, última frase y no leídos.
+ */
 @Composable
 private fun ChatFila(chat: Chat, onClick: () -> Unit) {
     val s = LocalStrings.current
@@ -138,41 +252,18 @@ private fun ChatFila(chat: Chat, onClick: () -> Unit) {
             .clickable(onClick = onClick)
             .padding(vertical = 10.dp, horizontal = 4.dp),
     ) {
-        InitialAvatar(
-            initial = chat.title.take(1),
-            photoUrl = chat.photoUrl,
-            sizeDp = 50,
-        )
+        AvatarConTipo(chat = chat)
         Spacer(modifier = Modifier.width(12.dp))
 
         Column(modifier = Modifier.weight(1f)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = chat.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.Black,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f, fill = true),
-                )
-                if (chat.type == ChatType.GROUP) {
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(50))
-                            .background(Mint)
-                            .padding(horizontal = 8.dp, vertical = 2.dp),
-                    ) {
-                        Text(
-                            text = s.chatGroupTag,
-                            color = BrandGreen,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                    }
-                }
-            }
+            Text(
+                text = chat.title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = Color.Black,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
             Spacer(modifier = Modifier.height(3.dp))
             Text(
                 text = chat.lastMessage.ifBlank { s.chatNoMessages },
@@ -183,13 +274,14 @@ private fun ChatFila(chat: Chat, onClick: () -> Unit) {
             )
         }
 
-        Spacer(modifier = Modifier.width(8.dp))
-
+        // Derecha del todo: fecha del último mensaje (hora si es hoy) y, debajo,
+        // el contador de no leídos.
         Column(horizontalAlignment = Alignment.End) {
             Text(
-                text = tiempoRelativo(chat.updatedAt, s),
-                style = MaterialTheme.typography.bodySmall,
+                text = fechaDelChat(chat.updatedAt, s),
+                style = MaterialTheme.typography.labelSmall,
                 color = TextSecondary,
+                textAlign = TextAlign.End,
             )
             if (chat.unreadCount > 0) {
                 Spacer(modifier = Modifier.height(4.dp))
@@ -212,9 +304,47 @@ private fun ChatFila(chat: Chat, onClick: () -> Unit) {
     }
 }
 
+/**
+ * Avatar del chat con un distintivo pequeño abajo a la derecha: [Icons.Filled.Event]
+ * para el chat de una actividad y [Icons.Filled.Person] para una persona.
+ */
 @Composable
-private fun EstadoCargando(s: AppStrings) {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+private fun AvatarConTipo(chat: Chat) {
+    Box {
+        InitialAvatar(
+            initial = chat.title.take(1),
+            photoUrl = chat.photoUrl,
+            sizeDp = 50,
+        )
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .offset(x = 3.dp, y = 3.dp)
+                .size(20.dp)
+                .background(SurfaceWhite, CircleShape)
+                .border(1.dp, Mint, CircleShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = if (chat.type == ChatType.GROUP) {
+                    Icons.Filled.Event
+                } else {
+                    Icons.Filled.Person
+                },
+                contentDescription = null,
+                tint = BrandGreen,
+                modifier = Modifier.size(12.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun EstadoCargando(s: AppStrings, modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier.fillMaxWidth(),
+        contentAlignment = Alignment.Center,
+    ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             CircularProgressIndicator(color = BrandGreen)
             Spacer(modifier = Modifier.height(12.dp))
@@ -227,9 +357,12 @@ private fun EstadoCargando(s: AppStrings) {
 private fun EstadoVacio(
     icono: ImageVector,
     mensaje: String,
+    modifier: Modifier = Modifier,
 ) {
     Column(
-        modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp),
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
@@ -249,17 +382,29 @@ private fun EstadoVacio(
     }
 }
 
-/** "ahora" / "hace 5 min" / "hace 3 h" / "ayer" / "hace 4 días" (vía i18n). */
-internal fun tiempoRelativo(millis: Long, s: AppStrings): String {
+/**
+ * Fecha a la derecha de cada chat: **hora** si el último mensaje es de hoy
+ * ("2:14 p.m.") y **fecha** en caso contrario ("5 de octubre"), siempre en el
+ * idioma activo. Sin mensajes recientes no se muestra nada.
+ */
+private fun fechaDelChat(millis: Long, s: AppStrings): String {
     if (millis <= 0L) return ""
-    val transcurrido = System.currentTimeMillis() - millis
-    val minutos = (transcurrido / 60_000L).toInt().coerceAtLeast(0)
-    return when {
-        minutos < 1 -> s.timeJustNow
-        minutos < 60 -> s.timeAgoMinutes(minutos)
-        else -> {
-            val horas = minutos / 60
-            if (horas < 24) s.timeAgoHours(horas) else s.timeAgoDays((horas / 24).coerceAtLeast(1))
-        }
+    val instante = Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault())
+    return if (instante.toLocalDate() == LocalDate.now()) {
+        s.formatTime("%02d:%02d".format(instante.hour, instante.minute))
+    } else {
+        s.formatMonthDay(instante.toLocalDate())
     }
 }
+
+/** Búsqueda del buscador: nombre del chat o última frase, sin tildes ni mayúsculas. */
+private fun coincideCon(chat: Chat, consulta: String): Boolean {
+    val busqueda = normalizar(consulta)
+    if (busqueda.isBlank()) return true
+    return normalizar(chat.title).contains(busqueda) ||
+        normalizar(chat.lastMessage).contains(busqueda)
+}
+
+private fun normalizar(texto: String): String =
+    Normalizer.normalize(texto.trim().lowercase(), Normalizer.Form.NFD)
+        .replace(Regex("\\p{M}+"), "")

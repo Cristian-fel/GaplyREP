@@ -412,6 +412,9 @@ class MatchesViewModel(
     }
 
     private fun fallo(error: RepoError?) {
+        // Deja constancia en Logcat de qué operación del swipe se cayó
+        // (permisos/reglas, sesión o red) antes de mostrar el diálogo.
+        if (error != null) Log.w(TAG, "Matches: acción del mazo falló ($error)")
         _uiState.update { it.copy(error = error) }
     }
 

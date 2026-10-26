@@ -125,8 +125,13 @@ fun ChatDetailScreen(
         HorizontalDivider(color = Mint)
 
         when {
+            // weight(1f) (nunca fillMaxSize): si el estado vacío/cargando se
+            // lleva toda la altura con fillMaxSize, la barra de entrada que
+            // viene después queda medida con 0 dp y no se puede tocar.
             state.phase == ChatDetailPhase.LOADING -> Box(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
                 contentAlignment = Alignment.Center,
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -137,7 +142,9 @@ fun ChatDetailScreen(
             }
 
             state.mensajes.isEmpty() -> Box(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
@@ -256,6 +263,8 @@ private fun Burbuja(
     mostrarEmisor: Boolean,
     esGrupo: Boolean,
 ) {
+    val s = LocalStrings.current
+
     Row(
         horizontalArrangement = if (esMia) Arrangement.End else Arrangement.Start,
         modifier = Modifier.fillMaxWidth(),
@@ -298,6 +307,18 @@ private fun Burbuja(
                     text = mensaje.text,
                     style = MaterialTheme.typography.bodyLarge,
                     color = if (esMia) SurfaceWhite else TextPrimary,
+                )
+            }
+
+            // Hora a la que se envió, en el idioma activo ("2:14 p.m.").
+            if (mensaje.timestamp > 0L) {
+                Spacer(modifier = Modifier.height(3.dp))
+                Text(
+                    text = horaDelMensaje(mensaje.timestamp, s),
+                    style = MaterialTheme.typography.labelSmall,
+                    fontSize = 10.sp,
+                    color = TextSecondary,
+                    modifier = Modifier.padding(horizontal = 6.dp),
                 )
             }
         }
@@ -364,6 +385,12 @@ private fun BarraDeEntrada(
             )
         }
     }
+}
+
+/** "2:14 p.m." en el idioma activo, a partir de los millis del mensaje. */
+private fun horaDelMensaje(millis: Long, s: AppStrings): String {
+    val hora = Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault()).toLocalTime()
+    return s.formatTime("%02d:%02d".format(hora.hour, hora.minute))
 }
 
 /**

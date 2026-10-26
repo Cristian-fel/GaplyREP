@@ -5,6 +5,7 @@ import com.gaply.app.domain.model.ChatType
 import com.gaply.app.domain.model.Message
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.DocumentSnapshot
+import com.google.firebase.firestore.FieldValue
 
 /**
  * Mappers del Módulo 5 · Chats: `chats/{chatId}` y su subcolección
@@ -31,19 +32,26 @@ const val CAMPO_MIEMBROS = "members"
  */
 const val CAMPO_ULTIMA_LECTURA = "lastReadAt"
 
-/** Documento del chat listo para `set(..., SetOptions.merge())`. */
-fun Chat.aFirestoreMap(incluirVacios: Boolean): Map<String, Any> = buildMap {
+/**
+ * Campos del chat para `set(..., SetOptions.merge())`.
+ *
+ * **Nunca** incluye `lastMessage`, `unreadCounts` ni `lastReadAt`: esos campos
+ * solo los tocan quien escribe un mensaje o quien abre la conversación, así
+ * que "asegurar" un chat (unirse o reabrirlo) jamás borra el historial. Si el
+ * documento no existía, esos campos quedan ausentes y los mapeadores leen los
+ * valores por defecto ("" y 0).
+ *
+ * @param miembros valor del campo `members`: la lista completa (chats directos)
+ * o `FieldValue.arrayUnion(...)` para sumar asistentes sin pisar a los que ya
+ * están (chats de grupo).
+ */
+fun Chat.aFirestoreMap(miembros: Any = participants): Map<String, Any> = buildMap {
     put("type", type.name)
-    put(CAMPO_MIEMBROS, participants)
+    put(CAMPO_MIEMBROS, miembros)
     put("title", title)
     put("photoUrl", photoUrl)
-    put("lastMessage", lastMessage)
     put("updatedAt", Timestamp(java.util.Date(updatedAt)))
     activityId?.let { put("activityId", it) }
-    if (incluirVacios) {
-        put("unreadCounts", emptyMap<String, Int>())
-        put(CAMPO_ULTIMA_LECTURA, emptyMap<String, Long>())
-    }
 }
 
 fun DocumentSnapshot.aChat(miUid: String?): Chat {
@@ -71,11 +79,17 @@ fun DocumentSnapshot.aChat(miUid: String?): Chat {
     )
 }
 
+/**
+ * El timestamp lo pone el **servidor**: así el orden de la conversación nunca
+ * depende del reloj de cada dispositivo (con `System.currentTimeMillis()` un
+ * reloj atrasado metía el mensaje más nuevo arriba del más antiguo). Al
+ * leerlo, Firestore devuelve una estimación mientras confirma.
+ */
 fun Message.aFirestoreMap(): Map<String, Any> = mapOf(
     "senderId" to senderId,
     "senderName" to senderName,
     "text" to text,
-    "timestamp" to Timestamp(java.util.Date(timestamp)),
+    "timestamp" to FieldValue.serverTimestamp(),
 )
 
 fun DocumentSnapshot.aMessage(): Message = Message(

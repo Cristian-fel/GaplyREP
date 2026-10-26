@@ -28,6 +28,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.tasks.await
 import java.util.Date
 import java.util.concurrent.ConcurrentHashMap
+import android.util.Log
 
 /**
  * Módulo 5 · Chats en la nube (`chats/{chatId}` + `messages` en Firestore).
@@ -94,42 +95,54 @@ class FirebaseChatsRepository(
         chatId: String,
         senderName: String,
         text: String,
-    ): RepoResult<String> = try {
+        members: List<String>,
+    ): RepoResult<String> {
         val uid = auth.currentUser?.uid ?: return RepoResult.Error(RepoError.PERMISSION)
         val contenido = text.trim().takeIf { it.isNotEmpty() }
             ?: return RepoResult.Error(RepoError.EMPTY_FIELDS)
-
-        val chatRef = firestore.collection(CHATS).document(chatId)
-        val documento = chatRef.get().await().takeIf { it.exists() }
-            ?: return RepoResult.Error(RepoError.UNKNOWN)
-        val participantes = documento.get(CAMPO_MIEMBROS)
-            ?.let { it as? List<*> }?.filterIsInstance<String>().orEmpty()
+        if (chatId.isBlank()) return RepoResult.Error(RepoError.EMPTY_FIELDS)
 
         val ahora = System.currentTimeMillis()
-        val lote = firestore.batch()
-        lote.set(
-            chatRef.collection(MESSAGES).document(),
-            Message(
-                senderId = uid,
-                senderName = senderName,
-                text = contenido,
-                timestamp = ahora,
-            ).aFirestoreMap(),
-        )
-        val cambios = mutableMapOf<String, Any>(
-            "lastMessage" to contenido,
-            CAMPO_ACTUALIZADO to Timestamp(Date(ahora)),
-        )
-        participantes.filter { it != uid }.forEach {
-            cambios["$CAMPO_NO_LEIDOS.$it"] = FieldValue.increment(1)
+        val chatRef = firestore.collection(CHATS).document(chatId)
+
+        return try {
+            // 1 · El mensaje: es lo que importa. Si esto falla, no se envió
+            //      nada y el error se muestra tal cual.
+            chatRef.collection(MESSAGES).document()
+                .set(
+                    Message(
+                        senderId = uid,
+                        senderName = senderName,
+                        text = contenido,
+                        timestamp = ahora,
+                    ).aFirestoreMap(),
+                )
+                .await()
+
+            // 2 · Vista previa y no leídos del resto: mejor esfuerzo. Si
+            //      Firestore lo rechazara, el mensaje ya salió igual.
+            try {
+                val cambios = mutableMapOf<String, Any>(
+                    "lastMessage" to contenido,
+                    CAMPO_ACTUALIZADO to Timestamp(Date(ahora)),
+                )
+                members.filter { it.isNotBlank() && it != uid }.forEach {
+                    cambios["$CAMPO_NO_LEIDOS.$it"] = FieldValue.increment(1)
+                }
+                chatRef.update(cambios).await()
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.w(TAG, "Chat $chatId: mensaje enviado pero la vista previa no se actualizó", e)
+            }
+
+            RepoResult.Success(chatId)
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Log.w(TAG, "sendMessage falló en el chat $chatId", e)
+            RepoResult.Error(mapError(e))
         }
-        lote.update(chatRef, cambios)
-        lote.commit().await()
-        RepoResult.Success(chatId)
-    } catch (e: kotlinx.coroutines.CancellationException) {
-        throw e
-    } catch (e: Exception) {
-        RepoResult.Error(mapError(e))
     }
 
     override suspend fun markAsRead(chatId: String): RepoResult<Unit> = try {
@@ -148,9 +161,18 @@ class FirebaseChatsRepository(
     } catch (e: kotlinx.coroutines.CancellationException) {
         throw e
     } catch (e: Exception) {
+        Log.w(TAG, "markAsRead falló en el chat $chatId", e)
         RepoResult.Error(mapError(e))
     }
 
+    /**
+     * Crea (o refresca) el chat directo **sin leerlo antes**: con
+     * `firestore.rules` solo se pueden leer documentos donde ya soy miembro,
+     * y leer uno que no existe devuelve PERMISSION_DENIED — que era justo el
+     * error que salía al confirmar un match. El `set` con merge es
+     * idempotente (el id determinístico evita duplicados) y solo toca campos
+     * seguros: nunca `lastMessage`, `unreadCounts` ni `lastReadAt`.
+     */
     override suspend fun ensureDirectChat(
         otherUid: String,
         otherName: String,
@@ -159,15 +181,10 @@ class FirebaseChatsRepository(
         val uid = auth.currentUser?.uid ?: return RepoResult.Error(RepoError.PERMISSION)
         val destino = otherUid.takeIf { it.isNotBlank() && it != uid }
             ?: return RepoResult.Error(RepoError.EMPTY_FIELDS)
-        val chatId = ChatIds.direct(uid, destino)
-        val ref = firestore.collection(CHATS).document(chatId)
-        val existente = ref.get().await()
 
-        if (!existente.exists()) {
-            // Id determinístico + merge: la carrera de los dos clientes no
-            // duplica el chat y quien llegue segundo no borra lo que ya
-            // escribió el primero.
-            ref.set(
+        val chatId = ChatIds.direct(uid, destino)
+        firestore.collection(CHATS).document(chatId)
+            .set(
                 Chat(
                     id = chatId,
                     type = ChatType.DIRECT,
@@ -175,20 +192,10 @@ class FirebaseChatsRepository(
                     title = otherName,
                     photoUrl = otherPhotoUrl,
                     updatedAt = System.currentTimeMillis(),
-                ).aFirestoreMap(incluirVacios = true),
+                ).aFirestoreMap(),
                 SetOptions.merge(),
-            ).await()
-        } else {
-            // Solo refresca el título/foto desde esta perspectiva.
-            ref.set(
-                mapOf(
-                    CAMPO_MIEMBROS to listOf(uid, destino).sorted(),
-                    "title" to otherName,
-                    "photoUrl" to otherPhotoUrl,
-                ),
-                SetOptions.merge(),
-            ).await()
-        }
+            )
+            .await()
         RepoResult.Success(chatId)
     } catch (e: kotlinx.coroutines.CancellationException) {
         throw e
@@ -196,21 +203,29 @@ class FirebaseChatsRepository(
         RepoResult.Error(mapError(e))
     }
 
+    /**
+     * Crea (o actualiza) el chat de grupo **sin lectura previa**, por el mismo
+     * motivo que [ensureDirectChat]: leer un chat inexistente estaba vetado
+     * por las reglas y el "unirse a la actividad" se caía con ese error.
+     *
+     * `arrayUnion` suma a los asistentes sin pisar a los que ya están, y al
+     * no escribir `lastMessage`/`unreadCounts` reabrir el chat desde el detalle
+     * de la actividad nunca borra el historial (y además cura chats antiguos
+     * que no existían todavía).
+     */
     override suspend fun ensureGroupChat(activity: ActivityItem): RepoResult<String> = try {
         val uid = auth.currentUser?.uid ?: return RepoResult.Error(RepoError.PERMISSION)
         val actividadId = activity.id.takeIf { it.isNotBlank() }
             ?: return RepoResult.Error(RepoError.EMPTY_FIELDS)
 
-        val chatId = ChatIds.group(actividadId)
-        val ref = firestore.collection(CHATS).document(chatId)
-        val existente = ref.get().await()
         val participantes = (activity.attendeeIds + activity.ownerId)
             .filter { it.isNotBlank() }
             .plus(uid)
             .distinct()
 
-        if (!existente.exists()) {
-            ref.set(
+        val chatId = ChatIds.group(actividadId)
+        firestore.collection(CHATS).document(chatId)
+            .set(
                 Chat(
                     id = chatId,
                     type = ChatType.GROUP,
@@ -219,23 +234,12 @@ class FirebaseChatsRepository(
                     title = activity.title,
                     photoUrl = activity.imageUri.orEmpty(),
                     updatedAt = System.currentTimeMillis(),
-                ).aFirestoreMap(incluirVacios = true),
-                SetOptions.merge(),
-            ).await()
-        } else {
-            // arrayUnion es idempotente y NO toca lastMessage/unreadCounts:
-            // reabrir el chat desde el detalle no borra el historial.
-            ref.set(
-                mapOf(
-                    "type" to ChatType.GROUP.name,
-                    CAMPO_MIEMBROS to FieldValue.arrayUnion(*participantes.toTypedArray()),
-                    "activityId" to actividadId,
-                    "title" to activity.title,
-                    "photoUrl" to (activity.imageUri ?: ""),
+                ).aFirestoreMap(
+                    miembros = FieldValue.arrayUnion(*participantes.toTypedArray()),
                 ),
                 SetOptions.merge(),
-            ).await()
-        }
+            )
+            .await()
         RepoResult.Success(chatId)
     } catch (e: kotlinx.coroutines.CancellationException) {
         throw e
@@ -335,6 +339,7 @@ class FirebaseChatsRepository(
     }
 
     companion object {
+        private const val TAG = "Gaply"
         private const val CHATS = "chats"
         private const val MESSAGES = "messages"
         private const val USERS = "users"

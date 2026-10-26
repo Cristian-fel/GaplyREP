@@ -60,6 +60,7 @@ fun ActivitiesListScreen(
     val state by viewModel.uiState.collectAsState()
     val filtro by viewModel.filtroCategoria.collectAsState()
     val franjaSel by viewModel.filtroFranja.collectAsState()
+    val soloInscritas by viewModel.soloInscritas.collectAsState()
     val s = LocalStrings.current
 
     // Error de guardado/borrado en el repositorio (p. ej. permisos de Firestore):
@@ -79,13 +80,17 @@ fun ActivitiesListScreen(
         val home = rememberHomeEstado()
 
         ActivitiesTopSection(
-            title = s.activitiesListTitle,
+            // Modo "solo mis inscritas" (botón del Descubrir) tiene su título.
+            title = if (soloInscritas) s.joinedActivitiesTitle else s.activitiesListTitle,
             // Banner dinámico: el mismo hueco libre real que muestra el Home.
             huecoTexto = bannerDeHueco(home),
             onBack = onBack,
         )
 
-        InterestsSubtitle()
+        // El subtítulo de intereses solo aplica al listado general.
+        if (!soloInscritas) {
+            InterestsSubtitle()
+        }
 
         // Hueco tocado en la banda del horario ("ver actividades para este
         // hueco"): filtra por ese día y rango; el chip "×" vuelve a hoy.
@@ -133,6 +138,8 @@ fun ActivitiesListScreen(
         // Si se tocó un hueco del horario: ese día y ese rango exacto. Si no:
         // las actividades de HOY que encajan en un hueco de hoy (y en la
         // categoría elegida, si la hay) — misma percepción que el agente.
+        // En modo "solo inscritas" manda otro criterio: todo a lo que me uní,
+        // con lo más próximo primero.
         val hoy = LocalDate.now()
         val diaHoy = ActivityFormat.diaDe(hoy)
         val categoriaActiva = filtro
@@ -154,11 +161,20 @@ fun ActivitiesListScreen(
             }
         }
 
-        if (paraTuHueco.isEmpty()) {
+        val lista = if (soloInscritas) {
+            state.activities
+                .filter { it.isJoined }
+                .sortedBy { ActivityFormat.ordenDeProximidad(it) }
+        } else {
+            paraTuHueco
+        }
+
+        if (lista.isEmpty()) {
             EmptyActivitiesState(
-                // Con un hueco elegido o con hueco libre y vacío, se invita
-                // a publicar; sin horario o sin huecos, se explica el porqué.
+                // Con inscritas vacías se explica que aún no te has unido a
+                // nada; en el listado general se conserva la lógica anterior.
                 message = when {
+                    soloInscritas -> s.joinedActivitiesEmpty
                     franjaElegida != null || home.huecosDeHoy.isNotEmpty() -> s.activitiesEmptyListMsg
                     !home.tieneHorario -> s.addClassesToSeeSlots
                     else -> s.noFreeSlotsToday
@@ -170,7 +186,7 @@ fun ActivitiesListScreen(
                 contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 24.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                items(paraTuHueco, key = { it.id }) { activity ->
+                items(lista, key = { it.id }) { activity ->
                     ActivityCard(
                         activity = activity,
                         onClick = { onOpenActivity(activity.id) },

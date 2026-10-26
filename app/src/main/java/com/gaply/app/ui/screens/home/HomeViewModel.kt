@@ -4,14 +4,17 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.gaply.app.di.AppContainer
+import com.gaply.app.domain.model.ActivityItem
 import com.gaply.app.domain.model.Chat
 import com.gaply.app.domain.model.ChatType
 import com.gaply.app.domain.model.HuecoLibre
 import com.gaply.app.domain.model.RepoResult
 import com.gaply.app.domain.model.User
+import com.gaply.app.domain.repository.ActivityRepository
 import com.gaply.app.domain.repository.AuthRepository
 import com.gaply.app.domain.repository.ChatsRepository
 import com.gaply.app.domain.repository.ScheduleRepository
+import com.gaply.app.ui.screens.activities.ActivityFormat
 import com.gaply.app.ui.screens.schedule.ScheduleViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -63,6 +66,7 @@ data class MatchesBarUiState(
 class HomeViewModel(
     private val authRepository: AuthRepository,
     private val scheduleRepository: ScheduleRepository,
+    private val activityRepository: ActivityRepository,
     chatsRepository: ChatsRepository,
 ) : ViewModel() {
 
@@ -70,6 +74,13 @@ class HomeViewModel(
     private val dialog = MutableStateFlow<HomeDialog?>(null)
     private val huecosDeHoy = MutableStateFlow<List<HuecoLibre>>(emptyList())
     private val tieneHorario = MutableStateFlow(false)
+
+    /**
+     * Hasta 3 actividades reales de hoy que caben en un hueco libre y no son
+     * mías: son las tarjetas "Actividades para tu hueco" del Descubrir.
+     */
+    private val _sugeridas = MutableStateFlow<List<ActivityItem>>(emptyList())
+    val sugeridas: StateFlow<List<ActivityItem>> = _sugeridas.asStateFlow()
 
     private val _matchesBar = MutableStateFlow(MatchesBarUiState())
     val matchesBar: StateFlow<MatchesBarUiState> = _matchesBar.asStateFlow()
@@ -122,13 +133,39 @@ class HomeViewModel(
                     // Las clases se guardan con el día en español (clave canónica).
                     val hoy = ScheduleViewModel.tituloDia(LocalDate.now())
                     val clasesDeHoy = resultado.data.filter { it.day == hoy }
-                    huecosDeHoy.value = HuecoLibre
+                    val huecos = HuecoLibre
                         .deClases(clasesDeHoy, ScheduleViewModel.HUECO_MINIMO_MINUTOS)
+                    huecosDeHoy.value = huecos
                     tieneHorario.value = resultado.data.isNotEmpty()
+                    cargarSugeridas(huecos)
                 }
 
                 // Sin conexión no se cambia lo que ya se mostraba: la próxima
                 // entrada a la pantalla vuelve a intentarlo.
+                is RepoResult.Error -> Unit
+            }
+        }
+    }
+
+    /**
+     * Actividades de hoy que encajan en un hueco libre (misma percepción que
+     * el agente: [ActivityFormat.encajaEnHueco]), excluyendo las mías —
+     * para eso está la tarjeta "Tus actividades". Si falla la lectura se
+     * conserva lo que ya se mostraba.
+     */
+    private fun cargarSugeridas(huecos: List<HuecoLibre>) {
+        viewModelScope.launch {
+            when (val resultado = activityRepository.getActivities()) {
+                is RepoResult.Success -> {
+                    val hoy = LocalDate.now()
+                    _sugeridas.value = resultado.data
+                        .filter { !it.isCreatedByMe }
+                        .filter { ActivityFormat.esDeFecha(it.date, hoy) }
+                        .filter { ActivityFormat.encajaEnHueco(it, huecos, ActivityFormat.diaDe(hoy)) }
+                        .sortedByDescending { it.createdAt }
+                        .take(3)
+                }
+
                 is RepoResult.Error -> Unit
             }
         }
@@ -162,6 +199,7 @@ class HomeViewModel(
                     return HomeViewModel(
                         authRepository = container.authRepository,
                         scheduleRepository = container.scheduleRepository,
+                        activityRepository = container.activityRepository,
                         chatsRepository = container.chatsRepository,
                     ) as T
                 }

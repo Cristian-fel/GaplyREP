@@ -199,6 +199,7 @@ interface AppStrings {
     val culturalAgenda: String
     val visitWebsite: String
     val matchesEmptyMsg: String
+    val discoverMatchesCta: String
     val chatsEmptyMsg: String
     val eventSiteInfoMsg: String
 
@@ -454,6 +455,13 @@ interface AppStrings {
 
     /** Botón del Descubrir: "Ver actividades para tu hueco". */
     val activitiesForYourSlot: String
+    val activitiesSectionTitle: String
+    /** Botón del Descubrir: actividades a las que ya me uní, la más próxima primero. */
+    val joinedActivitiesButton: String
+    /** Título del listado anterior. */
+    val joinedActivitiesTitle: String
+    /** Estado vacío del listado anterior. */
+    val joinedActivitiesEmpty: String
     /** Tarjeta del Descubrir: "Tus actividades". */
     val myActivitiesCardTitle: String
     /** Subtítulo de la tarjeta de "Tus actividades". */
@@ -570,4 +578,11 @@ interface AppStrings {
 
     /** Descripción accesible del badge de no leídos. */
     fun unreadMessages(count: Int): String
+
+    /** Cabecera fija de la pestaña Chats (nombre de la app). */
+    val appTitle: String
+    /** Campo de búsqueda de chats de la pestaña Chats. */
+    val searchChatsHint: String
+    /** Estado vacío cuando la búsqueda no encuentra nada. */
+    val searchNoResults: String
 }
