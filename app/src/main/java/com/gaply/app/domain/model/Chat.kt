@@ -17,6 +17,9 @@ enum class ChatType { DIRECT, GROUP }
  *                    del todo aunque otros tengan mensajes más recientes.
  * @param hidden      idem: `hiddenFor` contiene mi uid → "eliminar chat" solo
  *                    lo saca de MI lista (los demás y los mensajes siguen igual).
+ * @param lastMessageKind para el último mensaje: TEXT (normal) o un aviso de
+ *                    sistema; así la lista lo traduce en el idioma de quien
+ *                    lo mira en lugar de guardar la frase ya escrita.
  */
 data class Chat(
     val id: String = "",
@@ -26,6 +29,7 @@ data class Chat(
     val title: String = "",
     val photoUrl: String = "",
     val lastMessage: String = "",
+    val lastMessageKind: MessageKind = MessageKind.TEXT,
     val updatedAt: Long = 0L,
     val unreadCount: Int = 0,
     val lastReadAt: Long? = null,
@@ -37,6 +41,9 @@ data class Chat(
         get() = type == ChatType.DIRECT && lastReadAt == null
 }
 
+/** Clase de un mensaje: texto normal o un aviso de sistema del grupo. */
+enum class MessageKind { TEXT, MEMBER_JOINED, MEMBER_LEFT }
+
 /** Mensaje de texto de `chats/{chatId}/messages/{messageId}`. */
 data class Message(
     val id: String = "",
@@ -44,9 +51,17 @@ data class Message(
     val senderName: String = "",
     val text: String = "",
     val timestamp: Long = 0L,
+    /** Solo TEXT es conversación; los demás son avisos de entrada/salida. */
+    val kind: MessageKind = MessageKind.TEXT,
+    /** A quién se refiere el aviso de sistema (uid y nombre visibles). */
+    val targetUid: String = "",
+    val targetName: String = "",
 ) {
     /** true si lo escribí yo (la UI pinta distinto mis burbujas). */
     fun esMio(miUid: String): Boolean = senderId.isNotBlank() && senderId == miUid
+
+    /** true si es un aviso de sistema (se pinta centrado y es tocable). */
+    fun esAvisoDeSistema(): Boolean = kind != MessageKind.TEXT
 }
 
 /** Convenciones de id compartidas por los repositorios de chats y actividades. */

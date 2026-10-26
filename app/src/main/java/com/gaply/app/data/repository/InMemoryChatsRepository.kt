@@ -6,6 +6,7 @@ import com.gaply.app.domain.model.Chat
 import com.gaply.app.domain.model.ChatIds
 import com.gaply.app.domain.model.ChatType
 import com.gaply.app.domain.model.Message
+import com.gaply.app.domain.model.MessageKind
 import com.gaply.app.domain.model.RepoError
 import com.gaply.app.domain.model.RepoResult
 import com.gaply.app.domain.model.User
@@ -96,7 +97,13 @@ class InMemoryChatsRepository(
         )
         val historial = (mensajes.value[chatId] ?: emptyList()) + nuevo
         mensajes.value = mensajes.value + (chatId to historial)
-        chats.value = chats.value + (chatId to chat.copy(lastMessage = contenido, updatedAt = ahora))
+        chats.value = chats.value + (
+            chatId to chat.copy(
+                lastMessage = contenido,
+                lastMessageKind = MessageKind.TEXT,
+                updatedAt = ahora,
+            )
+        )
 
         val otros = chat.participants.filter { it != uid }
         if (otros.isNotEmpty()) {
@@ -186,6 +193,70 @@ class InMemoryChatsRepository(
             chatId to if (pinned) actual + uid else actual - uid
         )
         return RepoResult.Success(Unit)
+    }
+
+    override suspend fun joinGroupChat(
+        activity: ActivityItem,
+        memberName: String,
+    ): RepoResult<String> {
+        val uid = miUid() ?: return RepoResult.Error(RepoError.PERMISSION)
+        // Primero entrar (mismo orden que en la nube) y después el aviso.
+        val chatId = when (val creado = ensureGroupChat(activity)) {
+            is RepoResult.Error -> return creado
+            is RepoResult.Success -> creado.data
+        }
+        return publicarAvisoDeSistema(chatId, MessageKind.MEMBER_JOINED, uid, memberName)
+    }
+
+    override suspend fun leaveGroupChat(activityId: String, memberName: String): RepoResult<String> {
+        val uid = miUid() ?: return RepoResult.Error(RepoError.PERMISSION)
+        if (activityId.isBlank()) return RepoResult.Error(RepoError.EMPTY_FIELDS)
+        val chatId = ChatIds.group(activityId)
+        // Sin chat aún no hay a quién avisar: salir no es un error.
+        if (!chats.value.containsKey(chatId)) return RepoResult.Success(chatId)
+
+        val publicado = publicarAvisoDeSistema(chatId, MessageKind.MEMBER_LEFT, uid, memberName)
+        if (publicado is RepoResult.Error) return publicado
+
+        // Salgo de members: dejo de ver esa conversación (como al salirme).
+        val chat = chats.value[chatId] ?: return RepoResult.Success(chatId)
+        chats.value = chats.value + (chatId to chat.copy(participants = chat.participants - uid))
+        return RepoResult.Success(chatId)
+    }
+
+    /**
+     * Aviso de sistema estructurado: `lastMessage` guarda el NOMBRE (la frase
+     * la traduce cada cliente al mostrarla, igual que en la nube).
+     */
+    private fun publicarAvisoDeSistema(
+        chatId: String,
+        kind: MessageKind,
+        targetUid: String,
+        targetName: String,
+    ): RepoResult<String> {
+        val uid = miUid() ?: return RepoResult.Error(RepoError.PERMISSION)
+        val chat = chats.value[chatId] ?: return RepoResult.Error(RepoError.UNKNOWN)
+        val ahora = System.currentTimeMillis()
+
+        val aviso = Message(
+            id = UUID.randomUUID().toString(),
+            senderId = uid,
+            senderName = targetName,
+            text = "",
+            timestamp = ahora,
+            kind = kind,
+            targetUid = targetUid,
+            targetName = targetName,
+        )
+        mensajes.value = mensajes.value + (chatId to ((mensajes.value[chatId] ?: emptyList()) + aviso))
+        chats.value = chats.value + (
+            chatId to chat.copy(
+                lastMessage = targetName,
+                lastMessageKind = kind,
+                updatedAt = ahora,
+            )
+        )
+        return RepoResult.Success(chatId)
     }
 
     /**

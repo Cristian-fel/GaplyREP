@@ -321,11 +321,13 @@ private fun BotonMisActividades(onClick: () -> Unit, s: AppStrings) {
                 modifier = Modifier.size(24.dp),
             )
             Spacer(modifier = Modifier.width(10.dp))
+            // Misma tipografía que el banner del hueco (14 sp / SemiBold):
+            // los dos se ven igual dentro de su píldora verde.
             Text(
                 text = s.joinedActivitiesButton,
                 color = Color.White,
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 14.sp,
             )
         }
     }

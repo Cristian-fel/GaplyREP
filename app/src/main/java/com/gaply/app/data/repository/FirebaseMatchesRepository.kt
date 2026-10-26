@@ -13,6 +13,7 @@ import com.gaply.app.domain.model.MatchEntry
 import com.gaply.app.domain.model.MatchProfile
 import com.gaply.app.domain.model.RepoError
 import com.gaply.app.domain.model.RepoResult
+import com.gaply.app.domain.model.User
 import com.gaply.app.domain.model.huecosDelHorario
 import com.gaply.app.domain.repository.MatchesRepository
 import com.google.firebase.auth.FirebaseAuth
@@ -112,6 +113,22 @@ class FirebaseMatchesRepository(
             .await()
         val accion = snapshot.documents.firstOrNull()?.getString(CAMPO_ACCION)
         RepoResult.Success(accion == "LIKE" || accion == "SUPER")
+    } catch (e: kotlinx.coroutines.CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        RepoResult.Error(mapError(e))
+    }
+
+    override suspend fun getUserProfile(uid: String): RepoResult<User?> = try {
+        val objetivo = uid.ifBlank { return RepoResult.Error(RepoError.EMPTY_FIELDS) }
+        val doc = firestore.collection(USERS).document(objetivo).get().await()
+        RepoResult.Success(
+            if (doc.exists()) {
+                doc.data?.let { it.toUser(doc.id) }
+            } else {
+                null
+            },
+        )
     } catch (e: kotlinx.coroutines.CancellationException) {
         throw e
     } catch (e: Exception) {

@@ -598,4 +598,8 @@ interface AppStrings {
     val deleteChatConfirmMsg: String
     /** Indicación mientras el listado está en modo eliminar/destacar. */
     val pickChatHint: String
+
+    /** Avisos de sistema en los chats de grupo (entrada/salida de un miembro). */
+    fun systemMemberJoined(name: String): String
+    fun systemMemberLeft(name: String): String
 }

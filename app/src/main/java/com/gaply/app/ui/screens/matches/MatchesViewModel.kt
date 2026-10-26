@@ -229,12 +229,15 @@ class MatchesViewModel(
             when (val unirse = activityRepository.join(activity.id, nombre)) {
                 is RepoResult.Error -> unirse
                 is RepoResult.Success -> {
-                    chatsRepository.ensureGroupChat(
+                    // Entra al chat y publica el aviso "X se unió" para los
+                    // que ya estaban dentro (mismo flujo que desde el detalle).
+                    chatsRepository.joinGroupChat(
                         activity.copy(
                             attendeeIds = (activity.attendeeIds + uid).distinct(),
                             attendees = (activity.attendees + nombre).distinct(),
                             isJoined = true,
                         ),
+                        memberName = nombre,
                     )
                 }
             }

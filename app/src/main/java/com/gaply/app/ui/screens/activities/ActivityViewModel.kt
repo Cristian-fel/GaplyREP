@@ -300,16 +300,17 @@ class ActivityViewModel(
             when (val result = activityRepository.join(activityId, attendeeName)) {
                 is RepoResult.Success -> {
                     _error.value = null
-                    // El chat de grupo nace con el join: participantes =
-                    // dueño + asistentes (idempotente, no toca el historial).
-                    findById(activityId)?.let { previa ->
-                        chatsRepository.ensureGroupChat(
-                            previa.copy(
-                                attendeeIds = (previa.attendeeIds + userId().orEmpty()).distinct(),
-                                attendees = (previa.attendees + attendeeName).distinct(),
-                                isJoined = true,
-                            ),
-                        )
+                    // El chat de grupo nace con el join (y publica el aviso
+                    // "X se unió" para los que ya estaban dentro).
+                    val previa = findById(activityId) ?: return@launch
+                    val unida = previa.copy(
+                        attendeeIds = (previa.attendeeIds + userId().orEmpty()).distinct(),
+                        attendees = (previa.attendees + attendeeName).distinct(),
+                        isJoined = true,
+                    )
+                    when (val chat = chatsRepository.joinGroupChat(unida, attendeeName)) {
+                        is RepoResult.Error -> _chatError.value = chat.type
+                        is RepoResult.Success -> Unit
                     }
                     refresh()
                 }
@@ -348,6 +349,12 @@ class ActivityViewModel(
             when (val result = activityRepository.leave(activityId, attendeeName)) {
                 is RepoResult.Success -> {
                     _error.value = null
+                    // Aviso "X salió" en el chat (mientras aún soy miembro) y
+                    // después me quita de `members`: ya no veré esa conversación.
+                    when (val chat = chatsRepository.leaveGroupChat(activityId, attendeeName)) {
+                        is RepoResult.Error -> _chatError.value = chat.type
+                        is RepoResult.Success -> Unit
+                    }
                     refresh()
                 }
 

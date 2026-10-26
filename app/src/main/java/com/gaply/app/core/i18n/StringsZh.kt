@@ -662,4 +662,7 @@ object StringsZh : AppStrings {
     override val deleteChatConfirmTitle = "删除此聊天？"
     override val deleteChatConfirmMsg = "它将从你的列表中移除；消息仍会保存在 Gaply 中。"
     override val pickChatHint = "点按你要操作的聊天。"
+
+    override fun systemMemberJoined(name: String) = "$name 加入了该活动"
+    override fun systemMemberLeft(name: String) = "$name 退出了该活动"
 }

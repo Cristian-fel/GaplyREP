@@ -3,6 +3,7 @@ package com.gaply.app.data.repository
 import com.gaply.app.data.mapper.CAMPO_DESTACADOS
 import com.gaply.app.data.mapper.CAMPO_MIEMBROS
 import com.gaply.app.data.mapper.CAMPO_OCULTOS
+import com.gaply.app.data.mapper.CAMPO_TIPO_MENSAJE
 import com.gaply.app.data.mapper.CAMPO_ULTIMA_LECTURA
 import com.gaply.app.data.mapper.aChat
 import com.gaply.app.data.mapper.aFirestoreMap
@@ -12,6 +13,7 @@ import com.gaply.app.domain.model.Chat
 import com.gaply.app.domain.model.ChatIds
 import com.gaply.app.domain.model.ChatType
 import com.gaply.app.domain.model.Message
+import com.gaply.app.domain.model.MessageKind
 import com.gaply.app.domain.model.RepoError
 import com.gaply.app.domain.model.RepoResult
 import com.gaply.app.domain.repository.ChatsRepository
@@ -126,6 +128,8 @@ class FirebaseChatsRepository(
             try {
                 val cambios = mutableMapOf<String, Any>(
                     "lastMessage" to contenido,
+                    // Si el mensaje anterior era un aviso de sistema, vuelve a texto.
+                    CAMPO_TIPO_MENSAJE to MessageKind.TEXT.name,
                     CAMPO_ACTUALIZADO to Timestamp(Date(ahora)),
                 )
                 members.filter { it.isNotBlank() && it != uid }.forEach {
@@ -196,6 +200,111 @@ class FirebaseChatsRepository(
     } catch (e: Exception) {
         Log.w(TAG, "setPinned falló en el chat $chatId", e)
         RepoResult.Error(mapError(e))
+    }
+
+    override suspend fun joinGroupChat(
+        activity: ActivityItem,
+        memberName: String,
+    ): RepoResult<String> {
+        val uid = auth.currentUser?.uid ?: return RepoResult.Error(RepoError.PERMISSION)
+        // 1 · Entrar al chat ANTES del aviso: sin eso las reglas rechazan el
+        //      mensaje porque aún no soy miembro.
+        val chatId = when (val creado = ensureGroupChat(activity)) {
+            is RepoResult.Error -> return creado
+            is RepoResult.Success -> creado.data
+        }
+        // 2 · Aviso de sistema: cada cliente lo traduce al mostrarlo.
+        return publicarAvisoDeSistema(
+            chatId = chatId,
+            kind = MessageKind.MEMBER_JOINED,
+            targetUid = uid,
+            targetName = memberName,
+        )
+    }
+
+    override suspend fun leaveGroupChat(
+        activityId: String,
+        memberName: String,
+    ): RepoResult<String> {
+        val uid = auth.currentUser?.uid ?: return RepoResult.Error(RepoError.PERMISSION)
+        if (activityId.isBlank()) return RepoResult.Error(RepoError.EMPTY_FIELDS)
+        val chatId = ChatIds.group(activityId)
+
+        // Si el chat todavía no existe (nadie entró nunca) no hay a quién
+        // avisar: salir no es un error. Esta lectura cabe en las reglas porque
+        // en este punto sigo siendo miembro.
+        val existe = firestore.collection(CHATS).document(chatId).get().await()
+        if (!existe.exists()) return RepoResult.Success(chatId)
+
+        // 1 · El aviso MIENTRAS aún soy miembro (si no, las reglas lo niegan).
+        val publicado = publicarAvisoDeSistema(
+            chatId = chatId,
+            kind = MessageKind.MEMBER_LEFT,
+            targetUid = uid,
+            targetName = memberName,
+        )
+        if (publicado is RepoResult.Error) return publicado
+
+        // 2 · Salir de `members`: ya no veo ni escribo en esa conversación.
+        try {
+            firestore.collection(CHATS).document(chatId)
+                .update(CAMPO_MIEMBROS, FieldValue.arrayRemove(uid))
+                .await()
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            // Mejor esfuerzo: el aviso ya está publicado; si esto falla, el
+            // usuario sigue siendo miembro (puede salir de nuevo).
+            Log.w(TAG, "No se pudo quitar a $uid de members en $chatId", e)
+        }
+        return RepoResult.Success(chatId)
+    }
+
+    /**
+     * Aviso de sistema en un chat de grupo: se guarda estructurado (tipo +
+     * a quién se refiere) y en `lastMessage` va el NOMBRE, no la frase, para
+     * que cada cliente lo muestre en su idioma.
+     */
+    private suspend fun publicarAvisoDeSistema(
+        chatId: String,
+        kind: MessageKind,
+        targetUid: String,
+        targetName: String,
+    ): RepoResult<String> {
+        val uid = auth.currentUser?.uid ?: return RepoResult.Error(RepoError.PERMISSION)
+        if (chatId.isBlank()) return RepoResult.Error(RepoError.EMPTY_FIELDS)
+        val ahora = System.currentTimeMillis()
+        val chatRef = firestore.collection(CHATS).document(chatId)
+
+        return try {
+            chatRef.collection(MESSAGES).document()
+                .set(
+                    Message(
+                        senderId = uid,
+                        senderName = targetName,
+                        text = "",
+                        timestamp = ahora,
+                        kind = kind,
+                        targetUid = targetUid,
+                        targetName = targetName,
+                    ).aFirestoreMap(),
+                )
+                .await()
+            chatRef.update(
+                mapOf(
+                    "lastMessage" to targetName,
+                    CAMPO_TIPO_MENSAJE to kind.name,
+                    CAMPO_ACTUALIZADO to Timestamp(Date(ahora)),
+                ),
+            )
+                .await()
+            RepoResult.Success(chatId)
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Log.w(TAG, "publicarAvisoDeSistema falló en $chatId", e)
+            RepoResult.Error(mapError(e))
+        }
     }
 
     /**

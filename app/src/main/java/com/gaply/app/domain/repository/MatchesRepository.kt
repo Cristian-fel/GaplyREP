@@ -3,6 +3,7 @@ package com.gaply.app.domain.repository
 import com.gaply.app.domain.model.MatchEntry
 import com.gaply.app.domain.model.MatchProfile
 import com.gaply.app.domain.model.RepoResult
+import com.gaply.app.domain.model.User
 
 /**
  * Módulo 5 · Matches · Repositorio.
@@ -33,4 +34,7 @@ interface MatchesRepository {
 
     /** true si [otherUid] ya me dio LIKE o SUPER (match mutuo). */
     suspend fun hasMutualLike(otherUid: String): RepoResult<Boolean>
+
+    /** Perfil de otro usuario para la vista previa (foto, bio, intereses). */
+    suspend fun getUserProfile(uid: String): RepoResult<User?>
 }

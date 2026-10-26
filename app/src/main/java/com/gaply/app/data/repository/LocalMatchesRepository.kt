@@ -8,6 +8,7 @@ import com.gaply.app.domain.model.MatchEntry
 import com.gaply.app.domain.model.MatchProfile
 import com.gaply.app.domain.model.RepoError
 import com.gaply.app.domain.model.RepoResult
+import com.gaply.app.domain.model.User
 import com.gaply.app.domain.model.huecosDelHorario
 import com.gaply.app.domain.repository.MatchesRepository
 import com.gaply.app.domain.repository.ScheduleRepository
@@ -67,4 +68,9 @@ class LocalMatchesRepository(
         val accion = entradas[otherUid]?.get(uid)?.action
         return RepoResult.Success(accion == MatchAction.LIKE || accion == MatchAction.SUPER)
     }
+
+    override suspend fun getUserProfile(uid: String): RepoResult<User?> =
+        RepoResult.Success(
+            uid.ifBlank { null }?.let { id -> store.loadUsers().find { it.userId == id } },
+        )
 }

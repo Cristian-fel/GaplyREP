@@ -70,7 +70,21 @@ interface ChatsRepository {
      * Crea o actualiza el chat de grupo de una actividad (id `act_{activityId}`)
      * con `members` = dueño + asistentes (nombre del campo fijado por
      * `firestore.rules`). Idempotente: no pisa el último mensaje si el chat
-     * ya existía.
+     * ya existía. No publica avisos de sistema (lo usa publicar/editar).
      */
     suspend fun ensureGroupChat(activity: ActivityItem): RepoResult<String>
+
+    /**
+     * Entrada de un miembro al chat de grupo: **primero** me hace participante
+     * y enseguida publica el aviso de sistema "<nombre> se unió", porque las
+     * reglas solo dejan escribir mensajes siendo miembro.
+     */
+    suspend fun joinGroupChat(activity: ActivityItem, memberName: String): RepoResult<String>
+
+    /**
+     * Salida de un miembro del chat de grupo: publica el aviso "<nombre> salió"
+     * **mientras aún soy miembro** y enseguida me quita de `members` (a partir
+     * de ahí no veo esa conversación, igual que al salirme de la actividad).
+     */
+    suspend fun leaveGroupChat(activityId: String, memberName: String): RepoResult<String>
 }

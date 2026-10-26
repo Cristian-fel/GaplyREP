@@ -11,9 +11,11 @@ import com.gaply.app.domain.model.Chat
 import com.gaply.app.domain.model.Message
 import com.gaply.app.domain.model.RepoError
 import com.gaply.app.domain.model.RepoResult
+import com.gaply.app.domain.model.User
 import com.gaply.app.domain.repository.ActivityRepository
 import com.gaply.app.domain.repository.AuthRepository
 import com.gaply.app.domain.repository.ChatsRepository
+import com.gaply.app.domain.repository.MatchesRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -36,6 +38,8 @@ data class ChatDetailUiState(
     val error: RepoError? = null,
     /** Solo para chats de grupo: la actividad, para el estado del top bar. */
     val actividad: ActivityItem? = null,
+    /** Perfil abierto desde un aviso de sistema (vista previa). */
+    val perfilPreview: User? = null,
 )
 
 /**
@@ -52,6 +56,7 @@ class ChatDetailViewModel(
     private val chatsRepository: ChatsRepository,
     private val authRepository: AuthRepository,
     private val activityRepository: ActivityRepository,
+    private val matchesRepository: MatchesRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(
@@ -166,6 +171,27 @@ class ChatDetailViewModel(
         _uiState.update { it.copy(error = null) }
     }
 
+    /** Vista previa del perfil de quien entró o salió del grupo (aviso tocado). */
+    fun verPerfil(uid: String) {
+        if (uid.isBlank()) return
+        viewModelScope.launch {
+            when (val resultado = matchesRepository.getUserProfile(uid)) {
+                is RepoResult.Success -> _uiState.update {
+                    it.copy(
+                        perfilPreview = resultado.data
+                            ?: return@update it.copy(error = RepoError.USER_NOT_FOUND),
+                    )
+                }
+
+                is RepoResult.Error -> _uiState.update { it.copy(error = resultado.type) }
+            }
+        }
+    }
+
+    fun cerrarPerfil() {
+        _uiState.update { it.copy(perfilPreview = null) }
+    }
+
     /** Mezcla lo real con lo optimista sin duplicar (mismo emisor + texto). */
     private fun combinar(reales: List<Message>, locales: List<Message>): List<Message> {
         val confirmados = reales.map { it.senderId to it.text }.toSet()
@@ -214,6 +240,7 @@ class ChatDetailViewModel(
                         chatsRepository = container.chatsRepository,
                         authRepository = container.authRepository,
                         activityRepository = container.activityRepository,
+                        matchesRepository = container.matchesRepository,
                     ) as T
                 }
             }

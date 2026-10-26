@@ -3,6 +3,7 @@ package com.gaply.app.data.mapper
 import com.gaply.app.domain.model.Chat
 import com.gaply.app.domain.model.ChatType
 import com.gaply.app.domain.model.Message
+import com.gaply.app.domain.model.MessageKind
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldValue
@@ -35,6 +36,9 @@ const val CAMPO_ULTIMA_LECTURA = "lastReadAt"
 /** uids que destacaron el chat (`pinnedBy`) o lo quitaron de su lista (`hiddenFor`). */
 const val CAMPO_DESTACADOS = "pinnedBy"
 const val CAMPO_OCULTOS = "hiddenFor"
+
+/** Clase del último mensaje del chat (`lastMessageKind`): texto o aviso de sistema. */
+const val CAMPO_TIPO_MENSAJE = "lastMessageKind"
 
 /**
  * Campos del chat para `set(..., SetOptions.merge())`.
@@ -77,6 +81,7 @@ fun DocumentSnapshot.aChat(miUid: String?): Chat {
         title = datos["title"] as? String ?: "",
         photoUrl = datos["photoUrl"] as? String ?: "",
         lastMessage = datos["lastMessage"] as? String ?: "",
+        lastMessageKind = tipoDe(datos[CAMPO_TIPO_MENSAJE], MessageKind.TEXT),
         updatedAt = datos["updatedAt"].aMillis(),
         unreadCount = if (miUid == null) 0 else (noLeidos?.get(miUid)?.toInt() ?: 0),
         lastReadAt = if (miUid == null) {
@@ -95,12 +100,17 @@ fun DocumentSnapshot.aChat(miUid: String?): Chat {
  * reloj atrasado metía el mensaje más nuevo arriba del más antiguo). Al
  * leerlo, Firestore devuelve una estimación mientras confirma.
  */
-fun Message.aFirestoreMap(): Map<String, Any> = mapOf(
-    "senderId" to senderId,
-    "senderName" to senderName,
-    "text" to text,
-    "timestamp" to FieldValue.serverTimestamp(),
-)
+fun Message.aFirestoreMap(): Map<String, Any> = buildMap {
+    put("senderId", senderId)
+    put("senderName", senderName)
+    put("text", text)
+    put("timestamp", FieldValue.serverTimestamp())
+    // Los avisos de sistema se guardan estructurados (sin frase): cada
+    // cliente los traduce al mostrarlos.
+    put("kind", kind.name)
+    if (targetUid.isNotBlank()) put("targetUid", targetUid)
+    if (targetName.isNotBlank()) put("targetName", targetName)
+}
 
 fun DocumentSnapshot.aMessage(): Message = Message(
     id = id,
@@ -108,6 +118,9 @@ fun DocumentSnapshot.aMessage(): Message = Message(
     senderName = getString("senderName") ?: "",
     text = getString("text") ?: "",
     timestamp = get("timestamp").aMillis(),
+    kind = tipoDe(getString("kind"), MessageKind.TEXT),
+    targetUid = getString("targetUid") ?: "",
+    targetName = getString("targetName") ?: "",
 )
 
 private inline fun <reified T : Enum<T>> tipoDe(valor: Any?, porDefecto: T): T {

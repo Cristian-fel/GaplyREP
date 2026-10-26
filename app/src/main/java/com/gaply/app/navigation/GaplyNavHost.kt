@@ -147,6 +147,10 @@ fun GaplyNavHost() {
             ChatDetailScreen(
                 chatId = entry.arguments?.getString(Routes.ARG_CHAT_ID).orEmpty(),
                 onBack = { navController.popBackStack() },
+                // Tocar el logo/nombre de un chat de actividad abre su info.
+                onOpenActivity = { activityId ->
+                    navController.navigate(Routes.activityDetail(activityId))
+                },
             )
         }
 

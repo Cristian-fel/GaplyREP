@@ -659,4 +659,7 @@ object StringsFr : AppStrings {
     override val deleteChatConfirmMsg =
         "Il sera retiré de votre liste ; les messages resteront enregistrés dans Gaply."
     override val pickChatHint = "Touchez le chat sur lequel agir."
+
+    override fun systemMemberJoined(name: String) = "$name a rejoint l'activité"
+    override fun systemMemberLeft(name: String) = "$name a quitté l'activité"
 }
