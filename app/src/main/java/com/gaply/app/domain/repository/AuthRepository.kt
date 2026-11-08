@@ -7,6 +7,9 @@ import kotlinx.coroutines.flow.StateFlow
 interface AuthRepository {
     val currentUser: StateFlow<User?>
 
+    /** Indica si hay una sesión activa persistida en el dispositivo. */
+    fun isUserLoggedIn(): Boolean
+
     suspend fun signUp(username: String, email: String, password: String): RepoResult<User>
 
     suspend fun checkSignUpAvailable(username: String, email: String): RepoResult<Unit>

@@ -9,7 +9,9 @@ import org.junit.Test
  *
  * Comprueba el mismo ciclo que `AgenteRecomendacionTest` (percepción ->
  * decisión -> acción) pero con la función de utilidad propia de los perfiles:
- * 0.60 intereses + 0.40 solape de huecos libres.
+ *  - Pesos clásicos: 0.60 intereses + 0.40 solape de huecos libres.
+ *  - Pesos multicriterio con IA (`PesosUtilidadMatches.CON_UNIVERSIDAD_Y_META`):
+ *    0.45 intereses (afinidad semántica IA) + 0.30 horario + 0.15 universidad + 0.10 meta.
  */
 class AgenteMatchesTest {
 
@@ -27,11 +29,15 @@ class AgenteMatchesTest {
         nombre: String = id,
         intereses: List<String> = emptyList(),
         huecos: List<FranjaHoraria> = listOf(huecoMartes),
+        universidad: String = "",
+        meta: String = "",
     ) = CandidatoMatch(
         userId = id,
         nombre = nombre,
         intereses = intereses,
         huecos = huecos,
+        universidad = universidad,
+        meta = meta,
     )
 
     // ------------------------------------------------------------------
@@ -106,7 +112,7 @@ class AgenteMatchesTest {
     }
 
     // ------------------------------------------------------------------
-    // 2. Decisión: la función de utilidad (0.60 + 0.40)
+    // 2. Decisión: la función de utilidad (0.60 + 0.40) y multicriterio con IA
     // ------------------------------------------------------------------
 
     @Test
@@ -127,6 +133,46 @@ class AgenteMatchesTest {
         assertEquals(listOf("a1", "a3", "a2"), sugerencias.map { it.candidato.userId })
         // 0.60*1.0 + 0.40*1.0 = 100 · 0.60*1.0 + 0.40*0.5 = 80 · 0.60*0 + 0.40*1.0 = 40
         assertEquals(listOf(100, 80, 40), sugerencias.map { it.puntuacion })
+    }
+
+    @Test
+    fun ponderaUniversidadMetaEInteresesConRefinamientoIa() {
+        val agenteIa = AgenteMatches(
+            pesos = PesosUtilidadMatches.CON_UNIVERSIDAD_Y_META,
+            usarRefinamientoIa = true,
+        )
+        val miPerfil = PerfilAgente(
+            intereses = listOf("Programación"),
+            huecos = listOf(huecoMartes),
+            universidad = "Universidad Jorge Tadeo Lozano",
+            meta = "📚 Necesito estudiar",
+        )
+        // Comparte todo exacto -> 100 % (55% intereses + 30% horario + 15% universidad)
+        val gemelo = candidato(
+            id = "c1",
+            nombre = "Santiago",
+            intereses = listOf("Programación"),
+            universidad = "Universidad Jorge Tadeo Lozano",
+            meta = "📚 Necesito estudiar",
+        )
+        // No tiene "Programación", pero tiene "Ciencia" (afinidad entrenada 0.75 en clúster STEM),
+        // misma universidad y mismo horario:
+        // 0.55 * 0.75 + 0.30 * 1.0 + 0.15 * 1.0 = 0.4125 + 0.30 + 0.15 = 0.8625 -> 86%
+        val afinSemantico = candidato(
+            id = "c2",
+            nombre = "Juan",
+            intereses = listOf("Ciencia"),
+            universidad = "Universidad Jorge Tadeo Lozano",
+            meta = "🏀 Qué hay para hacer",
+        )
+
+        val sugerencias = agenteIa.recomendar(miPerfil, listOf(afinSemantico, gemelo)).sugerencias
+
+        assertEquals(listOf("c1", "c2"), sugerencias.map { it.candidato.userId })
+        assertEquals(listOf(100, 86), sugerencias.map { it.puntuacion })
+        assertTrue(sugerencias[0].promptIa.contains("Universidad Jorge Tadeo Lozano"))
+        assertTrue(sugerencias[0].razones.any { it.contains("Tadeo") })
+        assertTrue(sugerencias[1].razones.any { it.contains("Ciencia") })
     }
 
     @Test
@@ -180,8 +226,10 @@ class AgenteMatchesTest {
         assertEquals(5, agente.recomendar(perfilBase, candidatos).sugerencias.size)
 
         val agenteDeTres = AgenteMatches(maximoMatches = 3)
-        assertEquals(3, agenteDeTres.recomendar(perfilBase, candidatos).sugerencias.size)
+        assertEquals(3, agenteDeTres.recomendar(perfilBase, candidatos).recomendacionesCount())
     }
+
+    private fun ResultadoMatches.recomendacionesCount(): Int = sugerencias.size
 
     @Test
     fun losEmpatesSeResuelvenAlfabeticamente() {

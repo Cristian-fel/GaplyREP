@@ -336,6 +336,15 @@ private fun PerfilCarta(card: DeckCard.ProfileCard, modifier: Modifier = Modifie
                                 overflow = TextOverflow.Ellipsis,
                             )
                         }
+                        if (profile.goal.isNotBlank()) {
+                            Text(
+                                text = profile.goal,
+                                color = SurfaceWhite.copy(alpha = 0.85f),
+                                style = MaterialTheme.typography.bodySmall,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
                     }
                 }
 
@@ -393,10 +402,10 @@ private fun PerfilCarta(card: DeckCard.ProfileCard, modifier: Modifier = Modifie
                     }
                 }
 
-                profile.reasons.firstOrNull()?.let { motivo ->
+                if (profile.reasons.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = motivo,
+                        text = profile.reasons.joinToString(" · "),
                         style = MaterialTheme.typography.bodySmall,
                         color = TextSecondary,
                         maxLines = 2,

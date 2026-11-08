@@ -54,6 +54,7 @@ fun User.aMatchProfile(huecosPropios: List<FranjaHoraria>): MatchProfile = Match
     username = username,
     age = MatchProfile.edadDesde(birthDate),
     university = university,
+    goal = goal,
     bio = bio,
     profilePictureUrl = profilePictureUrl,
     interests = interests,

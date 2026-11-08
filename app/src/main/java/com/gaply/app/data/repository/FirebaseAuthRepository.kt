@@ -28,30 +28,45 @@ class FirebaseAuthRepository(
     private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance(),
 ) : AuthRepository {
 
-    private val _currentUser = MutableStateFlow<User?>(null)
+    private val _currentUser = MutableStateFlow<User?>(
+        auth.currentUser?.let { User(userId = it.uid, email = it.email.orEmpty()) }
+    )
     override val currentUser: StateFlow<User?> = _currentUser
 
     private var profileListener: ListenerRegistration? = null
 
     init {
-        auth.addAuthStateListener { firebaseUser ->
+        auth.currentUser?.uid?.let { uid ->
+            profileListener = firestore.collection(USERS).document(uid)
+                .addSnapshotListener { snapshot, error ->
+                    if (error != null) return@addSnapshotListener
+                    val data = snapshot?.data
+                    _currentUser.value =
+                        if (data == null) User(userId = uid, email = auth.currentUser?.email.orEmpty()) else data.toUser(uid)
+                }
+        }
+        auth.addAuthStateListener { firebaseAuth ->
             profileListener?.remove()
             profileListener = null
-            val uid = firebaseUser?.uid
+            val user = firebaseAuth.currentUser
+            val uid = user?.uid
             if (uid == null) {
                 _currentUser.value = null
             } else {
-                _currentUser.value = User(userId = uid)
+                val email = user.email.orEmpty()
+                _currentUser.value = User(userId = uid, email = email)
                 profileListener = firestore.collection(USERS).document(uid)
                     .addSnapshotListener { snapshot, error ->
                         if (error != null) return@addSnapshotListener
                         val data = snapshot?.data
                         _currentUser.value =
-                            if (data == null) User(userId = uid) else data.toUser(uid)
+                            if (data == null) User(userId = uid, email = email) else data.toUser(uid)
                     }
             }
         }
     }
+
+    override fun isUserLoggedIn(): Boolean = auth.currentUser != null
 
     override suspend fun signUp(
         username: String,
@@ -301,6 +316,7 @@ class FirebaseAuthRepository(
 
     override suspend fun signOut() {
         auth.signOut()
+        _currentUser.value = null
     }
 
     private suspend fun resolveEmail(identifier: String?): String? {

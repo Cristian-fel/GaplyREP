@@ -18,6 +18,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Star
@@ -96,19 +97,41 @@ fun MatchesScreen(
             .background(BackgroundApp)
             .padding(horizontal = 16.dp, vertical = 12.dp),
     ) {
-        Text(
-            text = s.tabMatches,
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-            color = Color.Black,
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = s.matchesUtilityExplanation,
-            style = MaterialTheme.typography.bodySmall,
-            color = TextSecondary,
-            maxLines = 2,
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text(
+                text = s.tabMatches,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = Color.Black,
+            )
+            // Chip para alternar el refinamiento con IA semántica / LLM en vivo
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(50))
+                    .background(if (state.usarRefinamientoIa) BrandGreen else Mint)
+                    .clickable(onClick = viewModel::alternarModoIa)
+                    .padding(horizontal = 12.dp, vertical = 6.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.AutoAwesome,
+                    contentDescription = null,
+                    tint = if (state.usarRefinamientoIa) SurfaceWhite else BrandGreen,
+                    modifier = Modifier.size(14.dp),
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = if (state.usarRefinamientoIa) "IA: 55% Int · 30% Hor · 15% Uni" else "Clásico",
+                    color = if (state.usarRefinamientoIa) SurfaceWhite else BrandGreen,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 11.sp,
+                )
+            }
+        }
         Spacer(modifier = Modifier.height(12.dp))
 
         // Likes recibidos pendientes: encabezan el mazo (dar like de vuelta
@@ -337,4 +360,3 @@ private fun CircleAction(
             )
         }
 }
-

@@ -18,6 +18,8 @@ class InMemoryAuthRepository(
 
     override val currentUser: StateFlow<User?> = store.currentUser
 
+    override fun isUserLoggedIn(): Boolean = store.currentUser.value != null
+
     override suspend fun signUp(username: String, email: String, password: String): RepoResult<User> {
         delay(latencyMs)
         if (simulateConnectionError) return RepoResult.Error(RepoError.CONNECTION)

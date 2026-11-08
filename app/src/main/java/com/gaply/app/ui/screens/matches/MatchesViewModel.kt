@@ -11,6 +11,7 @@ import com.gaply.app.di.AppContainer
 import com.gaply.app.domain.agent.AgenteMatches
 import com.gaply.app.domain.agent.CandidatoMatch
 import com.gaply.app.domain.agent.PerfilAgente
+import com.gaply.app.domain.agent.PesosUtilidadMatches
 import com.gaply.app.domain.model.ActivityItem
 import com.gaply.app.domain.model.HuecoLibre
 import com.gaply.app.domain.model.MatchAction
@@ -28,6 +29,9 @@ import com.gaply.app.domain.repository.ScheduleRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChangedBy
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -75,6 +79,8 @@ data class MatchesUiState(
      * (darles like de vuelta cierra el match al instante).
      */
     val pendientes: List<MatchProfile> = emptyList(),
+    /** true cuando el agente de compatibilidad refina la puntuación con IA semántica / LLM. */
+    val usarRefinamientoIa: Boolean = true,
 )
 
 /**
@@ -83,8 +89,12 @@ data class MatchesUiState(
  * Carga el mazo: primero mis swipes (`swipes` con `fromUid == yo`, las
  * exclusiones), después los
  * candidatos de `users` y sus actividades; cruza los perfiles con
- * [AgenteMatches] (percepción -> decisión -> acción) y mezcla el top con las
+ * [AgenteMatches] (percepción -> decisión -> acción) ponderando intereses,
+ * horario, universidad y meta/objetivo, y mezcla el top con las
  * actividades rápidas.
+ *
+ * Observa en tiempo real los cambios en el usuario autenticado (intereses,
+ * universidad, objetivo) para recalcular la compatibilidad automáticamente.
  *
  * Cada swipe persiste la entrada y, si es un LIKE a un perfil, comprueba el
  * match mutuo leyendo la entrada del otro usuario. Si coincide, se crea el
@@ -103,6 +113,24 @@ class MatchesViewModel(
 
     /** Textos activos: los usa el agente para redactar las razones. */
     var strings: AppStrings = StringsEs
+
+    init {
+        // Observa en tiempo real los cambios en los filtros del perfil del
+        // usuario (intereses, universidad, meta) y recalcula el mazo.
+        viewModelScope.launch {
+            authRepository.currentUser
+                .filterNotNull()
+                .distinctUntilChangedBy { Triple(it.interests, it.university, it.goal) }
+                .drop(1)
+                .collect { cargar() }
+        }
+    }
+
+    /** Alterna entre el refinamiento de IA semántica/LLM y el cálculo clásico. */
+    fun alternarModoIa() {
+        _uiState.update { it.copy(usarRefinamientoIa = !it.usarRefinamientoIa) }
+        cargar()
+    }
 
     fun cargar() {
         viewModelScope.launch {
@@ -136,7 +164,9 @@ class MatchesViewModel(
                 }
             }
 
-            // Likes recibidos que aún no respondí: van primero del mazo.
+            // Likes recibidos que aún no respondí: van primero del mazo (nunca
+            // se descartan en la percepción aunque su horario no solape, pero sí
+            // muestran su % de compatibilidad).
             val pendientesUids = when (val resultado = matchesRepository.getPendingLikeUids()) {
                 is RepoResult.Success -> resultado.data.take(LIMIT_PENDIENTES)
                 is RepoResult.Error -> {
@@ -144,7 +174,7 @@ class MatchesViewModel(
                     emptyList()
                 }
             }
-            val pendientes = resolverPendientes(pendientesUids, candidatos)
+            val pendientes = puntuarTodos(resolverPendientes(pendientesUids, candidatos))
 
             val actividades = when (val resultado = activityRepository.getActivities()) {
                 is RepoResult.Success -> resultado.data
@@ -457,9 +487,12 @@ class MatchesViewModel(
 
             is RepoResult.Error -> emptyList()
         }
+        val usuarioActual = authRepository.currentUser.value
         val miPerfil = PerfilAgente(
-            intereses = authRepository.currentUser.value?.interests.orEmpty(),
+            intereses = usuarioActual?.interests.orEmpty(),
             huecos = misHuecos,
+            universidad = usuarioActual?.university.orEmpty(),
+            meta = usuarioActual?.goal.orEmpty(),
         )
         val candidatos = perfiles.map { perfil ->
             CandidatoMatch(
@@ -467,17 +500,75 @@ class MatchesViewModel(
                 nombre = perfil.displayName,
                 intereses = perfil.interests,
                 huecos = perfil.freeSlots,
+                universidad = perfil.university,
+                meta = perfil.goal,
             )
         }
         val porUid = perfiles.associateBy { it.userId }
-        return AgenteMatches(strings).recomendar(miPerfil, candidatos).sugerencias
+        val agente = construirAgente()
+        return agente.recomendar(miPerfil, candidatos).sugerencias
             .mapNotNull { puntuacion ->
                 porUid[puntuacion.candidato.userId]?.copy(
                     commonFreeSlots = puntuacion.huecosEnComun,
                     utilityScore = puntuacion.puntuacion,
                     reasons = puntuacion.razones,
+                    aiPrompt = puntuacion.promptIa,
                 )
             }
+    }
+
+    /**
+     * Puntúa una lista de perfiles sin descartar a ninguno (para los likes
+     * recibidos pendientes, que siempre encabezan el mazo).
+     */
+    private suspend fun puntuarTodos(perfiles: List<MatchProfile>): List<MatchProfile> {
+        if (perfiles.isEmpty()) return emptyList()
+        val misHuecos = when (val clases = scheduleRepository.getClasses()) {
+            is RepoResult.Success ->
+                huecosDelHorario(clases.data, HuecoLibre.MINIMO_MINUTOS)
+
+            is RepoResult.Error -> emptyList()
+        }
+        val usuarioActual = authRepository.currentUser.value
+        val miPerfil = PerfilAgente(
+            intereses = usuarioActual?.interests.orEmpty(),
+            huecos = misHuecos,
+            universidad = usuarioActual?.university.orEmpty(),
+            meta = usuarioActual?.goal.orEmpty(),
+        )
+        val candidatos = perfiles.map { perfil ->
+            CandidatoMatch(
+                userId = perfil.userId,
+                nombre = perfil.displayName,
+                intereses = perfil.interests,
+                huecos = perfil.freeSlots,
+                universidad = perfil.university,
+                meta = perfil.goal,
+            )
+        }
+        val porUid = perfiles.associateBy { it.userId }
+        val agente = construirAgente()
+        return agente.decidir(miPerfil, candidatos).mapNotNull { puntuacion ->
+            porUid[puntuacion.candidato.userId]?.copy(
+                commonFreeSlots = puntuacion.huecosEnComun,
+                utilityScore = puntuacion.puntuacion,
+                reasons = puntuacion.razones,
+                aiPrompt = puntuacion.promptIa,
+            )
+        }
+    }
+
+    private fun construirAgente(): AgenteMatches {
+        val usarIa = _uiState.value.usarRefinamientoIa
+        return AgenteMatches(
+            strings = strings,
+            pesos = if (usarIa) {
+                PesosUtilidadMatches.CON_UNIVERSIDAD_Y_META
+            } else {
+                PesosUtilidadMatches()
+            },
+            usarRefinamientoIa = usarIa,
+        )
     }
 
     /** Perfiles y actividades alternados: el mazo nunca empieza todo con lo mismo. */

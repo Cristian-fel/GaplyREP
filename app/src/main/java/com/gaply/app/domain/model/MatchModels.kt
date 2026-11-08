@@ -45,6 +45,7 @@ data class MatchProfile(
     val username: String = "",
     val age: Int? = null,
     val university: String = "",
+    val goal: String = "",
     val bio: String = "",
     val profilePictureUrl: String = "",
     val interests: List<String> = emptyList(),
@@ -52,6 +53,7 @@ data class MatchProfile(
     val commonFreeSlots: List<FranjaHoraria> = emptyList(),
     val utilityScore: Int? = null,
     val reasons: List<String> = emptyList(),
+    val aiPrompt: String = "",
 ) {
     val displayName: String
         get() = firstName.ifBlank { username }.ifBlank { userId }

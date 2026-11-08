@@ -1,6 +1,7 @@
 package com.gaply.app.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -8,6 +9,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.gaply.app.di.appContainer
+import com.gaply.app.domain.repository.AuthRepository
 import com.gaply.app.ui.screens.home.HomeScreen
 import com.gaply.app.ui.screens.activities.ActivitiesListScreen
 import com.gaply.app.ui.screens.activities.ActivityDetailScreen
@@ -35,14 +37,22 @@ import com.gaply.app.ui.screens.welcome.ACCOUNT_DEACTIVATED
 import com.gaply.app.ui.screens.welcome.ACCOUNT_DELETED
 import com.gaply.app.ui.screens.welcome.WelcomeScreen
 
+fun resolveStartDestination(authRepository: AuthRepository): String =
+    if (authRepository.isUserLoggedIn()) Routes.HOME else Routes.WELCOME
+
 @Composable
-fun GaplyNavHost() {
-    val navController = rememberNavController()
+fun GaplyNavHost(
+    startDestination: String? = null,
+) {
     val context = LocalContext.current
+    val effectiveStartDestination = remember(context, startDestination) {
+        startDestination ?: resolveStartDestination(context.appContainer().authRepository)
+    }
+    val navController = rememberNavController()
 
     NavHost(
         navController = navController,
-        startDestination = Routes.WELCOME,
+        startDestination = effectiveStartDestination,
     ) {
         composable(
             route = "${Routes.WELCOME}?${Routes.ARG_ACCOUNT_MESSAGE}={${Routes.ARG_ACCOUNT_MESSAGE}}",
@@ -71,7 +81,7 @@ fun GaplyNavHost() {
                 },
                 onLoggedIn = {
                     navController.navigate(Routes.HOME) {
-                        popUpTo(Routes.WELCOME) { inclusive = true }
+                        popUpTo(0) { inclusive = true }
                         launchSingleTop = true
                     }
                 },
@@ -99,7 +109,7 @@ fun GaplyNavHost() {
                 onExit = { navController.popBackStack() },
                 onRegistered = {
                     navController.navigate(Routes.HOME) {
-                        popUpTo(Routes.WELCOME) { inclusive = true }
+                        popUpTo(0) { inclusive = true }
                         launchSingleTop = true
                     }
                 },
@@ -110,7 +120,7 @@ fun GaplyNavHost() {
             HomeScreen(
                 onLogout = {
                     navController.navigate(Routes.WELCOME) {
-                        popUpTo(Routes.HOME) { inclusive = true }
+                        popUpTo(0) { inclusive = true }
                         launchSingleTop = true
                     }
                 },
@@ -371,7 +381,7 @@ fun GaplyNavHost() {
                 onBack = { navController.popBackStack() },
                 onLogout = {
                     navController.navigate(Routes.WELCOME) {
-                        popUpTo(Routes.HOME) { inclusive = true }
+                        popUpTo(0) { inclusive = true }
                         launchSingleTop = true
                     }
                 },
