@@ -67,6 +67,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -115,13 +116,16 @@ private fun hasRadarPermissions(context: Context): Boolean {
  * Pide cámara y ubicación al entrar y muestra la cámara en vivo con
  * CameraX. La superposición [RadarOverlay] es interactiva:
  *
+ *  - **Flecha grande fija arriba al centro** ([DirectionArrow]): gira con
+ *    la diferencia angular y apunta al destino todo el tiempo (0° =
+ *    enfrente, 90° = derecha, 180° = detrás).
  *  - Tarjeta verde del destino dentro del campo de visión (±35°),
  *    moviéndose levemente con la diferencia angular.
  *  - Fuera del campo de visión la tarjeta se oculta y aparece una
- *    flecha grande animada al borde izquierdo o derecho que indica
+ *    flecha animada al borde izquierdo o derecho que indica
  *    hacia qué lado girar el cuerpo.
  *  - Minimapa [MiniRadarCompass] (inferior derecha) y panel de
- *    diagnóstico [RadarDebugPanel] (superior derecha) en tiempo real.
+ *    diagnóstico [RadarDebugPanel] (inferior izquierda) en tiempo real.
  *
  * @param title Título de la actividad (título de la tarjeta).
  * @param destinationPlace Nombre del lugar destino (se resuelve con [LocationMapper]).
@@ -272,13 +276,15 @@ private const val FIELD_OF_VIEW_DEG = 35f
 /**
  * Interfaz AR superpuesta a la cámara:
  *
+ *  - Flecha grande fija arriba al centro ([DirectionArrow]): apunta al
+ *    destino todo el tiempo (gira con la diferencia angular).
  *  - Destino dentro del campo de visión (±[FIELD_OF_VIEW_DEG]): tarjeta
  *    flotante centrada que se desplaza levemente con la diferencia angular.
  *  - Fuera del campo: la tarjeta se oculta ([AnimatedVisibility]) y una
- *    flecha grande animada pegada al borde ([EdgeDirectionArrow]) indica
+ *    flecha animada pegada al borde ([EdgeDirectionArrow]) indica
  *    hacia qué lado girar.
  *  - Minimapa [MiniRadarCompass] (inferior derecha) y panel de
- *    diagnóstico [RadarDebugPanel] (superior derecha) siempre visibles.
+ *    diagnóstico [RadarDebugPanel] (inferior izquierda) siempre visibles.
  */
 @SuppressLint("UnusedBoxWithConstraintsScope")
 @Composable
@@ -336,6 +342,43 @@ private fun RadarOverlay(
             EdgeDirectionArrow(toRight = delta > 0f)
         }
 
+        // Centro superior: flecha grande que apunta al destino todo el
+        // tiempo + aviso de calibración de brújula debajo si hace falta.
+        Column(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .statusBarsPadding()
+                .padding(top = 12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            AnimatedVisibility(
+                // Flecha solo con destino calculado y señal viva (sin GPS
+                // no hay rumbo: apuntaría a dónde no es).
+                visible = state.bearingDeg != null && state.signalAlive,
+                enter = fadeIn(tween(200)),
+                exit = fadeOut(tween(200)),
+            ) {
+                DirectionArrow(angleDeltaDeg = delta)
+            }
+
+            // Brújula sin calibrar (precisión no confiable/baja): aviso "haz un 8".
+            if (state.compassAccuracy in 0..SensorManager.SENSOR_STATUS_ACCURACY_LOW) {
+                Text(
+                    text = s.radarCalibrateHint,
+                    color = Color.White,
+                    style = MaterialTheme.typography.bodySmall,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .padding(top = 8.dp, start = 8.dp, end = 8.dp)
+                        .background(
+                            color = Color.Black.copy(alpha = 0.55f),
+                            shape = RoundedCornerShape(50),
+                        )
+                        .padding(horizontal = 14.dp, vertical = 6.dp),
+                )
+            }
+        }
+
         // Minimapa / brújula 2D (esquina inferior derecha).
         MiniRadarCompass(
             angleDeltaDeg = delta,
@@ -345,33 +388,15 @@ private fun RadarOverlay(
                 .padding(16.dp),
         )
 
-        // Diagnóstico en tiempo real (esquina superior derecha).
+        // Diagnóstico en tiempo real (esquina inferior izquierda: arriba
+        // queda libre para la flecha de dirección).
         RadarDebugPanel(
             state = state,
             modifier = Modifier
-                .align(Alignment.TopEnd)
-                .statusBarsPadding()
-                .padding(top = 12.dp, end = 12.dp),
+                .align(Alignment.BottomStart)
+                .navigationBarsPadding()
+                .padding(start = 12.dp, bottom = 12.dp),
         )
-
-        // Brújula sin calibrar (precisión no confiable/baja): aviso "haz un 8".
-        if (state.compassAccuracy in 0..SensorManager.SENSOR_STATUS_ACCURACY_LOW) {
-            Text(
-                text = s.radarCalibrateHint,
-                color = Color.White,
-                style = MaterialTheme.typography.bodySmall,
-                textAlign = TextAlign.Center,
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .statusBarsPadding()
-                    .padding(top = 12.dp, start = 56.dp, end = 56.dp)
-                    .background(
-                        color = Color.Black.copy(alpha = 0.55f),
-                        shape = RoundedCornerShape(50),
-                    )
-                    .padding(horizontal = 14.dp, vertical = 6.dp),
-            )
-        }
     }
 }
 
@@ -471,6 +496,46 @@ private fun EdgeDirectionArrow(
             tint = Color.White,
             modifier = Modifier.size(40.dp),
         )
+    }
+}
+
+/**
+ * Flecha grande fija (centro superior): gira con [angleDeltaDeg] para
+ * apuntar siempre hacia el destino — 0° = arriba (enfrente), +90° =
+ * derecha, ±180° = detrás del usuario. El círculo de fondo no se nota
+ * al girar; solo rota el triángulo blanco.
+ */
+@Composable
+private fun DirectionArrow(
+    angleDeltaDeg: Float,
+    modifier: Modifier = Modifier,
+) {
+    Canvas(
+        modifier = modifier
+            .size(84.dp)
+            .graphicsLayer { rotationZ = angleDeltaDeg },
+    ) {
+        val mid = Offset(size.width / 2f, size.height / 2f)
+        val radius = size.minDimension / 2f
+
+        // Fondo oscuro + anillo verde (marca la flecha sobre cualquier fondo).
+        drawCircle(color = Color.Black.copy(alpha = 0.5f), radius = radius, center = mid)
+        drawCircle(
+            color = BrandGreen,
+            radius = radius - 2.dp.toPx(),
+            center = mid,
+            style = Stroke(width = 3.dp.toPx()),
+        )
+
+        // Triángulo apuntando hacia ARRIBA cuando angleDeltaDeg = 0.
+        val arrow = Path().apply {
+            moveTo(size.width * 0.50f, size.height * 0.17f)
+            lineTo(size.width * 0.83f, size.height * 0.75f)
+            lineTo(size.width * 0.50f, size.height * 0.58f)
+            lineTo(size.width * 0.17f, size.height * 0.75f)
+            close()
+        }
+        drawPath(path = arrow, color = Color.White)
     }
 }
 

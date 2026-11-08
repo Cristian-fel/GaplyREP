@@ -20,12 +20,14 @@ import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
+import com.google.android.gms.tasks.CancellationTokenSource
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.math.abs
 
 /** Estado observable del Radar AR (brújula, GPS y rumbo al destino). */
@@ -208,14 +210,31 @@ class RadarArViewModel(application: Application) :
     @SuppressLint("MissingPermission") // Los permisos se piden en RadarArScreen antes de start().
     private fun requestLocation() {
         viewModelScope.launch {
+            // 1) Última ubicación conocida: aparece al instante (puede ser vieja).
             try {
                 fusedLocationClient.lastLocation.await()?.let(::onUserLocation)
             } catch (_: SecurityException) {
                 // Sin permiso de ubicación: la tarjeta queda en "buscando…".
             }
+            // 2) Ubicación actual con espera corta (≤8 s): cubre el caso de
+            //    que no haya última ubicación, sin frenar el paso anterior.
+            val actual = withTimeoutOrNull(8_000) {
+                try {
+                    fusedLocationClient.getCurrentLocation(
+                        Priority.PRIORITY_HIGH_ACCURACY,
+                        CancellationTokenSource().token,
+                    ).await()
+                } catch (_: SecurityException) {
+                    null
+                }
+            }
+            actual?.let(::onUserLocation)
         }
-        val request = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 2000L)
-            .setMinUpdateDistanceMeters(2f)
+        // 1 s y sin distancia mínima: quien está parado sigue recibiendo
+        // fixes. Con 2 m de umbral la "señal viva" moría a los 8 s y la
+        // tarjeta volvía a "Buscando…" aunque el GPS estaba bien.
+        val request = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 1_000L)
+            .setMinUpdateDistanceMeters(0f)
             .build()
         try {
             fusedLocationClient.requestLocationUpdates(
