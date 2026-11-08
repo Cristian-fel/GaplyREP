@@ -66,6 +66,16 @@ dependencies {
     implementation("com.google.firebase:firebase-storage")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.8.1")
 
+    // Radar AR: vista previa de cámara en vivo (CameraX) y GPS del dispositivo.
+    // listenablefuture / guava: API que CameraX expone (ProcessCameraProvider).
+    implementation("androidx.camera:camera-core:1.3.4")
+    implementation("androidx.camera:camera-camera2:1.3.4")
+    implementation("androidx.camera:camera-lifecycle:1.3.4")
+    implementation("androidx.camera:camera-view:1.3.4")
+    implementation("com.google.guava:guava:32.1.3-android")
+    implementation("com.google.guava:listenablefuture:9999.0-empty-to-avoid-conflict-with-guava")
+    implementation("com.google.android.gms:play-services-location:21.3.0")
+
     debugImplementation("androidx.compose.ui:ui-tooling")
 
     // Pruebas unitarias del agente (JVM puro: corren sin emulador ni dispositivo)
@@ -76,5 +86,13 @@ dependencies {
 tasks.withType<Test>().configureEach {
     testLogging {
         events("passed", "failed", "skipped")
+    }
+}
+
+// Evita duplicidad de ListenableFuture cuando Guava está en el classpath
+configurations.all {
+    resolutionStrategy.dependencySubstitution {
+        substitute(module("com.google.guava:listenablefuture"))
+            .using(module("com.google.guava:listenablefuture:9999.0-empty-to-avoid-conflict-with-guava"))
     }
 }

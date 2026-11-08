@@ -178,7 +178,15 @@ class FirebaseActivityRepository(
             duration = datos["duration"] as? String ?: "",
             date = datos["date"] as? String ?: "",
             timeRange = datos["timeRange"] as? String ?: "",
-            location = datos["location"] as? String ?: "",
+            // Migración del campo único `location` de las actividades
+            // antiguas: si no existen los campos nuevos, se usa el texto
+            // viejo como nombre del lugar (los datos nuevos no crashean).
+            locationName = datos["locationName"] as? String
+                ?: datos["location"] as? String
+                ?: "",
+            latitude = (datos["latitude"] as? Number)?.toDouble() ?: 0.0,
+            longitude = (datos["longitude"] as? Number)?.toDouble() ?: 0.0,
+            locationDetails = datos["locationDetails"] as? String,
             description = datos["description"] as? String ?: "",
             imageUri = datos["imageUri"] as? String,
             defaultColorHex = datos["defaultColorHex"] as? String
@@ -203,7 +211,12 @@ class FirebaseActivityRepository(
         "date" to date,
         "timeRange" to timeRange,
         "startTime" to startTime,
-        "location" to location,
+        // Ubicación dividida en 4 campos (nombre del catálogo + coordenadas
+        // para el Radar AR + punto de encuentro exacto opcional).
+        "locationName" to locationName,
+        "latitude" to latitude,
+        "longitude" to longitude,
+        "locationDetails" to locationDetails,
         "description" to description,
         "imageUri" to imageUri,
         "defaultColorHex" to defaultColorHex,

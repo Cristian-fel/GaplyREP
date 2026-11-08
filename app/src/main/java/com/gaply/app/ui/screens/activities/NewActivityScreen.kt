@@ -60,10 +60,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.gaply.app.core.i18n.LocalStrings
+import com.gaply.app.data.CampusLocations
+import com.gaply.app.data.CampusPoint
 import com.gaply.app.domain.model.ActivityItem
 import com.gaply.app.ui.components.GaplyTextField
 import com.gaply.app.ui.screens.register.RegisterData
@@ -112,7 +115,12 @@ fun NewActivityScreen(
 
     var title by remember { mutableStateOf("") }
     var category by remember { mutableStateOf(RegisterData.interests.first()) }
-    var location by remember { mutableStateOf("") }
+    // Ubicación principal del catálogo CampusLocations (nombre + coordenadas
+    // que guarda el ViewModel al seleccionar) y punto de encuentro exacto.
+    var locationName by remember { mutableStateOf("") }
+    var locationLat by remember { mutableStateOf(0.0) }
+    var locationLng by remember { mutableStateOf(0.0) }
+    var locationDetails by remember { mutableStateOf("") }
     var duration by remember { mutableStateOf(ActivityFormat.DUR_1H) }
     var description by remember { mutableStateOf("") }
     var imageUri by remember { mutableStateOf<Uri?>(null) }
@@ -128,7 +136,13 @@ fun NewActivityScreen(
             precargadoPor = existing.id
             title = existing.title
             category = existing.category
-            location = existing.location
+            locationName = existing.locationName
+            // Coordenadas del catálogo; si el nombre no está (datos
+            // antiguos con texto libre) se conservan las que traiga.
+            val punto = CampusLocations.find(existing.locationName)
+            locationLat = punto?.latitude ?: existing.latitude
+            locationLng = punto?.longitude ?: existing.longitude
+            locationDetails = existing.locationDetails.orEmpty()
             duration = existing.duration
             description = existing.description
             imageUri = existing.imageUri?.let(Uri::parse)
@@ -149,12 +163,13 @@ fun NewActivityScreen(
         if (uri != null) imageUri = uri
     }
 
-    // Campos obligatorios (*): título, categoría, ubicación, duración, fecha
-    // y hora. Los desplegables/segmentados/fecha/hora nacen con valor, pero
-    // se validan igual por si algún día llegan vacíos.
+    // Campos obligatorios (*): título, categoría, ubicación principal,
+    // duración, fecha y hora. Los desplegables/segmentados/fecha/hora nacen
+    // con valor, pero se validan igual por si algún día llegan vacíos. La
+    // ubicación principal viene del catálogo: sin elegir, no se publica.
     val canPublish = title.isNotBlank() &&
         category.isNotBlank() &&
-        location.isNotBlank() &&
+        locationName.isNotBlank() &&
         duration.isNotBlank() &&
         dateMillis > 0L &&
         startHour.isNotBlank()
@@ -231,10 +246,25 @@ fun NewActivityScreen(
             Spacer(modifier = Modifier.height(20.dp))
 
             FormLabel(text = s.locationPlaceLabel + " *")
+            LocationDropdown(
+                selected = locationName,
+                onSelect = { punto ->
+                    // Al elegir zona, el nombre y sus coordenadas quedan
+                    // guardados a la vez (datos listos para el Radar AR).
+                    locationName = punto.name
+                    locationLat = punto.latitude
+                    locationLng = punto.longitude
+                },
+            )
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            FormLabel(text = s.locationDetailsLabel)
             GaplyTextField(
-                value = location,
-                onValueChange = { location = it },
-                label = s.locationPlacePlaceholder,
+                value = locationDetails,
+                onValueChange = { locationDetails = it },
+                label = s.locationDetailsLabel,
+                placeholder = s.locationDetailsPlaceholder,
             )
 
             Spacer(modifier = Modifier.height(20.dp))
@@ -288,7 +318,10 @@ fun NewActivityScreen(
                         duration = duration,
                         date = dateMillis.toString(),
                         timeRange = timeRange,
-                        location = location.trim(),
+                        locationName = locationName,
+                        latitude = locationLat,
+                        longitude = locationLng,
+                        locationDetails = locationDetails.trim().ifBlank { null },
                         description = description.trim(),
                         imageUri = imageUri?.toString(),
                         defaultColorHex = existing?.defaultColorHex
@@ -540,6 +573,96 @@ private fun CategoryDropdown(
                     },
                     onClick = {
                         onSelect(interest)
+                        expanded = false
+                    },
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Desplegable de "Ubicación principal" con chip verde: misma estética que
+ * [CategoryDropdown], pero lista los puntos del catálogo [CampusLocations].
+ * Al elegir un punto se devuelve completo (nombre + coordenadas).
+ */
+@Composable
+private fun LocationDropdown(
+    selected: String,
+    onSelect: (CampusPoint) -> Unit,
+) {
+    val s = LocalStrings.current
+    var expanded by remember { mutableStateOf(false) }
+
+    Box(modifier = Modifier.fillMaxWidth()) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(10.dp))
+                .border(1.dp, Sage, RoundedCornerShape(10.dp))
+                .background(SurfaceWhite)
+                .clickable { expanded = true }
+                .padding(horizontal = 12.dp, vertical = 12.dp),
+            contentAlignment = Alignment.CenterStart,
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                if (selected.isNotBlank()) {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(50))
+                            .background(BrandGreen)
+                            .padding(horizontal = 14.dp, vertical = 6.dp),
+                    ) {
+                        Text(
+                            text = selected,
+                            color = Color.White,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 14.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                } else {
+                    // Aún no se eligió zona: pista en gris dentro del campo.
+                    Text(
+                        text = s.locationPlacePlaceholder,
+                        color = TextSecondary,
+                        fontSize = 14.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                Spacer(modifier = Modifier.weight(1f))
+                Icon(
+                    imageVector = Icons.Filled.ArrowDropDown,
+                    contentDescription = s.locationPlaceLabel,
+                    tint = TextSecondary,
+                )
+            }
+        }
+
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            modifier = Modifier.fillMaxWidth(0.9f),
+        ) {
+            CampusLocations.ALL.forEach { point ->
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            text = point.name,
+                            fontWeight = if (point.name == selected) {
+                                FontWeight.Bold
+                            } else {
+                                FontWeight.Normal
+                            },
+                        )
+                    },
+                    onClick = {
+                        onSelect(point)
                         expanded = false
                     },
                 )

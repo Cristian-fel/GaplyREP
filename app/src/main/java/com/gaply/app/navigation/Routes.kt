@@ -67,4 +67,15 @@ object Routes {
     /** Conversación abierta desde la lista de chats o desde el diálogo de match. */
     fun chatDetail(chatId: String): String =
         "$CHAT_DETAIL?$ARG_CHAT_ID=${android.net.Uri.encode(chatId)}"
+
+    // ---- Módulo Radar AR (brújula espacial) ----
+    /** Pantalla del Radar AR hacia la ubicación de una actividad. */
+    const val RADAR_AR = "radar_ar"
+    const val ARG_RADAR_TITLE = "radarTitle"
+    const val ARG_RADAR_LOCATION = "radarLocation"
+
+    /** Radar AR abierto desde "Cómo llegar" del detalle de la actividad. */
+    fun radarAr(title: String, location: String): String =
+        "$RADAR_AR?$ARG_RADAR_TITLE=${android.net.Uri.encode(title)}" +
+            "&$ARG_RADAR_LOCATION=${android.net.Uri.encode(location)}"
 }

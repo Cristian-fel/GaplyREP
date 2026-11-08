@@ -27,7 +27,7 @@ class ActivityFormatOrdenTest {
         duration = "1 hora",
         date = date,
         timeRange = "",
-        location = "Biblioteca Central",
+        locationName = "Biblioteca Central",
         startTime = startTime,
     )
 

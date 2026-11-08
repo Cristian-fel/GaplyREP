@@ -576,6 +576,9 @@ object StringsJa : AppStrings {
     override val eventChat = "イベントチャット"
     override val locationLabel = "場所"
     override val howToGetThere = "行き方"
+    override val radarPermissionsMsg =
+        "レーダーARは、アクティビティへの案内にカメラと位置情報の許可が必要です。"
+    override val radarSearchingGps = "現在地を検索中…"
     override val beFirstToJoin = "最初に参加しましょう"
     override val manageYourActivity = "アクティビティを管理"
     override val newActivityTitle = "新しいアクティビティ"
@@ -585,6 +588,8 @@ object StringsJa : AppStrings {
     override val activityPhotoLabel = "会場の写真"
     override val locationPlaceLabel = "場所 / ロケーション"
     override val locationPlacePlaceholder = "例: コートM7A、教室204、図書館…"
+    override val locationDetailsLabel = "具体的な集合場所"
+    override val locationDetailsPlaceholder = "例：3階、302号室、カフェの隣..."
     override val durationLabel = "推定時間"
     override val dateLabel = "日付"
     override val descriptionOptionalLabel = "説明（任意）"

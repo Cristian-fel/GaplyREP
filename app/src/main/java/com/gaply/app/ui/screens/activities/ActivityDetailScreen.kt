@@ -65,8 +65,8 @@ import java.time.ZoneId
  * Módulo de Actividades · Detalle de la actividad ("Actividades").
  *
  * Renderiza los datos reales de la actividad seleccionada (foto o bloque
- * de color, título, fecha/hora, ubicación y descripción), el cartel de
- * "próximamente" para Chat y Cómo llegar, organizador/asistentes y el
+ * de color, título, fecha/hora, ubicación y descripción), el recuadro de
+ * Chat / Cómo llegar (este abre el Radar AR), organizador/asistentes y el
  * botón "Unirme" / "Ya está dentro".
  *
  * Si la actividad fue creada por el usuario actual ([ActivityItem.isCreatedByMe])
@@ -79,6 +79,8 @@ fun ActivityDetailScreen(
     onEditActivity: (String) -> Unit = {},
     onDeleted: () -> Unit = {},
     onOpenChat: (String) -> Unit = {},
+    // Radar AR: "Cómo llegar" navega a la brújula espacial del lugar.
+    onOpenRadar: (titulo: String, lugar: String) -> Unit = { _, _ -> },
 ) {
     val viewModel = rememberActivityViewModel()
     val state by viewModel.uiState.collectAsState()
@@ -87,7 +89,6 @@ fun ActivityDetailScreen(
 
     val activity = state.activities.find { it.id == activityId }
 
-    var showComingSoon by remember { mutableStateOf(false) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
     var showLeaveConfirm by remember { mutableStateOf(false) }
     var showChatSoloMiembros by remember { mutableStateOf(false) }
@@ -193,12 +194,11 @@ fun ActivityDetailScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Recuadro verde claro: Chat del evento + Cómo llegar. Quien ya es
-            // parte de la actividad (dueño o asistente) entra al chat real; el
-            // resto recibe el aviso de que primero tiene que unirse.
+            // Recuadro verde claro: Chat del evento + Cómo llegar (Radar AR).
+            // Quien ya es parte de la actividad (dueño o asistente) entra al
+            // chat real; el resto recibe el aviso de que primero tiene que unirse.
             val esParticipante = activity.isCreatedByMe || activity.isJoined
             ComingSoonCard(
-                onClick = { showComingSoon = true },
                 onOpenChat = if (esParticipante) {
                     {
                         viewModel.abrirChatDeLaActividad(activityId) { chatId ->
@@ -212,6 +212,9 @@ fun ActivityDetailScreen(
                     null
                 } else {
                     { showChatSoloMiembros = true }
+                },
+                onOpenRadar = {
+                    onOpenRadar(activity.title, activity.locationName.ifBlank { activity.location })
                 },
             )
 
@@ -319,16 +322,6 @@ fun ActivityDetailScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
         }
-    }
-
-    if (showComingSoon) {
-        AppDialog(
-            style = DialogStyle.INFO,
-            title = s.comingSoonTitle,
-            message = s.comingSoonMsg,
-            confirmText = s.close,
-            onDismiss = { showComingSoon = false },
-        )
     }
 
     // "Chat del evento" sin ser parte: no es "próximamente", es que falta unirse.
@@ -444,10 +437,10 @@ private fun fechaLarga(date: String, locale: java.util.Locale): String {
     return millis?.let { ActivityFormat.fechaLarga(it, locale) } ?: date
 }
 
-/** Recuadro verde claro con "Chat del evento" y "Cómo llegar". */
+/** Recuadro verde claro con "Chat del evento" y "Cómo llegar" (Radar AR). */
 @Composable
 private fun ComingSoonCard(
-    onClick: () -> Unit,
+    onOpenRadar: () -> Unit,
     onOpenChat: (() -> Unit)? = null,
     onChatSoloMiembros: (() -> Unit)? = null,
 ) {
@@ -464,15 +457,14 @@ private fun ComingSoonCard(
             modifier = Modifier
                 .fillMaxWidth()
                 // Participante → el botón de la derecha abre el chat; sin
-                // unirse → la fila avisa que primero hay que ser parte; sin
-                // chat disponible → "próximamente".
+                // unirse → la fila avisa que primero hay que ser parte.
                 .then(
                     when {
                         onOpenChat != null -> Modifier
                         onChatSoloMiembros != null ->
                             Modifier.clickable(onClick = onChatSoloMiembros)
 
-                        else -> Modifier.clickable(onClick = onClick)
+                        else -> Modifier
                     },
                 ),
         ) {
@@ -534,7 +526,7 @@ private fun ComingSoonCard(
                 modifier = Modifier.weight(1f),
             )
             Button(
-                onClick = onClick,
+                onClick = onOpenRadar,
                 shape = RoundedCornerShape(50),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = BrandGreen,

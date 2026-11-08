@@ -568,6 +568,9 @@ object StringsFr : AppStrings {
     override val eventChat = "Chat de l'événement"
     override val locationLabel = "Lieu"
     override val howToGetThere = "Comment s'y rendre"
+    override val radarPermissionsMsg =
+        "Le Radar AR a besoin des autorisations caméra et localisation pour te guider vers l'activité."
+    override val radarSearchingGps = "Recherche de ta position…"
     override val beFirstToJoin = "Soyez le premier à rejoindre"
     override val manageYourActivity = "Gérez votre activité"
     override val newActivityTitle = "Nouvelle activité"
@@ -577,6 +580,8 @@ object StringsFr : AppStrings {
     override val activityPhotoLabel = "Photo du lieu de l'activité"
     override val locationPlaceLabel = "Lieu / Emplacement"
     override val locationPlacePlaceholder = "ex. Terrain M7A, Salle 204, Bibliothèque…"
+    override val locationDetailsLabel = "Point de rendez-vous précis"
+    override val locationDetailsPlaceholder = "Ex. 3e étage, salle 302, près de la cafétéria..."
     override val durationLabel = "Durée estimée"
     override val dateLabel = "Date"
     override val descriptionOptionalLabel = "Description (facultatif)"

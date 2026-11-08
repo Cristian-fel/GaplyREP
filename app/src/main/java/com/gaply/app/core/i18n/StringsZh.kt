@@ -574,6 +574,9 @@ object StringsZh : AppStrings {
     override val eventChat = "活动聊天"
     override val locationLabel = "位置"
     override val howToGetThere = "如何到达"
+    override val radarPermissionsMsg =
+        "雷达 AR 需要相机和定位权限才能引导您前往活动地点。"
+    override val radarSearchingGps = "正在获取您的位置…"
     override val beFirstToJoin = "成为第一个加入的人"
     override val manageYourActivity = "管理你的活动"
     override val newActivityTitle = "新活动"
@@ -583,6 +586,8 @@ object StringsZh : AppStrings {
     override val activityPhotoLabel = "活动地点照片"
     override val locationPlaceLabel = "位置 / 地点"
     override val locationPlacePlaceholder = "例如：M7A球场、204教室、图书馆…"
+    override val locationDetailsLabel = "确切的见面地点"
+    override val locationDetailsPlaceholder = "例如：3层、302教室、咖啡厅旁边..."
     override val durationLabel = "预计时长"
     override val dateLabel = "日期"
     override val descriptionOptionalLabel = "描述（可选）"

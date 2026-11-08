@@ -17,6 +17,7 @@ import com.gaply.app.ui.screens.activities.ProfileHostScreen
 import com.gaply.app.ui.screens.chats.ChatDetailScreen
 import com.gaply.app.ui.screens.login.LoginScreen
 import com.gaply.app.ui.screens.profile.edit.EditProfileScreen
+import com.gaply.app.ui.screens.radar.RadarArScreen
 import com.gaply.app.ui.screens.register.RegisterScreen
 import com.gaply.app.ui.screens.reset.ResetPasswordScreen
 import com.gaply.app.ui.screens.schedule.HuecosScreen
@@ -196,6 +197,35 @@ fun GaplyNavHost() {
                 onDeleted = { navController.popBackStack() },
                 // Módulo 5: dueño y asistentes entran al chat del grupo.
                 onOpenChat = { chatId -> navController.navigate(Routes.chatDetail(chatId)) },
+                // Radar AR: "Cómo llegar" apunta a la ubicación de la actividad.
+                // Se pasa el nombre del catálogo (respaldo: texto legible).
+                onOpenRadar = { titulo, lugar ->
+                    navController.navigate(Routes.radarAr(titulo, lugar))
+                },
+            )
+        }
+
+        // Radar AR (brújula espacial con cámara + sensores) hacia el destino.
+        composable(
+            route = "${Routes.RADAR_AR}" +
+                "?${Routes.ARG_RADAR_TITLE}={${Routes.ARG_RADAR_TITLE}}" +
+                "&${Routes.ARG_RADAR_LOCATION}={${Routes.ARG_RADAR_LOCATION}}",
+            arguments = listOf(
+                navArgument(Routes.ARG_RADAR_TITLE) {
+                    type = NavType.StringType
+                    defaultValue = ""
+                },
+                navArgument(Routes.ARG_RADAR_LOCATION) {
+                    type = NavType.StringType
+                    defaultValue = ""
+                },
+            ),
+        ) { entry ->
+            RadarArScreen(
+                title = entry.arguments?.getString(Routes.ARG_RADAR_TITLE).orEmpty(),
+                destinationPlace = entry.arguments?.getString(Routes.ARG_RADAR_LOCATION)
+                    .orEmpty(),
+                onBack = { navController.popBackStack() },
             )
         }
 

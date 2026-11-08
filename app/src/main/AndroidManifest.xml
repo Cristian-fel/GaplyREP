@@ -3,6 +3,11 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- Radar AR: cámara en vivo + ubicación GPS para el rumbo al destino. -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
     <application
         android:name=".GaplyApp"
         android:allowBackup="true"

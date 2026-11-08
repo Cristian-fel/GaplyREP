@@ -27,7 +27,7 @@ class ActivityFormatHuecoTest {
             duration = duracion,
             date = "2026-10-20",
             timeRange = "",
-            location = "Cancha M7A",
+            locationName = "Cancha M7A",
             startTime = inicio,
         )
 

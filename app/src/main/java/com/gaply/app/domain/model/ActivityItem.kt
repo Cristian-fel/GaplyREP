@@ -20,8 +20,14 @@ data class ActivityItem(
     val date: String,
     /** Rango legible, ej. "12:00 p.m. - 2:00 p.m.". */
     val timeRange: String,
-    /** Lugar escrito por el usuario, ej. "Cancha M7A". */
-    val location: String,
+    /** Nombre del lugar del catálogo [com.gaply.app.data.CampusLocations], ej. "Biblioteca". */
+    val locationName: String = "",
+    /** Latitud del punto elegido en el catálogo (0.0 en actividades antiguas). */
+    val latitude: Double = 0.0,
+    /** Longitud del punto elegido en el catálogo (0.0 en actividades antiguas). */
+    val longitude: Double = 0.0,
+    /** Punto de encuentro exacto dentro de la zona (opcional), ej. "Mesa del fondo". */
+    val locationDetails: String? = null,
     /** Descripción opcional del evento. */
     val description: String = "",
     /** Foto del lugar elegida desde la galería; null si no hubo foto. */
@@ -47,6 +53,25 @@ data class ActivityItem(
     /** Hora de inicio en 24h "HH:mm" (se guarda aparte para poder reeditarla). */
     val startTime: String = "12:00",
 ) {
+    /**
+     * Texto de ubicación para la UI (NO se persiste en Firestore):
+     * concatena el lugar del catálogo con el punto de encuentro exacto,
+     * ej. "Biblioteca - Mesa del fondo"; sin detalles solo el nombre.
+     *
+     * Las actividades antiguas que guardaban un único campo `location`
+     * llegan con el nombre ya migrado al leer (ver
+     * `FirebaseActivityRepository.aActividad`), así que este texto sigue
+     * funcionando igual para los datos viejos.
+     */
+    val location: String
+        get() = when {
+            locationName.isNotBlank() && !locationDetails.isNullOrBlank() ->
+                "$locationName - $locationDetails"
+
+            locationName.isNotBlank() -> locationName
+            else -> locationDetails.orEmpty()
+        }
+
     companion object {
         /** Tono verde de la paleta de la app usado como "imagen" por defecto. */
         const val DEFAULT_COLOR_HEX = "#1A5C48"

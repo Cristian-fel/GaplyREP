@@ -498,6 +498,10 @@ interface AppStrings {
     val eventChat: String
     val locationLabel: String
     val howToGetThere: String
+    /** Radar AR: aviso cuando faltan los permisos de cámara o ubicación. */
+    val radarPermissionsMsg: String
+    /** Radar AR: subtítulo de la tarjeta mientras no hay señal GPS. */
+    val radarSearchingGps: String
     val beFirstToJoin: String
     val manageYourActivity: String
 
@@ -508,6 +512,10 @@ interface AppStrings {
     val activityPhotoLabel: String
     val locationPlaceLabel: String
     val locationPlacePlaceholder: String
+    /** Etiqueta del campo opcional de punto de encuentro exacto. */
+    val locationDetailsLabel: String
+    /** Placeholder del campo de punto de encuentro exacto. */
+    val locationDetailsPlaceholder: String
     val durationLabel: String
     val dateLabel: String
     val descriptionOptionalLabel: String
