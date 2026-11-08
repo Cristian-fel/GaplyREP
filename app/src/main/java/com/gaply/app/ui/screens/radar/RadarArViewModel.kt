@@ -9,6 +9,8 @@ import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.location.Location
 import android.os.Looper
+import android.view.Surface
+import android.view.WindowManager
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -40,6 +42,13 @@ data class RadarUiState(
     val bearingDeg: Float? = null,
     /** Diferencia angular bearing − azimuth, normalizada a [−180, 180]. */
     val angleDeltaDeg: Float = 0f,
+    /** true si la última fix GPS tiene menos de 8 s (señal viva). */
+    val signalAlive: Boolean = false,
+    /**
+     * Precisión del sensor de brújula (`SENSOR_STATUS_*`): 0/1 = sin
+     * calibrar (hay que hacer un "8" con el celular), −1 = sin dato aún.
+     */
+    val compassAccuracy: Int = -1,
 )
 
 /**
@@ -73,6 +82,9 @@ class RadarArViewModel(application: Application) :
     private var accelValues: FloatArray? = null
     private var magValues: FloatArray? = null
     private var lastPublishedAzimuth = -1f
+    private var lastFixAtMs = 0L
+    private var tickerJob: kotlinx.coroutines.Job? = null
+    private val remappedMatrix = FloatArray(9)
 
     private val locationCallback = object : LocationCallback() {
         override fun onLocationResult(result: LocationResult) {
@@ -86,11 +98,28 @@ class RadarArViewModel(application: Application) :
         _uiState.update { it.copy(destination = destination) }
         registerSensors()
         requestLocation()
+        // Reloj de 1 s: apaga la "señal viva" si el GPS deja de llegar
+        // (si no, la distancia quedaría congelada mintiendo "llegaste").
+        if (tickerJob == null) {
+            tickerJob = viewModelScope.launch {
+                while (true) {
+                    kotlinx.coroutines.delay(1_000)
+                    _uiState.update { state ->
+                        val vivo = lastFixAtMs > 0L &&
+                            System.currentTimeMillis() - lastFixAtMs < 8_000L
+                        if (state.signalAlive == vivo) state
+                        else state.copy(signalAlive = vivo)
+                    }
+                }
+            }
+        }
     }
 
     /** Detiene sensores y actualizaciones de ubicación. */
     fun stop() {
         sensorManager.unregisterListener(this)
+        tickerJob?.cancel()
+        tickerJob = null
         runCatching { fusedLocationClient.removeLocationUpdates(locationCallback) }
     }
 
@@ -134,7 +163,10 @@ class RadarArViewModel(application: Application) :
         }
     }
 
-    override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) = Unit
+    override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
+        // Brújula sin calibrar (0/1) → la UI muestra el aviso del "8".
+        _uiState.update { it.copy(compassAccuracy = accuracy) }
+    }
 
     private fun computeRotationFromAccelMag() {
         val accel = accelValues ?: return
@@ -143,7 +175,20 @@ class RadarArViewModel(application: Application) :
     }
 
     private fun publishAzimuth() {
-        SensorManager.getOrientation(rotationMatrix, orientation)
+        // Remapea el sistema de ejes según la rotación de la pantalla:
+        // el azimuth debe apuntar al "arriba" visible en vertical o
+        // horizontal (si no, en landscape queda desfasado 90°).
+        val rotation = displayRotation()
+        val (axisX, axisY) = when (rotation) {
+            Surface.ROTATION_90 -> SensorManager.AXIS_Y to SensorManager.AXIS_MINUS_X
+            Surface.ROTATION_180 -> SensorManager.AXIS_MINUS_X to SensorManager.AXIS_MINUS_Y
+            Surface.ROTATION_270 -> SensorManager.AXIS_MINUS_Y to SensorManager.AXIS_X
+            else -> SensorManager.AXIS_X to SensorManager.AXIS_Y
+        }
+        val remapped = SensorManager.remapCoordinateSystem(
+            rotationMatrix, axisX, axisY, remappedMatrix,
+        )
+        SensorManager.getOrientation(if (remapped) remappedMatrix else rotationMatrix, orientation)
         var azimuth = Math.toDegrees(orientation[0].toDouble()).toFloat()
         azimuth = (azimuth + 360f) % 360f
         // Publica solo cuando el valor cambió (menos recomposiciones).
@@ -151,6 +196,12 @@ class RadarArViewModel(application: Application) :
         lastPublishedAzimuth = azimuth
         _uiState.update { it.copy(azimuthDeg = azimuth).withDerived() }
     }
+
+    /** Rotación actual de la pantalla (ROTATION_0/90/180/270). */
+    @Suppress("DEPRECATION")
+    private fun displayRotation(): Int =
+        (getApplication<Application>().getSystemService(Context.WINDOW_SERVICE)
+            as WindowManager).defaultDisplay.rotation
 
     // ---- GPS ----
 
@@ -178,8 +229,13 @@ class RadarArViewModel(application: Application) :
     }
 
     private fun onUserLocation(location: Location) {
+        lastFixAtMs = System.currentTimeMillis()
         _uiState.update { state ->
-            state.copy(userLocation = location, destination = destination).withDerived()
+            state.copy(
+                userLocation = location,
+                destination = destination,
+                signalAlive = true,
+            ).withDerived()
         }
     }
 

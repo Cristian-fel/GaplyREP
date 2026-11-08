@@ -571,6 +571,7 @@ object StringsFr : AppStrings {
     override val radarPermissionsMsg =
         "Le Radar AR a besoin des autorisations caméra et localisation pour te guider vers l'activité."
     override val radarSearchingGps = "Recherche de ta position…"
+    override val radarCalibrateHint = "Calibre la boussole : bouge ton téléphone en forme de 8"
     override val beFirstToJoin = "Soyez le premier à rejoindre"
     override val manageYourActivity = "Gérez votre activité"
     override val newActivityTitle = "Nouvelle activité"

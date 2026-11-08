@@ -6,6 +6,8 @@ import android.app.Application
 import android.content.Context
 import android.content.ContextWrapper
 import android.content.pm.PackageManager
+import android.hardware.SensorManager
+import android.location.Location
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -129,6 +131,8 @@ private fun hasRadarPermissions(context: Context): Boolean {
 fun RadarArScreen(
     title: String,
     destinationPlace: String,
+    destinationLat: Double = 0.0,
+    destinationLng: Double = 0.0,
     onBack: () -> Unit,
 ) {
     val s = LocalStrings.current
@@ -153,7 +157,18 @@ fun RadarArScreen(
         }
     }
 
-    val destination = remember(destinationPlace) { LocationMapper.resolve(destinationPlace) }
+    // Destino: coordenadas exactas de la actividad si existen (preferido);
+    // si no tiene GPS guardado, se resuelve con el texto del lugar.
+    val destination = remember(destinationPlace, destinationLat, destinationLng) {
+        if (destinationLat != 0.0 && destinationLng != 0.0) {
+            Location("gaply_activity").apply {
+                latitude = destinationLat
+                longitude = destinationLng
+            }
+        } else {
+            LocationMapper.resolve(destinationPlace)
+        }
+    }
     val viewModel: RadarArViewModel = viewModel(
         factory = RadarArViewModel.factory(context.applicationContext as Application),
     )
@@ -301,7 +316,9 @@ private fun RadarOverlay(
             ) {
                 RadarDestinationCard(
                     title = title,
-                    distanceM = state.distanceM,
+                    // Señal viva (<8 s): si el GPS se corta, la distancia
+                    // queda congelada → se muestra "buscando" en vez de mentir.
+                    distanceM = state.distanceM?.takeIf { state.signalAlive },
                     searchingText = s.radarSearchingGps,
                 )
             }
@@ -336,6 +353,25 @@ private fun RadarOverlay(
                 .statusBarsPadding()
                 .padding(top = 12.dp, end = 12.dp),
         )
+
+        // Brújula sin calibrar (precisión no confiable/baja): aviso "haz un 8".
+        if (state.compassAccuracy in 0..SensorManager.SENSOR_STATUS_ACCURACY_LOW) {
+            Text(
+                text = s.radarCalibrateHint,
+                color = Color.White,
+                style = MaterialTheme.typography.bodySmall,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .statusBarsPadding()
+                    .padding(top = 12.dp, start = 56.dp, end = 56.dp)
+                    .background(
+                        color = Color.Black.copy(alpha = 0.55f),
+                        shape = RoundedCornerShape(50),
+                    )
+                    .padding(horizontal = 14.dp, vertical = 6.dp),
+            )
+        }
     }
 }
 
@@ -519,6 +555,18 @@ private fun RadarDebugPanel(
         )
         Text(
             text = "Ángulo diff: ${fmtAngle(state.angleDeltaDeg)}°",
+            color = Color.White.copy(alpha = 0.75f),
+            fontSize = 11.sp,
+        )
+        // Azimuth (brújula) y rumbo por separado: si "diff" falla se ve
+        // de inmediato cuál de los dos está equivocado.
+        Text(
+            text = "Brújula: ${fmtAngle(state.azimuthDeg)}°",
+            color = Color.White.copy(alpha = 0.75f),
+            fontSize = 11.sp,
+        )
+        Text(
+            text = "Rumbo: ${state.bearingDeg?.let { fmtAngle(it) } ?: "—"}°",
             color = Color.White.copy(alpha = 0.75f),
             fontSize = 11.sp,
         )

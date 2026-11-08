@@ -577,6 +577,7 @@ object StringsZh : AppStrings {
     override val radarPermissionsMsg =
         "雷达 AR 需要相机和定位权限才能引导您前往活动地点。"
     override val radarSearchingGps = "正在获取您的位置…"
+    override val radarCalibrateHint = "校准指南针：将手机以8字形移动"
     override val beFirstToJoin = "成为第一个加入的人"
     override val manageYourActivity = "管理你的活动"
     override val newActivityTitle = "新活动"

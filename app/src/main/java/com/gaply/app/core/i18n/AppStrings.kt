@@ -502,6 +502,8 @@ interface AppStrings {
     val radarPermissionsMsg: String
     /** Radar AR: subtítulo de la tarjeta mientras no hay señal GPS. */
     val radarSearchingGps: String
+    /** Radar AR: aviso cuando la brújula está sin calibrar (hacer un "8"). */
+    val radarCalibrateHint: String
     val beFirstToJoin: String
     val manageYourActivity: String
 

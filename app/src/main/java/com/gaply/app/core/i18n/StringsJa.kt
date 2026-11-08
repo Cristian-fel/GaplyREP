@@ -579,6 +579,7 @@ object StringsJa : AppStrings {
     override val radarPermissionsMsg =
         "レーダーARは、アクティビティへの案内にカメラと位置情報の許可が必要です。"
     override val radarSearchingGps = "現在地を検索中…"
+    override val radarCalibrateHint = "コンパスを校正：携帯を8の字に動かしてください"
     override val beFirstToJoin = "最初に参加しましょう"
     override val manageYourActivity = "アクティビティを管理"
     override val newActivityTitle = "新しいアクティビティ"

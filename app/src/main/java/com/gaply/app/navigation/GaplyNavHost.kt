@@ -198,9 +198,9 @@ fun GaplyNavHost() {
                 // Módulo 5: dueño y asistentes entran al chat del grupo.
                 onOpenChat = { chatId -> navController.navigate(Routes.chatDetail(chatId)) },
                 // Radar AR: "Cómo llegar" apunta a la ubicación de la actividad.
-                // Se pasa el nombre del catálogo (respaldo: texto legible).
-                onOpenRadar = { titulo, lugar ->
-                    navController.navigate(Routes.radarAr(titulo, lugar))
+                // Se pasan las coordenadas exactas (0.0 = sin GPS → respaldo texto).
+                onOpenRadar = { titulo, lugar, lat, lng ->
+                    navController.navigate(Routes.radarAr(titulo, lugar, lat, lng))
                 },
             )
         }
@@ -209,7 +209,9 @@ fun GaplyNavHost() {
         composable(
             route = "${Routes.RADAR_AR}" +
                 "?${Routes.ARG_RADAR_TITLE}={${Routes.ARG_RADAR_TITLE}}" +
-                "&${Routes.ARG_RADAR_LOCATION}={${Routes.ARG_RADAR_LOCATION}}",
+                "&${Routes.ARG_RADAR_LOCATION}={${Routes.ARG_RADAR_LOCATION}}" +
+                "&${Routes.ARG_RADAR_LAT}={${Routes.ARG_RADAR_LAT}}" +
+                "&${Routes.ARG_RADAR_LNG}={${Routes.ARG_RADAR_LNG}}",
             arguments = listOf(
                 navArgument(Routes.ARG_RADAR_TITLE) {
                     type = NavType.StringType
@@ -219,12 +221,24 @@ fun GaplyNavHost() {
                     type = NavType.StringType
                     defaultValue = ""
                 },
+                navArgument(Routes.ARG_RADAR_LAT) {
+                    type = NavType.StringType
+                    defaultValue = "0.0"
+                },
+                navArgument(Routes.ARG_RADAR_LNG) {
+                    type = NavType.StringType
+                    defaultValue = "0.0"
+                },
             ),
         ) { entry ->
             RadarArScreen(
                 title = entry.arguments?.getString(Routes.ARG_RADAR_TITLE).orEmpty(),
                 destinationPlace = entry.arguments?.getString(Routes.ARG_RADAR_LOCATION)
                     .orEmpty(),
+                destinationLat = entry.arguments?.getString(Routes.ARG_RADAR_LAT)
+                    ?.toDoubleOrNull() ?: 0.0,
+                destinationLng = entry.arguments?.getString(Routes.ARG_RADAR_LNG)
+                    ?.toDoubleOrNull() ?: 0.0,
                 onBack = { navController.popBackStack() },
             )
         }

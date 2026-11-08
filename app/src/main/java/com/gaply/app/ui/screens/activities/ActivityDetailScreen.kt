@@ -80,7 +80,8 @@ fun ActivityDetailScreen(
     onDeleted: () -> Unit = {},
     onOpenChat: (String) -> Unit = {},
     // Radar AR: "Cómo llegar" navega a la brújula espacial del lugar.
-    onOpenRadar: (titulo: String, lugar: String) -> Unit = { _, _ -> },
+    onOpenRadar: (titulo: String, lugar: String, lat: Double, lng: Double) -> Unit =
+        { _, _, _, _ -> },
 ) {
     val viewModel = rememberActivityViewModel()
     val state by viewModel.uiState.collectAsState()
@@ -214,7 +215,13 @@ fun ActivityDetailScreen(
                     { showChatSoloMiembros = true }
                 },
                 onOpenRadar = {
-                    onOpenRadar(activity.title, activity.locationName.ifBlank { activity.location })
+                    // Coordenadas exactas de la actividad (0.0 = sin GPS guardado).
+                    onOpenRadar(
+                        activity.title,
+                        activity.locationName.ifBlank { activity.location },
+                        activity.latitude,
+                        activity.longitude,
+                    )
                 },
             )
 

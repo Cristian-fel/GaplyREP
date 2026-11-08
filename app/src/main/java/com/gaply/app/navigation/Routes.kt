@@ -73,9 +73,17 @@ object Routes {
     const val RADAR_AR = "radar_ar"
     const val ARG_RADAR_TITLE = "radarTitle"
     const val ARG_RADAR_LOCATION = "radarLocation"
+    const val ARG_RADAR_LAT = "radarLat"
+    const val ARG_RADAR_LNG = "radarLng"
 
-    /** Radar AR abierto desde "Cómo llegar" del detalle de la actividad. */
-    fun radarAr(title: String, location: String): String =
+    /**
+     * Radar AR abierto desde "Cómo llegar" del detalle de la actividad.
+     *
+     * [lat]/[lng] son las coordenadas exactas guardadas en la actividad
+     * (0.0 = sin GPS → el Radar resuelve con el texto de [location]).
+     */
+    fun radarAr(title: String, location: String, lat: Double, lng: Double): String =
         "$RADAR_AR?$ARG_RADAR_TITLE=${android.net.Uri.encode(title)}" +
-            "&$ARG_RADAR_LOCATION=${android.net.Uri.encode(location)}"
+            "&$ARG_RADAR_LOCATION=${android.net.Uri.encode(location)}" +
+            "&$ARG_RADAR_LAT=$lat&$ARG_RADAR_LNG=$lng"
 }
