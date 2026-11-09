@@ -26,6 +26,15 @@ actividades abiertas al resto de la comunidad del campus.
   dentro!" al unirte a una actividad, sección **Mis matches** + badge de la
   campana en Descubrir, lista de chats en tiempo real con no leídos y
   conversaciones de texto (directas y de grupo).
+- **Módulo 6 - Radar AR:** navegación asistida con realidad aumentada hacia la
+  ubicación de cada actividad. Cámara en vivo (CameraX) como fondo, brújula
+  (sensor de rotación / acelerómetro + magnetómetro) y GPS (`FusedLocationProvider`)
+  para calcular distancia y rumbo; overlay con flecha direccional, tarjeta de
+  destino dentro del campo de visión ±35°, flecha de borde para girar y
+  mini-radar. Se entra desde el detalle de actividad con el botón "Cómo llegar".
+  Permisos de cámara y ubicación. Catálogo de puntos del campus
+  (`CampusLocations`, 11 lugares de la sede Bogotá) para resolver el nombre de
+  la actividad a coordenadas con fallback al centro del campus.
 
 
 ## Pantallas
@@ -34,7 +43,7 @@ Welcome · Login · Recuperar contraseña · Registro · Home (Descubrir / Match
 Chats / Perfil) · Editar perfil (3 pasos) · Mi horario · Formulario de clase ·
 Mis huecos · Configuración · Cambiar contraseña · Desactivar / Eliminar cuenta ·
 Idioma · Calificar la app · Acerca de · Crear actividad · Lista de actividades ·
-Detalle de actividad · Tus actividades · Detalle de chat.
+Detalle de actividad · Tus actividades · Detalle de chat · Radar AR.
 
 
 ## Tecnologías
@@ -42,12 +51,14 @@ Detalle de actividad · Tus actividades · Detalle de chat.
 - Kotlin 2.2 + Jetpack Compose (Material 3) y Navigation Compose
 - Firebase: Authentication, Cloud Firestore, Storage
 - Coil para carga de imágenes
+- CameraX (preview de cámara) + Play Services Location (GPS) para el Radar AR
 - Arquitectura: MVVM + repositorios (`domain/` → `data/` → `ui/`),
   inyección de dependencias manual en `di/AppContainer`
 - Sistema propio de i18n en `core/i18n`: 8 idiomas (ES, EN, FR, DE, IT, PT,
   JA, ZH); Configuración muestra Español e Inglés por ahora
 - Pruebas unitarias JUnit en JVM (`app/src/test`) para los agentes (recomendación
-  y matches), el i18n y los ViewModels de configuración
+  y matches), el i18n, los ViewModels de configuración, el catálogo de
+  ubicaciones del campus y el destino inicial de navegación
 
 
 ## Estructura de datos (Firestore)
@@ -153,18 +164,30 @@ acción; la lógica está aislada en
 acción con su propia función de utilidad para perfiles:
 
 ```
-utilidad = 0.60 × compatibilidadDeIntereses + 0.40 × solapeDeHuecosLibres
+utilidad = 0.55 × compatibilidadDeIntereses
+         + 0.30 × solapeDeHuecosLibres
+         + 0.15 × coincidenciaUniversidad
 ```
 
-La percepción solo descarta perfiles que **teniendo horario** no comparten ni
-un minuto con el usuario (motivo vía i18n); si falta el horario de alguno de
-los dos no hay evidencia de incompatibilidad, el perfil entra al mazo y el eje
-de tiempo puntúa 0 (mandan los intereses). La decisión puntúa 0-100 con razones
+(Pesos de `PesosUtilidadMatches.CON_UNIVERSIDAD_Y_META`; la variante por defecto
+es 0.60 intereses + 0.40 horario, y el eje `meta` queda en 0.) La percepción
+solo descarta perfiles que **teniendo horario** no comparten ni un minuto con el
+usuario (motivo vía i18n); si falta el horario de alguno de los dos no hay
+evidencia de incompatibilidad, el perfil entra al mazo y el eje de tiempo
+puntúa 0 (mandan los intereses). La decisión puntúa 0-100 con razones
 explicables y la acción devuelve el top 5. Los huecos libres de cada candidato
 salen de `users/{uid}.schedule` con la misma lógica de "Mis huecos"
 (`huecosDelHorario`). Sin candidatos la pestaña muestra
 "Tus matches aparecerán aquí"; con el mazo recorrido, "No tenemos más
 sugerencias por el momento".
+
+Cuando `usarRefinamientoIa` está activo, la compatibilidad de intereses usa
+`RefinadorIaMatches` (`AgenteLlmRefinador`): una matriz de similitud semántica
+entrenada sobre los 15 intereses oficiales (coseno discreto en [0, 1],
+simétrica entre ambos perfiles) que permite pares afines aunque no coincidan
+exactamente (p. ej. Programación ↔ Ciencia = 0.75), más la generación de un
+prompt estructurado para un LLM (Gemini / OpenAI). El umbral de afinidad es
+0.50.
 
 Las cartas de actividad rápida del mazo son las **futuras** (incluidas las
 propias), ordenadas por fecha más cercana; si no hay ninguna futura se cae a
@@ -184,10 +207,3 @@ gradlew.bat :app:assembleDebug      # compilar APK debug
 gradlew.bat :app:installDebug       # instalar en el dispositivo conectado
 gradlew.bat :app:testDebugUnitTest  # correr las pruebas unitarias
 ```
-
-
-## Próximos pasos
-
-- Navegación asistida con realidad aumentada hacia la ubicación de cada
-  actividad (cámara + GPS + brújula).
-- Presencia ("en línea"), imágenes en chat y notificaciones push.
